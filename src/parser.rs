@@ -1,7 +1,7 @@
 use pest::{iterators::Pair, pratt_parser::PrattParser};
 use pest_derive::Parser;
 
-use super::{throws::Throws, Cmd};
+use super::{cmd::Cmd, throws::Throws};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
