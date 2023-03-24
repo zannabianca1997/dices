@@ -2,6 +2,8 @@
 
 use std::fmt::Debug;
 
+use rand::Rng;
+
 /// A set of throws
 #[derive(Debug, Clone)]
 pub enum Throws {
@@ -47,3 +49,5 @@ pub enum Throws {
     /// Yield a single value.
     Sum(Box<Throws>),
 }
+
+impl Throws {}
