@@ -1,0 +1,29 @@
+lit = @{ ASCII_DIGIT{1,18} }
+
+summed = { "(" ~ throwsexpr ~ ")" }
+atom = _{ lit | summed | "[" ~ throwsexpr ~ "]" }
+primary = { un_op* ~ atom }
+
+bin_op = _{ concat | minus | multiply | repeats | kh | kl | rh | rl | dice }
+un_op = _{ dice | minus }
+    concat = { "+" }
+    minus = { "-" }
+    multiply = { "*" }
+    repeats = { "^" }
+    kh = { ^"kh" }
+    kl = { ^"kl" }
+    rh = { ^"rh" }
+    rl = { ^"rl" }
+    dice = { ^"d" }
+
+
+throwsexpr = { primary ~ (bin_op ~  primary)* }
+
+throws = { ^"throws" ~ throwsexpr }
+throw = { ^"throw"? ~ throwsexpr }
+
+quit = { ^"quit" }
+
+cmd = { SOI ~ ( throws | throw | quit )? ~ EOI }
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }

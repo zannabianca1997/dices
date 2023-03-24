@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-either = "1.8.1"
+lazy_static = "1.4.0"
+pest = "2.5.6"
+pest_derive = "2.5.6"
 rand = { version = "0.8.5", features = ["small_rng"] }
 thiserror = "1.0.40"
