@@ -14,7 +14,9 @@ impl From<Pair<'_, Rule>> for Cmd {
         let cmd = value.into_inner().next().unwrap();
         match cmd.as_rule() {
             Rule::throws => Self::Throws(cmd.into_inner().next().unwrap().into()),
-            Rule::throw => Self::Throw(cmd.into_inner().next().unwrap().into()),
+            Rule::throw => Self::Throw(Throws::Sum(Box::new(
+                cmd.into_inner().next().unwrap().into(),
+            ))),
             Rule::quit => Self::Quit,
             Rule::EOI => Self::None,
             r => unreachable!("Rule {r:?} not possible as a top-level command"),
