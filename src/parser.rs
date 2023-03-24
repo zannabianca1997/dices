@@ -87,7 +87,7 @@ impl From<Pair<'_, Rule>> for Throws {
                 Rule::multiply => Self::Multiply(Box::new(a), Box::new(b)),
                 Rule::repeats => Self::Repeat {
                     base: Box::new(a),
-                    times: Box::new(b),
+                    num: Box::new(b),
                 },
                 Rule::kh => Self::KeepHigh {
                     base: Box::new(a),
@@ -107,7 +107,7 @@ impl From<Pair<'_, Rule>> for Throws {
                 },
                 Rule::dice => Self::Repeat {
                     base: Box::new(Self::Dice(Box::new(b))),
-                    times: Box::new(a),
+                    num: Box::new(a),
                 },
                 r => unreachable!("Rule {r:?} shouldn't appear as a `throwsexpr` binary operation"),
             })
