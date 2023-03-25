@@ -4,7 +4,7 @@ use std::{cmp::Reverse, collections::HashMap, fmt::Write, iter::once};
 
 use pad::PadStr;
 
-use crate::cmd::{CmdDiscriminants, CmdStrings};
+use crate::cmd::{CmdDiscriminants, CMD_STRINGS};
 
 fn cmd_descr() -> HashMap<CmdDiscriminants, (&'static str, &'static str)> {
     use CmdDiscriminants::*;
@@ -23,7 +23,7 @@ lazy_static::lazy_static! {
             let data : Vec<_> = {
                 let descrs = cmd_descr();
                 let mut map = HashMap::new();
-                for (text, cmd) in CmdStrings.entries() {
+                for (text, cmd) in CMD_STRINGS.entries() {
                     map.entry(cmd).or_insert({
                         let descr = descrs.get(cmd).expect("`cmd_descr` should give descriptions of every command");
                         (vec![], descr.0, descr.1)

@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use thiserror::Error;
 
-use crate::cmd::{CmdDiscriminants, CmdStrings};
+use crate::cmd::{CmdDiscriminants, CMD_STRINGS};
 mod general;
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -33,7 +33,7 @@ impl FromStr for HelpTopic {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.trim().is_empty() {
             Ok(Self::default())
-        } else if let Some(cmd) = CmdStrings.get(&s.to_lowercase()) {
+        } else if let Some(cmd) = CMD_STRINGS.get(&s.to_lowercase()) {
             Ok(Self::Cmd(*cmd))
         } else {
             Err(UnknowTopic(s.to_owned()))

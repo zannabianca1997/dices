@@ -1,6 +1,6 @@
 //! CLI commands
 
-use std::{error, fmt::Display, str::FromStr};
+use std::{fmt::Display, str::FromStr};
 
 use lazy_regex::regex_captures;
 use phf::phf_map;
@@ -50,7 +50,7 @@ impl Display for CmdDiscriminants {
     }
 }
 
-pub static CmdStrings: phf::Map<&'static str, CmdDiscriminants> = {
+pub static CMD_STRINGS: phf::Map<&'static str, CmdDiscriminants> = {
     use CmdDiscriminants::*;
     phf_map! {
         "throw" => Throw,
@@ -116,7 +116,7 @@ impl FromStr for Cmd {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some((cmd, args)) = regex_captures!(r"^\s*([a-zA-Z\?]+)(?:\s+(.*))?$", s)
-            .and_then(|(_, cmd, args)| CmdStrings.get(cmd).map(|cmd| (cmd, args)))
+            .and_then(|(_, cmd, args)| CMD_STRINGS.get(cmd).map(|cmd| (cmd, args)))
             .or((!s.trim().is_empty()).then_some((&CmdDiscriminants::default(), s)))
         {
             cmd.parse_args(args)
