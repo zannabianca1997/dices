@@ -16,3 +16,5 @@ strum_macros = "0.24"
 strum = { version = "0.24", features = ["derive"] }
 phf = { version = "0.11", features = ["macros"] }
 lazy-regex = "2.5.0"
+pad = "0.1.6"
+either = "1.8.1"

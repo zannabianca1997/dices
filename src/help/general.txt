@@ -1,9 +1,0 @@
-This is a program that simulates dice throwing.
-
-Available commands are:
-    - throw    <THROW> : Execute a throw, and prints the result
-    - [throws] <THROWS>: Execute multiple throws, and prints the results
-    - help   [CMD]     : Get help. If CMD is given, explain a specific command
-    - quit             : Quit the program.
-
-This program was made by zannabianca1997 <zannabianca199712@gmail.com>

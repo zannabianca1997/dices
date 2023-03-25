@@ -5,6 +5,7 @@ use std::str::FromStr;
 use thiserror::Error;
 
 use crate::cmd::{CmdDiscriminants, CmdStrings};
+mod general;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub enum HelpTopic {
@@ -16,7 +17,7 @@ pub enum HelpTopic {
 impl HelpTopic {
     pub fn help(&self) -> &'static str {
         match self {
-            HelpTopic::General => include_str!("general.txt"),
+            HelpTopic::General => &general::HELP,
             _ => unimplemented!("Missing help for topic {self:?}"),
         }
     }

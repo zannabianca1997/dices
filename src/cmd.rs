@@ -15,7 +15,7 @@ use crate::{
 
 /// A command for the repl
 #[derive(Debug, Clone, EnumDiscriminants)]
-#[strum_discriminants(vis(pub))]
+#[strum_discriminants(vis(pub), derive(Hash, PartialOrd, Ord))]
 pub enum Cmd {
     Throw(Throws),
     Help(HelpTopic),

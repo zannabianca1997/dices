@@ -4,6 +4,7 @@
 use std::{error::Report, str::FromStr};
 
 use dices::{Cmd, ThrowsError};
+use either::{Left, Right};
 use rand::{thread_rng, Rng};
 use rustyline::{error::ReadlineError, history::MemHistory, Config, Editor};
 use thiserror::Error;
@@ -31,8 +32,7 @@ enum CmdError {
 /// A command for the repl
 #[derive(Debug, Clone)]
 pub enum CmdOutput {
-    Throws(Vec<i64>),
-    Throw(i64),
+    Throw(Vec<i64>),
     Help(&'static str),
     Quit,
     None,
@@ -42,12 +42,7 @@ fn execute(cmd: Cmd, rng: &mut impl Rng) -> Result<CmdOutput, CmdError> {
     match cmd {
         Cmd::Throw(throw) => {
             let res = throw.throws(rng)?;
-            debug_assert_eq!(
-                res.len(),
-                1,
-                "`throw` argument should always return a single value"
-            );
-            Ok(CmdOutput::Throw(res[0]))
+            Ok(CmdOutput::Throw(res))
         }
         Cmd::Help(topic) => Ok(CmdOutput::Help(topic.help())),
         Cmd::Quit => Ok(CmdOutput::Quit),
@@ -58,7 +53,7 @@ fn execute(cmd: Cmd, rng: &mut impl Rng) -> Result<CmdOutput, CmdError> {
 fn main() -> Result<(), MainError> {
     let mut rl = Editor::<(), _>::with_history(Config::default(), MemHistory::new())?;
     let mut rng = thread_rng();
-    println!("🎲 Welcome to DICE 🎲");
+    println!("🎲 Welcome to DICE {} 🎲", env!("CARGO_PKG_VERSION"));
     println!();
     println!("Input `?` to see a list of commands");
     loop {
@@ -83,17 +78,16 @@ fn main() -> Result<(), MainError> {
         .and_then(|cmd| execute(cmd, &mut rng));
         // Print
         match res {
-            Ok(CmdOutput::Throws(values)) => {
+            Ok(CmdOutput::Throw(values)) => {
                 print!("Results: ");
-                for s in values.iter().rev().skip(1).rev() {
-                    print!("{s}, ")
-                }
-                if let Some(v) = values.last() {
-                    print!("{v}")
+                for v in values.into_iter().map(Left).intersperse(Right(", ")) {
+                    match v {
+                        Left(v) => print!("{v}"),
+                        Right(s) => print!("{s}"),
+                    }
                 }
                 println!()
             }
-            Ok(CmdOutput::Throw(v)) => println!("Result: {v}"),
             Ok(CmdOutput::Help(s)) => println!("{s}"),
             Ok(CmdOutput::Quit) => {
                 println!("Bye!");
