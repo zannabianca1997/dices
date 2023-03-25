@@ -19,11 +19,21 @@ un_op = _{ dice | minus }
 
 throwsexpr = { primary ~ (bin_op ~  primary)* }
 
-throws = { ^"throws" ~ throwsexpr }
-throw = { ^"throw"? ~ throwsexpr }
+throws = { throws_cmd? ~ throwsexpr }
+throws_cmd = _{ ^"throws" | ^"ts" }
+throw = { throw_cmd ~ throwsexpr }
+throw_cmd = _{ ^"throw" | ^"t" }
 
-quit = { ^"quit" }
+help = { help_cmd ~ ( help_throw | help_throws | help_help | help_quit )? }
+    help_cmd = _{ ^"help" | "?" }
+    help_throw = { throw_cmd }
+    help_throws = { throws_cmd }
+    help_help = { help_cmd }
+    help_quit = { quit_cmd }
 
-cmd = { SOI ~ ( throws | throw | quit )? ~ EOI }
+quit = { quit_cmd }
+quit_cmd = _{ ^"quit" | ^"q" }
+
+cmd = { SOI ~ ( throws | throw | quit | help )? ~ EOI }
 
 WHITESPACE = _{ " " | "\t" | NEWLINE }

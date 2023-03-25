@@ -4,13 +4,14 @@ use std::str::FromStr;
 
 use pest::Parser;
 
-use crate::{parser, throws::Throws};
+use crate::{help::HelpTopic, parser, throws::Throws};
 
 /// A command for the repl
 #[derive(Debug, Clone)]
 pub enum Cmd {
     Throws(Throws),
     Throw(Throws),
+    Help(HelpTopic),
     Quit,
     None,
 }

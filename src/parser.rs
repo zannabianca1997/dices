@@ -1,6 +1,8 @@
 use pest::{iterators::Pair, pratt_parser::PrattParser};
 use pest_derive::Parser;
 
+use crate::help::HelpTopic;
+
 use super::{cmd::Cmd, throws::Throws};
 
 #[derive(Parser)]
@@ -17,6 +19,14 @@ impl From<Pair<'_, Rule>> for Cmd {
             Rule::throw => Self::Throw(Throws::Sum(Box::new(
                 cmd.into_inner().next().unwrap().into(),
             ))),
+            Rule::help => Self::Help(match cmd.into_inner().next().map(|p| p.as_rule()) {
+                None => HelpTopic::General,
+                Some(Rule::help_throws) => HelpTopic::Throws,
+                Some(Rule::help_throw) => HelpTopic::Throw,
+                Some(Rule::help_help) => HelpTopic::Help,
+                Some(Rule::help_quit) => HelpTopic::Quit,
+                Some(r) => unreachable!("{r:?} should be impossible as a help parameter"),
+            }),
             Rule::quit => Self::Quit,
             Rule::EOI => Self::None,
             r => unreachable!("Rule {r:?} not possible as a top-level command"),

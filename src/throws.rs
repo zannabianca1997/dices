@@ -179,7 +179,7 @@ impl Throws {
                 }
                 let sides = sides as usize;
 
-                buf.extend_one(rng.gen_range(1..sides) as i64)
+                buf.extend_one(rng.gen_range(1..=sides) as i64)
             }
             Throws::Constant(v) => buf.extend_one(*v),
             Throws::Sum(throws) => buf.extend_one(throws.throws(rng)?.into_iter().sum()),
