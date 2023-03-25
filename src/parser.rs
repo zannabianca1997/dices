@@ -1,38 +1,13 @@
-use pest::{iterators::Pair, pratt_parser::PrattParser};
+use std::str::FromStr;
+
+use pest::{iterators::Pair, pratt_parser::PrattParser, Parser};
 use pest_derive::Parser;
 
-use crate::help::HelpTopic;
-
-use super::{cmd::Cmd, throws::Throws};
+use super::throws::Throws;
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub(super) struct ThrowsParser;
-
-impl From<Pair<'_, Rule>> for Cmd {
-    fn from(value: Pair<'_, Rule>) -> Self {
-        debug_assert_eq!(value.as_rule(), Rule::cmd);
-        // extract the parsed command
-        let cmd = value.into_inner().next().unwrap();
-        match cmd.as_rule() {
-            Rule::throws => Self::Throws(cmd.into_inner().next().unwrap().into()),
-            Rule::throw => Self::Throw(Throws::Sum(Box::new(
-                cmd.into_inner().next().unwrap().into(),
-            ))),
-            Rule::help => Self::Help(match cmd.into_inner().next().map(|p| p.as_rule()) {
-                None => HelpTopic::General,
-                Some(Rule::help_throws) => HelpTopic::Throws,
-                Some(Rule::help_throw) => HelpTopic::Throw,
-                Some(Rule::help_help) => HelpTopic::Help,
-                Some(Rule::help_quit) => HelpTopic::Quit,
-                Some(r) => unreachable!("{r:?} should be impossible as a help parameter"),
-            }),
-            Rule::quit => Self::Quit,
-            Rule::EOI => Self::None,
-            r => unreachable!("Rule {r:?} not possible as a top-level command"),
-        }
-    }
-}
 
 lazy_static::lazy_static! {
     static ref PRATT_PARSER: PrattParser<Rule> = {
@@ -54,9 +29,20 @@ lazy_static::lazy_static! {
     };
 }
 
+/// Error in parsing throws
+pub type Error = pest::error::Error<Rule>;
+
+impl FromStr for Throws {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        ThrowsParser::parse(Rule::throwsargs, s).map(|mut pairs| pairs.next().unwrap().into())
+    }
+}
+
 impl From<Pair<'_, Rule>> for Throws {
     fn from(value: Pair<'_, Rule>) -> Self {
-        debug_assert_eq!(value.as_rule(), Rule::throwsexpr);
+        debug_assert_eq!(value.as_rule(), Rule::throws);
 
         PRATT_PARSER
             .map_primary(|a| {
@@ -72,7 +58,7 @@ impl From<Pair<'_, Rule>> for Throws {
                     Rule::summed => {
                         Self::Sum(Box::new(inner_atom.into_inner().next().unwrap().into()))
                     }
-                    Rule::throwsexpr => inner_atom.into(),
+                    Rule::throws => inner_atom.into(),
                     r => unreachable!("Rule {r:?} shouldn't appear as a `throwsexpr` atom"),
                 };
                 for op in pairs {

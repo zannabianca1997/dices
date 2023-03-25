@@ -2,8 +2,8 @@
 name = "dices"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["zannabianca1997 <zannabianca199712@gmail.com>"]
+description = "A program to simulate dice throwing"
 
 [dependencies]
 lazy_static = "1.4.0"
@@ -12,3 +12,7 @@ pest_derive = "2.5.6"
 rand = { version = "0.8.5", features = ["small_rng"] }
 rustyline = "11.0.0"
 thiserror = "1.0.40"
+strum_macros = "0.24"
+strum = { version = "0.24", features = ["derive"] }
+phf = { version = "0.11", features = ["macros"] }
+lazy-regex = "2.5.0"

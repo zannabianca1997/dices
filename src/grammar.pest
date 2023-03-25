@@ -1,7 +1,7 @@
 lit = @{ ASCII_DIGIT{1,18} }
 
-summed = { "(" ~ throwsexpr ~ ")" }
-atom = _{ lit | summed | "[" ~ throwsexpr ~ "]" }
+summed = { "(" ~ throws ~ ")" }
+atom = _{ lit | summed | "[" ~ throws ~ "]" }
 primary = { un_op* ~ atom }
 
 bin_op = _{ concat | minus | multiply | repeats | kh | kl | rh | rl | dice }
@@ -10,30 +10,16 @@ un_op = _{ dice | minus }
     minus = { "-" }
     multiply = { "*" }
     repeats = { "^" }
-    kh = { ^"kh" }
-    kl = { ^"kl" }
-    rh = { ^"rh" }
-    rl = { ^"rl" }
-    dice = { ^"d" }
+    kh = { "kh" }
+    kl = { "kl" }
+    rh = { "rh" }
+    rl = { "rl" }
+    dice = { "d" }
 
 
-throwsexpr = { primary ~ (bin_op ~  primary)* }
+throws = { primary ~ (bin_op ~  primary)* }
 
-throws = { throws_cmd? ~ throwsexpr }
-throws_cmd = _{ ^"throws" | ^"ts" }
-throw = { throw_cmd ~ throwsexpr }
-throw_cmd = _{ ^"throw" | ^"t" }
+throwsargs = _{ SOI ~ throws ~ EOI }
 
-help = { help_cmd ~ ( help_throw | help_throws | help_help | help_quit )? }
-    help_cmd = _{ ^"help" | "?" }
-    help_throw = { throw_cmd }
-    help_throws = { throws_cmd }
-    help_help = { help_cmd }
-    help_quit = { quit_cmd }
-
-quit = { quit_cmd }
-quit_cmd = _{ ^"quit" | ^"q" }
-
-cmd = { SOI ~ ( throws | throw | quit | help )? ~ EOI }
 
 WHITESPACE = _{ " " | "\t" | NEWLINE }

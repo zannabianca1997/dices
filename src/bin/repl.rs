@@ -40,7 +40,6 @@ pub enum CmdOutput {
 
 fn execute(cmd: Cmd, rng: &mut impl Rng) -> Result<CmdOutput, CmdError> {
     match cmd {
-        Cmd::Throws(throws) => Ok(CmdOutput::Throws(throws.throws(rng)?)),
         Cmd::Throw(throw) => {
             let res = throw.throws(rng)?;
             debug_assert_eq!(
@@ -60,6 +59,8 @@ fn main() -> Result<(), MainError> {
     let mut rl = Editor::<(), _>::with_history(Config::default(), MemHistory::new())?;
     let mut rng = thread_rng();
     println!("🎲 Welcome to DICE 🎲");
+    println!();
+    println!("Input `?` to see a list of commands");
     loop {
         // Read
         let readline = rl.readline("🎲>> ");
@@ -99,7 +100,7 @@ fn main() -> Result<(), MainError> {
                 return Ok(());
             }
             Ok(CmdOutput::None) => (),
-            Err(err) => println!("{}", Report::new(err).pretty(true)),
+            Err(err) => println!("Error: {}", Report::new(err).pretty(true)),
         }
     }
 }
