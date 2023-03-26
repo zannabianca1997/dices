@@ -163,7 +163,7 @@ impl CmdOutput {
     }
 
     /// Print this output on the screen
-    pub fn print(&self, skin: &MadSkin) {
+    pub fn print(&self, skin: &MadSkin, pretty: bool, interactive: bool) {
         match self {
             CmdOutput::Throw(v) => {
                 let arr_str = {
@@ -177,14 +177,28 @@ impl CmdOutput {
                     }
                     buf
                 };
-                let text_template = TextTemplate::from(r"**Results:** ${results}");
-                let mut expander = text_template.expander();
-                expander.set("results", &arr_str);
-                skin.print_expander(expander);
+                if interactive {
+                    let text_template = TextTemplate::from(r"**Results:** ${results}");
+                    let mut expander = text_template.expander();
+                    expander.set("results", &arr_str);
+                    skin.print_expander(expander);
+                } else {
+                    println!("{arr_str}")
+                }
             }
             CmdOutput::Help(topic) => topic.print(skin),
             CmdOutput::Empty => (),
-            CmdOutput::Quit => skin.print_text("\n🎲 **Bye!** 🎲"),
+            CmdOutput::Quit => {
+                if interactive {
+                    skin.print_text(if pretty {
+                        "\n⛓️ **Bye!** 🐉"
+                    } else {
+                        "**Bye!**"
+                    })
+                } else {
+                    ()
+                }
+            }
         }
     }
 }

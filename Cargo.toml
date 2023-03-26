@@ -19,3 +19,5 @@ lazy-regex = "2.5.0"
 pad = "0.1.6"
 either = "1.8.1"
 termimad = "0.23.0"
+clap = { version = "4.1.13", features = ["derive"] }
+atty = "0.2.14"
