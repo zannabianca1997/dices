@@ -6,7 +6,7 @@ This is a REPL able to simulate dice throwing, specified via a mathematical nota
 ## Available commands
 |:-:|:-:|
 |**command**|**description**|
-|:-:-|:-|
+|:-|:-|
 ${cmds
 |`${cmd-text} ${cmd-args}`|${cmd-descr}|
 }
