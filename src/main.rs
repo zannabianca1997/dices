@@ -29,7 +29,9 @@ fn main() -> Result<(), MainError> {
 
     let header_template = TextTemplate::from(include_str!("header.md"));
     let mut header_expander = header_template.expander();
-    header_expander.set("version", env!("CARGO_PKG_VERSION"));
+    header_expander
+        .set("version", env!("CARGO_PKG_VERSION"))
+        .set("name", env!("CARGO_PKG_NAME"));
     let header = FmtText::from_text(&skin, header_expander.expand(), None);
     print!("{header}");
 
