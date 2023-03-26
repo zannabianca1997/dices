@@ -1,7 +1,8 @@
 //! Help command
 
-use std::str::FromStr;
+use std::{fmt::Debug, str::FromStr};
 
+use termimad::{terminal_size, FmtText, MadSkin};
 use thiserror::Error;
 
 use crate::cmd::{CmdDiscriminants, CMD_STRINGS};
@@ -15,10 +16,24 @@ pub enum HelpTopic {
 }
 
 impl HelpTopic {
-    pub fn help(&self) -> &'static str {
+    pub fn print(self, skin: &MadSkin) {
+        use CmdDiscriminants::*;
+        use HelpTopic::*;
         match self {
-            HelpTopic::General => &general::HELP,
-            _ => unimplemented!("Missing help for topic {self:?}"),
+            General => {
+                let formatted = FmtText::from_text(
+                    skin,
+                    general::HELP.clone(),
+                    Some(terminal_size().0 as usize),
+                );
+                print!("{formatted}")
+            }
+            Cmd(discr) => skin.print_text(match discr {
+                Throw => include_str!("throw.md"),
+                Help => include_str!("help.md"),
+                Quit => include_str!("quit.md"),
+                None => unreachable!("None shouln't be parseable for `help`, not having a command"),
+            }),
         }
     }
 }

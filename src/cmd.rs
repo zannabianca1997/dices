@@ -1,16 +1,22 @@
 //! CLI commands
 
-use std::{fmt::Display, str::FromStr};
+use std::{
+    fmt::{Display, Write},
+    str::FromStr,
+};
 
+use either::Either::{Left, Right};
 use lazy_regex::regex_captures;
 use phf::phf_map;
+use rand::Rng;
 use strum::EnumDiscriminants;
+use termimad::{minimad::TextTemplate, MadSkin};
 use thiserror::Error;
 
 use crate::{
     help::{HelpTopic, UnknowTopic},
     parser,
-    throws::Throws,
+    throws::{Throws, ThrowsError},
 };
 
 /// A command for the repl
@@ -21,6 +27,21 @@ pub enum Cmd {
     Help(HelpTopic),
     Quit,
     None,
+}
+
+impl Cmd {
+    pub fn execute(self, rng: &mut impl Rng) -> Result<CmdOutput, CmdError> {
+        match self {
+            Cmd::Throw(throw) => {
+                let res = throw.throws(rng)?;
+
+                Ok(CmdOutput::Throw(res))
+            }
+            Cmd::Help(topic) => Ok(CmdOutput::Help(topic)),
+            Cmd::Quit => Ok(CmdOutput::Quit),
+            Cmd::None => Ok(CmdOutput::Empty),
+        }
+    }
 }
 
 impl Default for CmdDiscriminants {
@@ -125,4 +146,61 @@ impl FromStr for Cmd {
             Ok(Cmd::default())
         }
     }
+}
+
+pub enum CmdOutput {
+    Throw(Vec<i64>),
+    Empty,
+    Quit,
+    Help(HelpTopic),
+}
+
+impl CmdOutput {
+    /// Returns `true` if this output is the last of the session
+    #[must_use]
+    pub fn is_final(&self) -> bool {
+        matches!(self, Self::Quit)
+    }
+
+    /// Print this output on the screen
+    pub fn print(&self, skin: &MadSkin) {
+        match self {
+            CmdOutput::Throw(v) => {
+                let arr_str = {
+                    let mut buf = String::new();
+                    for i in v.into_iter().map(Left).intersperse(Right(())) {
+                        match i {
+                            Left(v) => write!(buf, "{v}"),
+                            Right(_) => write!(buf, " "),
+                        }
+                        .unwrap()
+                    }
+                    buf
+                };
+                let text_template = TextTemplate::from(r"**Results:** ${results}");
+                let mut expander = text_template.expander();
+                expander.set("results", &arr_str);
+                skin.print_expander(expander);
+            }
+            CmdOutput::Help(topic) => topic.print(skin),
+            CmdOutput::Empty => (),
+            CmdOutput::Quit => skin.print_text("\n🎲 **Bye!** 🎲"),
+        }
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum CmdError {
+    #[error("Error while parsing command")]
+    Parsing(
+        #[source]
+        #[from]
+        ParseCmdError,
+    ),
+    #[error("Error while evaluating throws")]
+    Throwing(
+        #[source]
+        #[from]
+        ThrowsError,
+    ),
 }
