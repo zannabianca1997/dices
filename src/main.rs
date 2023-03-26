@@ -1,8 +1,12 @@
 #![feature(error_reporter)]
 #![feature(iter_intersperse)]
 
-use std::error::Report;
+use std::{
+    error::Report,
+    io::{self, stdin},
+};
 
+use clap::{Parser, ValueEnum};
 use rand::thread_rng;
 use rustyline::{error::ReadlineError, history::MemHistory, Config, Editor};
 use termimad::{minimad::TextTemplate, Alignment, FmtText, MadSkin};
@@ -10,38 +14,130 @@ use thiserror::Error;
 
 use dices::{Cmd, CmdError};
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Output format and pretty-printing
+    #[arg(long, short, value_enum, default_value_t)]
+    skin: SkinSetup,
+    /// Interactive mode: present a prompt and more readable infos
+    #[arg(long, short, default_value_t=atty::is(atty::Stream::Stdout))]
+    interactive: bool,
+    /// Command to run, and exit after
+    #[arg(long, short)]
+    command: Option<String>,
+}
+
+#[derive(ValueEnum, Clone)]
+enum SkinSetup {
+    Pretty,
+    PrettyDark,
+    PrettyLight,
+    Plain,
+}
+
+impl Default for SkinSetup {
+    fn default() -> Self {
+        if atty::is(atty::Stream::Stdout) {
+            SkinSetup::Pretty
+        } else {
+            SkinSetup::Plain
+        }
+    }
+}
+
+impl SkinSetup {
+    fn skin(&self) -> MadSkin {
+        match self {
+            SkinSetup::Pretty => {
+                let mut s = MadSkin::default();
+                s.headers[0].align = Alignment::Left;
+                s
+            }
+            SkinSetup::PrettyDark => {
+                let mut s = MadSkin::default_dark();
+                s.headers[0].align = Alignment::Left;
+                s
+            }
+            SkinSetup::PrettyLight => {
+                let mut s = MadSkin::default_light();
+                s.headers[0].align = Alignment::Left;
+                s
+            }
+            SkinSetup::Plain => MadSkin::no_style(),
+        }
+    }
+
+    /// Returns `true` if the skin setup is pretty
+    #[must_use]
+    fn is_pretty(&self) -> bool {
+        matches!(self, Self::Pretty | Self::PrettyDark | Self::PrettyLight)
+    }
+}
+
 #[derive(Debug, Error)]
 enum MainError {
     #[error(transparent)]
     RustyLine(#[from] ReadlineError),
+    #[error(transparent)]
+    IO(#[from] io::Error),
     #[error("Interrupted")]
     Interrupted,
 }
 
 fn main() -> Result<(), MainError> {
-    let mut rl = Editor::<(), _>::with_history(Config::default(), MemHistory::new())?;
-    let skin = {
-        let mut s = MadSkin::default();
-        s.headers[0].align = Alignment::Left;
-        s
+    let args = Args::parse();
+    if args.command.is_some() {
+        todo!("Implement single command mode")
+    }
+
+    let mut rl = if args.interactive {
+        Some(Editor::<(), _>::with_history(
+            Config::default(),
+            MemHistory::new(),
+        )?)
+    } else {
+        None
     };
+    let skin = args.skin.skin();
     let mut rng = thread_rng();
 
-    let header_template = TextTemplate::from(include_str!("header.md"));
-    let mut header_expander = header_template.expander();
-    header_expander
-        .set("version", env!("CARGO_PKG_VERSION"))
-        .set("name", env!("CARGO_PKG_NAME"));
-    let header = FmtText::from_text(&skin, header_expander.expand(), None);
-    print!("{header}");
+    if args.interactive {
+        let header_template = TextTemplate::from(include_str!("header.md"));
+        let mut header_expander = header_template.expander();
+        header_expander
+            .set("version", env!("CARGO_PKG_VERSION"))
+            .set("name", env!("CARGO_PKG_NAME"))
+            .set("dungeons", if args.skin.is_pretty() { "⛓️ " } else { "" })
+            .set("dragons", if args.skin.is_pretty() { " 🐉" } else { "" });
+        let header = FmtText::from_text(&skin, header_expander.expand(), None);
+        print!("{header}");
+    }
 
     loop {
         // Read
-        let readline = rl.readline("🎲 >> ");
+        let readline = if let Some(rl) = rl.as_mut() {
+            rl.readline(if args.skin.is_pretty() {
+                "🎲 >> "
+            } else {
+                ">> "
+            })
+        } else {
+            // simulate readline, no editing
+            let mut buf = String::new();
+            let n = stdin().read_line(&mut buf)?;
+            if n > 0 {
+                Ok(buf)
+            } else {
+                Err(ReadlineError::Eof)
+            }
+        };
         // Eval
         let res = match readline {
             Ok(line) => {
-                rl.add_history_entry(line.as_str())?;
+                if let Some(rl) = rl.as_mut() {
+                    rl.add_history_entry(line.as_str())?;
+                }
                 line.parse::<Cmd>().map_err(CmdError::Parsing)
             }
             Err(ReadlineError::Interrupted) => {
@@ -58,12 +154,12 @@ fn main() -> Result<(), MainError> {
         // Print
         match res {
             Ok(output) => {
-                output.print(&skin);
+                output.print(&skin, args.skin.is_pretty(), args.interactive);
                 if output.is_final() {
                     return Ok(());
                 }
             }
-            Err(err) => println!("Error: {}", Report::new(err).pretty(true)),
+            Err(err) => println!("Error: {}", Report::new(err).pretty(args.interactive)),
         }
     }
 }
