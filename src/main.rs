@@ -7,7 +7,6 @@ use std::{
 };
 
 use clap::{Parser, ValueEnum};
-use rand::thread_rng;
 use rustyline::{error::ReadlineError, history::MemHistory, Config, Editor};
 use termimad::{minimad::TextTemplate, Alignment, FmtText, MadSkin};
 use thiserror::Error;
