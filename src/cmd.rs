@@ -2,6 +2,7 @@
 
 use std::{
     fmt::{Display, Write},
+    mem,
     str::FromStr,
 };
 
@@ -22,14 +23,16 @@ use crate::{
 /// State of the REPL
 #[derive(Debug)]
 pub struct State<R: Rng> {
-    rng: R,
-    last_cmd: Option<Cmd>,
+    pub(crate) rng: R,
+    pub(crate) last_cmd: Cmd,
+    pub(crate) last_res: Option<Vec<i64>>,
 }
 impl State<ThreadRng> {
     pub fn new() -> Self {
         Self {
             rng: thread_rng(),
-            last_cmd: None,
+            last_cmd: Cmd::default(),
+            last_res: None,
         }
     }
 }
@@ -37,7 +40,8 @@ impl<R: Rng> State<R> {
     pub fn new_with_rng(rng: R) -> Self {
         Self {
             rng,
-            last_cmd: None,
+            last_cmd: Cmd::default(),
+            last_res: None,
         }
     }
 }
@@ -53,25 +57,28 @@ pub enum Cmd {
 }
 
 impl Cmd {
-    pub fn execute(self, state: &mut State<impl Rng>) -> Result<CmdOutput, CmdError> {
-        let default = Cmd::default();
-        // move into last_cmd, or repeat it if no command is given
-        let cmd = if !matches!(self, Cmd::None) {
-            &*state.last_cmd.insert(self)
-        } else {
-            state.last_cmd.as_ref().unwrap_or(&default)
+    pub fn execute(mut self, state: &mut State<impl Rng>) -> Result<CmdOutput<'_>, CmdError> {
+        // recover last command if none is given
+        if matches!(self, Cmd::None) {
+            self = mem::take(&mut state.last_cmd);
         };
         // run the command
-        match cmd {
+        let res = match &self {
             Cmd::Throw(throw) => {
-                let res = throw.throws(&mut state.rng)?;
-
-                Ok(CmdOutput::Throw(res))
+                throw
+                    .throws(state) // make the throw
+                    .map_err(Into::into) // convert the error type
+                    .map(|res| state.last_res.insert(res)) // save the eventual result
+                    .map(|res| CmdOutput::Throw(res)) // convert the output
             }
             Cmd::Help(topic) => Ok(CmdOutput::Help(*topic)),
             Cmd::Quit => Ok(CmdOutput::Quit),
             Cmd::None => Ok(CmdOutput::Empty),
-        }
+        };
+        // save last command
+        state.last_cmd = self;
+        // return
+        res
     }
 }
 
@@ -179,14 +186,14 @@ impl FromStr for Cmd {
     }
 }
 
-pub enum CmdOutput {
-    Throw(Vec<i64>),
+pub enum CmdOutput<'s> {
+    Throw(&'s [i64]),
     Empty,
     Quit,
     Help(HelpTopic),
 }
 
-impl CmdOutput {
+impl CmdOutput<'_> {
     /// Returns `true` if this output is the last of the session
     #[must_use]
     pub fn is_final(&self) -> bool {

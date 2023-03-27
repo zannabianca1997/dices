@@ -5,6 +5,8 @@ use std::fmt::Debug;
 use rand::Rng;
 use thiserror::Error;
 
+use crate::State;
+
 /// A set of throws
 #[derive(Debug, Clone)]
 pub enum Throws {
@@ -70,23 +72,23 @@ type Result<T> = std::result::Result<T, ThrowsError>;
 
 impl Throws {
     /// Execute this throw set
-    pub fn throws(&self, rng: &mut impl Rng) -> Result<Vec<i64>> {
+    pub fn throws(&self, state: &mut State<impl Rng>) -> Result<Vec<i64>> {
         let mut buf = vec![];
-        self.throws_into(rng, &mut buf)?;
+        self.throws_into(state, &mut buf)?;
         Ok(buf)
     }
 
     /// Execute this throw set, appending to the given container
-    fn throws_into(&self, rng: &mut impl Rng, buf: &mut impl Extend<i64>) -> Result<()> {
+    fn throws_into(&self, state: &mut State<impl Rng>, buf: &mut impl Extend<i64>) -> Result<()> {
         use ThrowsError::*;
         match self {
             Throws::Concat(a, b) => {
-                a.throws_into(rng, buf)?;
-                b.throws_into(rng, buf)?;
+                a.throws_into(state, buf)?;
+                b.throws_into(state, buf)?;
             }
             Throws::Multiply(a, b) => {
-                let a = a.throws(rng)?;
-                let b = b.throws(rng)?;
+                let a = a.throws(state)?;
+                let b = b.throws(state)?;
                 match (a.len(), b.len()) {
                     (1, 1) => buf.extend_one(a[0] * b[0]),
                     (1, _) => buf.extend(b.into_iter().map(|b| b * a[0])),
@@ -95,7 +97,7 @@ impl Throws {
                 }
             }
             Throws::Repeat { base, num } => {
-                let num = num.throws(rng)?;
+                let num = num.throws(state)?;
                 if num.len() != 1 {
                     return Err(SecondOperandMustBeScalar("^", num.len()));
                 }
@@ -105,11 +107,11 @@ impl Throws {
                 }
                 let num = num as usize;
                 for _ in 0..num {
-                    base.throws_into(rng, buf)?;
+                    base.throws_into(state, buf)?;
                 }
             }
             Throws::KeepHigh { base, num } => {
-                let num = num.throws(rng)?;
+                let num = num.throws(state)?;
                 if num.len() != 1 {
                     return Err(SecondOperandMustBeScalar("kh", num.len()));
                 }
@@ -119,12 +121,12 @@ impl Throws {
                 }
                 let num = num as usize;
 
-                let mut res = base.throws(rng)?;
+                let mut res = base.throws(state)?;
                 res.sort();
                 buf.extend(res.into_iter().rev().take(num))
             }
             Throws::KeepLow { base, num } => {
-                let num = num.throws(rng)?;
+                let num = num.throws(state)?;
                 if num.len() != 1 {
                     return Err(SecondOperandMustBeScalar("kl", num.len()));
                 }
@@ -134,12 +136,12 @@ impl Throws {
                 }
                 let num = num as usize;
 
-                let mut res = base.throws(rng)?;
+                let mut res = base.throws(state)?;
                 res.sort();
                 buf.extend(res.into_iter().take(num))
             }
             Throws::RemoveHigh { base, num } => {
-                let num = num.throws(rng)?;
+                let num = num.throws(state)?;
                 if num.len() != 1 {
                     return Err(SecondOperandMustBeScalar("kh", num.len()));
                 }
@@ -149,12 +151,12 @@ impl Throws {
                 }
                 let num = num as usize;
 
-                let mut res = base.throws(rng)?;
+                let mut res = base.throws(state)?;
                 res.sort();
                 buf.extend(res.into_iter().rev().skip(num))
             }
             Throws::RemoveLow { base, num } => {
-                let num = num.throws(rng)?;
+                let num = num.throws(state)?;
                 if num.len() != 1 {
                     return Err(SecondOperandMustBeScalar("kh", num.len()));
                 }
@@ -164,12 +166,12 @@ impl Throws {
                 }
                 let num = num as usize;
 
-                let mut res = base.throws(rng)?;
+                let mut res = base.throws(state)?;
                 res.sort();
                 buf.extend(res.into_iter().skip(num))
             }
             Throws::Dice(sides) => {
-                let sides = sides.throws(rng)?;
+                let sides = sides.throws(state)?;
                 if sides.len() != 1 {
                     return Err(DiceSidesMustBeScalar(sides.len()));
                 }
@@ -179,10 +181,10 @@ impl Throws {
                 }
                 let sides = sides as usize;
 
-                buf.extend_one(rng.gen_range(1..=sides) as i64)
+                buf.extend_one(state.rng.gen_range(1..=sides) as i64)
             }
             Throws::Constant(v) => buf.extend_one(*v),
-            Throws::Sum(throws) => buf.extend_one(throws.throws(rng)?.into_iter().sum()),
+            Throws::Sum(throws) => buf.extend_one(throws.throws(state)?.into_iter().sum()),
         }
         Ok(())
     }
