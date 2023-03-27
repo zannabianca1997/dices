@@ -103,13 +103,15 @@ fn main() -> Result<(), MainError> {
     let mut rng = thread_rng();
 
     if args.interactive {
-        let header_template = TextTemplate::from(include_str!("header.md"));
+        let header_template = TextTemplate::from(if args.skin.is_pretty() {
+            "# ⛓️  Welcome to ${name} ${version} 🐉\n\nInput `?` to see a list of commands"
+        } else {
+            "# Welcome to ${name} ${version}\n\nInput `?` to see a list of commands"
+        });
         let mut header_expander = header_template.expander();
         header_expander
             .set("version", env!("CARGO_PKG_VERSION"))
-            .set("name", env!("CARGO_PKG_NAME"))
-            .set("dungeons", if args.skin.is_pretty() { "⛓️ " } else { "" })
-            .set("dragons", if args.skin.is_pretty() { " 🐉" } else { "" });
+            .set("name", env!("CARGO_PKG_NAME"));
         let header = FmtText::from_text(&skin, header_expander.expand(), None);
         print!("{header}");
     }
