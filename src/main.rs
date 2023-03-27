@@ -3,7 +3,7 @@
 
 use std::{
     error::Report,
-    io::{self, stdin},
+    io::{self, stderr, stdin, Write},
 };
 
 use clap::{Parser, ValueEnum};
@@ -171,7 +171,12 @@ fn main() -> Result<(), MainError> {
                     return Ok(());
                 }
             }
-            Err(err) => println!("Error: {}", Report::new(err).pretty(args.interactive)),
+            Err(err) => writeln!(
+                stderr(),
+                "Error: {}",
+                Report::new(err).pretty(args.interactive)
+            )
+            .unwrap(),
         }
     }
 }
