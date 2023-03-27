@@ -191,7 +191,7 @@ impl CmdOutput {
             CmdOutput::Quit => {
                 if interactive {
                     skin.print_text(if pretty {
-                        "\n⛓️ **Bye!** 🐉"
+                        "\n⛓️  **Bye!** 🐉"
                     } else {
                         "**Bye!**"
                     })
