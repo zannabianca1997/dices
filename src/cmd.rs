@@ -8,7 +8,7 @@ use std::{
 use either::Either::{Left, Right};
 use lazy_regex::regex_captures;
 use phf::phf_map;
-use rand::Rng;
+use rand::{rngs::ThreadRng, thread_rng, Rng};
 use strum::EnumDiscriminants;
 use termimad::{minimad::TextTemplate, MadSkin};
 use thiserror::Error;
@@ -18,6 +18,22 @@ use crate::{
     parser,
     throws::{Throws, ThrowsError},
 };
+
+/// State of the REPL
+#[derive(Debug)]
+pub struct State<R: Rng> {
+    rng: R,
+}
+impl State<ThreadRng> {
+    pub fn new() -> Self {
+        Self { rng: thread_rng() }
+    }
+}
+impl<R: Rng> State<R> {
+    pub fn new_with_rng(rng: R) -> Self {
+        Self { rng }
+    }
+}
 
 /// A command for the repl
 #[derive(Debug, Clone, EnumDiscriminants)]
@@ -30,10 +46,10 @@ pub enum Cmd {
 }
 
 impl Cmd {
-    pub fn execute(self, rng: &mut impl Rng) -> Result<CmdOutput, CmdError> {
+    pub fn execute(self, state: &mut State<impl Rng>) -> Result<CmdOutput, CmdError> {
         match self {
             Cmd::Throw(throw) => {
-                let res = throw.throws(rng)?;
+                let res = throw.throws(&mut state.rng)?;
 
                 Ok(CmdOutput::Throw(res))
             }

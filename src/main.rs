@@ -12,7 +12,7 @@ use rustyline::{error::ReadlineError, history::MemHistory, Config, Editor};
 use termimad::{minimad::TextTemplate, Alignment, FmtText, MadSkin};
 use thiserror::Error;
 
-use dices::{Cmd, CmdError};
+use dices::{Cmd, CmdError, State};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -88,7 +88,7 @@ enum MainError {
 fn main() -> Result<(), MainError> {
     let args = Args::parse();
 
-    let mut rng = thread_rng();
+    let mut state = State::new();
     let skin = args.skin.skin();
 
     if let Some(cmd) = args.command {
@@ -96,7 +96,7 @@ fn main() -> Result<(), MainError> {
         let res = cmd
             .parse::<Cmd>()
             .map_err(CmdError::Parsing)
-            .and_then(|cmd| cmd.execute(&mut rng));
+            .and_then(|cmd| cmd.execute(&mut state));
         match res {
             Ok(output) => output.print(&skin, args.skin.is_pretty(), args.interactive),
             Err(err) => println!("Error: {}", Report::new(err).pretty(args.interactive)),
@@ -163,7 +163,7 @@ fn main() -> Result<(), MainError> {
                 return Err(err.into());
             }
         }
-        .and_then(|cmd| cmd.execute(&mut rng));
+        .and_then(|cmd| cmd.execute(&mut state));
         // Print
         match res {
             Ok(output) => {
