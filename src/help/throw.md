@@ -14,6 +14,9 @@ Moreover `X` can be even non-constant: `d(d6 + 1)` is a valid expression, throwi
 ## Constants
 A plain integer is a throw that always return the same value. `4` will always return 4.
 
+## Last throw result
+The symbol `#` will evaluate to the *result* of the last throw. An error will occour if no throws were made.
+
 ## Concatenation
 Throws can be concatenated with the `+` operator.
 **Attention:** while often used as such, concatenation is not summation. `d6 + d4` means *'throw a d6, then a d4'*, and will return two numbers.

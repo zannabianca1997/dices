@@ -1,7 +1,8 @@
 lit = @{ ASCII_DIGIT{1,18} }
+ans = { "#" }
 
 summed = { "(" ~ throws ~ ")" }
-atom = _{ lit | summed | "[" ~ throws ~ "]" }
+atom = _{ lit | ans | summed | "[" ~ throws ~ "]" }
 primary = { un_op* ~ atom }
 
 bin_op = _{ concat | minus | multiply | repeats | kh | kl | rh | rl | dice }

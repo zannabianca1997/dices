@@ -55,6 +55,7 @@ impl From<Pair<'_, Rule>> for Throws {
                             .parse()
                             .expect("`lit` should always be parseable as i64"),
                     ),
+                    Rule::ans => Self::LastResult,
                     Rule::summed => {
                         Self::Sum(Box::new(inner_atom.into_inner().next().unwrap().into()))
                     }

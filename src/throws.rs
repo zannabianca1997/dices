@@ -48,6 +48,8 @@ pub enum Throws {
     ///
     /// Yield a single value.
     Sum(Box<Throws>),
+    /// Result of the last throw
+    LastResult,
 }
 
 /// Errors during throwing
@@ -65,6 +67,8 @@ pub enum ThrowsError {
     DiceSidesMustBeScalar(usize),
     #[error("dice sides must be positive and non-zero, not {0}")]
     DiceSidesMustBePositiveNonZero(i64),
+    #[error("Last throw symbol `#` could be used only after a successful throw")]
+    NoLastThrow,
 }
 
 /// General result type
@@ -185,6 +189,13 @@ impl Throws {
             }
             Throws::Constant(v) => buf.extend_one(*v),
             Throws::Sum(throws) => buf.extend_one(throws.throws(state)?.into_iter().sum()),
+            Throws::LastResult => {
+                if let Some(vec) = &state.last_res {
+                    buf.extend(vec.iter().copied())
+                } else {
+                    return Err(NoLastThrow);
+                }
+            }
         }
         Ok(())
     }
