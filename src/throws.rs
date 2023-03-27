@@ -69,6 +69,10 @@ pub enum ThrowsError {
     DiceSidesMustBePositiveNonZero(i64),
     #[error("Last throw symbol `#` could be used only after a successful throw")]
     NoLastThrow,
+    #[error("Overflow during addition")]
+    OverflowInSum,
+    #[error("Overflow during multiplication")]
+    OverflowInMul,
 }
 
 /// General result type
@@ -93,11 +97,16 @@ impl Throws {
             Throws::Multiply(a, b) => {
                 let a = a.throws(state)?;
                 let b = b.throws(state)?;
-                match (a.len(), b.len()) {
-                    (1, 1) => buf.extend_one(a[0] * b[0]),
-                    (1, _) => buf.extend(b.into_iter().map(|b| b * a[0])),
-                    (_, 1) => buf.extend(a.into_iter().map(|a| a * b[0])),
-                    (a, b) => return Err(MultiplyShape(a, b)),
+                match (a, b) {
+                    (a, b) if a.len() == 1 && b.len() == 1 => {
+                        buf.extend_one(i64::checked_mul(a[0], b[0]).ok_or(OverflowInMul)?)
+                    }
+                    (a, b) | (b, a) if b.len() == 1 => {
+                        for v in a {
+                            buf.extend_one(i64::checked_mul(v, b[0]).ok_or(OverflowInMul)?)
+                        }
+                    }
+                    (a, b) => return Err(MultiplyShape(a.len(), b.len())),
                 }
             }
             Throws::Repeat { base, num } => {
@@ -188,7 +197,14 @@ impl Throws {
                 buf.extend_one(state.rng.gen_range(1..=sides) as i64)
             }
             Throws::Constant(v) => buf.extend_one(*v),
-            Throws::Sum(throws) => buf.extend_one(throws.throws(state)?.into_iter().sum()),
+            Throws::Sum(throws) => buf.extend_one(
+                throws
+                    .throws(state)?
+                    .into_iter()
+                    .try_reduce(|a, b| i64::checked_add(a, b))
+                    .ok_or(OverflowInSum)?
+                    .unwrap_or(0),
+            ),
             Throws::LastResult => {
                 if let Some(vec) = &state.last_res {
                     buf.extend(vec.iter().copied())
