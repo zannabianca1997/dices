@@ -87,8 +87,21 @@ enum MainError {
 
 fn main() -> Result<(), MainError> {
     let args = Args::parse();
-    if args.command.is_some() {
-        todo!("Implement single command mode")
+
+    let mut rng = thread_rng();
+    let skin = args.skin.skin();
+
+    if let Some(cmd) = args.command {
+        // single command mode
+        let res = cmd
+            .parse::<Cmd>()
+            .map_err(CmdError::Parsing)
+            .and_then(|cmd| cmd.execute(&mut rng));
+        match res {
+            Ok(output) => output.print(&skin, args.skin.is_pretty(), args.interactive),
+            Err(err) => println!("Error: {}", Report::new(err).pretty(args.interactive)),
+        }
+        return Ok(());
     }
 
     let mut rl = if args.interactive {
@@ -99,8 +112,6 @@ fn main() -> Result<(), MainError> {
     } else {
         None
     };
-    let skin = args.skin.skin();
-    let mut rng = thread_rng();
 
     if args.interactive {
         let header_template = TextTemplate::from(if args.skin.is_pretty() {
