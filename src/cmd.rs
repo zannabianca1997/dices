@@ -23,15 +23,22 @@ use crate::{
 #[derive(Debug)]
 pub struct State<R: Rng> {
     rng: R,
+    last_cmd: Option<Cmd>,
 }
 impl State<ThreadRng> {
     pub fn new() -> Self {
-        Self { rng: thread_rng() }
+        Self {
+            rng: thread_rng(),
+            last_cmd: None,
+        }
     }
 }
 impl<R: Rng> State<R> {
     pub fn new_with_rng(rng: R) -> Self {
-        Self { rng }
+        Self {
+            rng,
+            last_cmd: None,
+        }
     }
 }
 
@@ -47,13 +54,21 @@ pub enum Cmd {
 
 impl Cmd {
     pub fn execute(self, state: &mut State<impl Rng>) -> Result<CmdOutput, CmdError> {
-        match self {
+        let default = Cmd::default();
+        // move into last_cmd, or repeat it if no command is given
+        let cmd = if !matches!(self, Cmd::None) {
+            &*state.last_cmd.insert(self)
+        } else {
+            state.last_cmd.as_ref().unwrap_or(&default)
+        };
+        // run the command
+        match cmd {
             Cmd::Throw(throw) => {
                 let res = throw.throws(&mut state.rng)?;
 
                 Ok(CmdOutput::Throw(res))
             }
-            Cmd::Help(topic) => Ok(CmdOutput::Help(topic)),
+            Cmd::Help(topic) => Ok(CmdOutput::Help(*topic)),
             Cmd::Quit => Ok(CmdOutput::Quit),
             Cmd::None => Ok(CmdOutput::Empty),
         }
