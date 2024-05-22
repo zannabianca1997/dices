@@ -275,8 +275,11 @@ mod tests {
 
     mod dice {
         use super::super::dice;
+        use super::super::DiceError;
 
         check_call!(d6: dice(Number(6)) == Ok(Number(1..=6)), for 100);
+        check_call!(dminus6: dice(Number(-6)) == Err(DiceError::NegFaces(-6)));
+        check_call!(d_list: dice(List(vec![Number(2), Number(7)])) == Err(DiceError::NaNFaces(_)));
     }
 
     mod set {
@@ -284,7 +287,7 @@ mod tests {
 
         use ::rand::{rngs::SmallRng, SeedableRng};
 
-        use super::super::set;
+        use super::super::{set, SetError};
         use crate::{
             identifier::DIdentifier,
             namespace::Namespace,
@@ -292,7 +295,7 @@ mod tests {
         };
 
         #[test]
-        fn d6() {
+        fn existing() {
             let mut rng = SmallRng::seed_from_u64(0);
             let mut namespace = Namespace::root();
 
@@ -310,6 +313,155 @@ mod tests {
             );
 
             assert_matches!(namespace.get(&ident), Some(Bool(true)))
+        }
+
+        check_call!(not_existing: set(Expr::Reference("a".try_into().unwrap()), Bool(true)) == Err(SetError::UndefinedRef(_)));
+    }
+    mod let_ {
+        use ::std::assert_matches::assert_matches;
+
+        use ::rand::{rngs::SmallRng, SeedableRng};
+
+        use super::super::let_;
+        use crate::{
+            identifier::DIdentifier,
+            namespace::Namespace,
+            value::{Expr, Value::*},
+        };
+
+        #[test]
+        fn with_value() {
+            let mut rng = SmallRng::seed_from_u64(0);
+            let mut namespace = Namespace::root();
+
+            let ident = DIdentifier::new("a").unwrap();
+
+            assert_matches!(
+                let_(
+                    &mut namespace,
+                    &mut rng,
+                    &[Expr::Reference(ident.clone()), Bool(true).into()]
+                ),
+                Ok(None)
+            );
+
+            assert_matches!(namespace.get(&ident), Some(Bool(true)))
+        }
+        #[test]
+        fn without_value() {
+            let mut rng = SmallRng::seed_from_u64(0);
+            let mut namespace = Namespace::root();
+
+            let ident = DIdentifier::new("a").unwrap();
+
+            assert_matches!(
+                let_(&mut namespace, &mut rng, &[Expr::Reference(ident.clone())]),
+                Ok(None)
+            );
+
+            assert_matches!(namespace.get(&ident), Some(None))
+        }
+        #[test]
+        fn with_value_existing() {
+            let mut rng = SmallRng::seed_from_u64(0);
+            let mut namespace = Namespace::root();
+
+            let ident = DIdentifier::new("a").unwrap();
+
+            namespace.let_(ident.clone(), Number(10));
+
+            assert_matches!(
+                let_(
+                    &mut namespace,
+                    &mut rng,
+                    &[Expr::Reference(ident.clone()), Bool(true).into()]
+                ),
+                Ok(None)
+            );
+
+            assert_matches!(namespace.get(&ident), Some(Bool(true)))
+        }
+        #[test]
+        fn without_value_existing() {
+            let mut rng = SmallRng::seed_from_u64(0);
+            let mut namespace = Namespace::root();
+
+            let ident = DIdentifier::new("a").unwrap();
+
+            namespace.let_(ident.clone(), Number(10));
+
+            assert_matches!(
+                let_(&mut namespace, &mut rng, &[Expr::Reference(ident.clone())]),
+                Ok(None)
+            );
+
+            assert_matches!(namespace.get(&ident), Some(None))
+        }
+    }
+
+    mod scope {
+        use ::std::assert_matches::assert_matches;
+
+        use ::rand::{rngs::SmallRng, SeedableRng};
+        use either::Either::Left;
+
+        use super::super::scope;
+        use crate::{
+            identifier::DIdentifier,
+            namespace::Namespace,
+            value::{
+                Callable, Expr, Intrisic,
+                Value::{self},
+            },
+        };
+
+        #[test]
+        fn inner_let() {
+            let mut rng = SmallRng::seed_from_u64(0);
+            let mut namespace = Namespace::root();
+
+            let ident = DIdentifier::new("a").unwrap();
+
+            namespace.let_(ident.clone(), Value::Bool(true));
+
+            assert_matches!(
+                scope(
+                    &mut namespace,
+                    &mut rng,
+                    &[Expr::Call {
+                        called: Left(Callable::Intrisic(Intrisic::Let)),
+                        inputs: vec![Expr::Reference(ident.clone()), Expr::Number(-123)]
+                    }]
+                ),
+                Ok(Value::None)
+            );
+
+            // let inside scope should not change the value outside
+            assert_matches!(namespace.get(&ident), Some(Value::Bool(true)))
+        }
+        #[test]
+        fn inner_set() {
+            let mut rng = SmallRng::seed_from_u64(0);
+            let mut namespace = Namespace::root();
+
+            let ident = DIdentifier::new("a").unwrap();
+
+            namespace.let_(ident.clone(), Value::Bool(true));
+
+            assert_matches!(
+                scope(
+                    &mut namespace,
+                    &mut rng,
+                    &[Expr::Call {
+                        called: Left(Callable::Intrisic(Intrisic::Set)),
+                        inputs: vec![Expr::Reference(ident.clone()), Expr::Number(-123)]
+                    }]
+                ),
+                Ok(Value::None)
+            );
+
+            // set inside scope should change the value outside
+            assert_matches!(namespace.get(&ident), Some(Value::Number(-123)))
         }
     }
 }
