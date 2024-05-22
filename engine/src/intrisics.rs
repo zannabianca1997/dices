@@ -103,42 +103,118 @@ pub fn scope(namespace: &mut Namespace, rng: &mut impl Rng, params: &[Expr]) -> 
 
 #[cfg(test)]
 mod tests {
+
+    macro_rules! check_call {
+        (
+            $name:ident : $intr:ident ( $( $param:expr ),* ) == $res:pat $( if $guard: expr )? $(, for $reps: expr )?
+        ) => {
+            #[test]
+            fn $name() {
+                let mut rng = <::rand::rngs::SmallRng as ::rand::SeedableRng>::seed_from_u64(0);
+                for _ in 0..(0 $( + $reps )?) {
+                    let mut namespace = crate::namespace::Namespace::root();
+                    use crate::value::Value::*;
+                    ::std::assert_matches::assert_matches!(
+                        $intr(&mut namespace, &mut rng, &[$( $param .into() ),*]),
+                        $res $( if $guard )?
+                    )
+                }
+            }
+        };
+    }
+
     mod sum {
-        use std::assert_matches::assert_matches;
-
-        use rand::{rngs::SmallRng, SeedableRng};
-
         use super::super::sum;
+
+        check_call!(nums: sum(Number(3), Number(2)) == Ok(Number(5)));
+        check_call!(vec: sum(List(vec![Number(5), Number(6)])) == Ok(Number(11)));
+        check_call!(vec_and_num: sum(List(vec![Number(5), Number(6)]), Number(4)) == Ok(Number(15)));
+    }
+
+    mod join {
+        use super::super::join;
+
+        check_call!(lists: join(
+            List(vec![
+                Number(3),
+                Bool(true)
+            ]),
+            List(vec![
+                Number(42),
+                Bool(false)
+            ])) == Ok(
+                List(list))
+                if matches!(*list, [
+                    Number(3),
+                    Bool(true),
+                    Number(42),
+                    Bool(false)
+                ]
+            )
+        );
+        check_call!(list_and_num: join(
+            List(vec![
+                Number(3),
+                Bool(true)
+            ]),
+            Number(42)
+            ) == Ok(
+                List(list))
+                if matches!(*list, [
+                    Number(3),
+                    Bool(true),
+                    Number(42),
+                ]
+            )
+        );
+        check_call!(single_num: join(
+            Number(42)
+            ) == Ok(
+                List(list))
+                if matches!(*list, [
+                    Number(42),
+                ]
+            )
+        );
+    }
+
+    mod dice {
+        use super::super::dice;
+
+        check_call!(d6: dice(Number(6)) == Ok(Number(1..=6)), for 100);
+    }
+
+    mod set {
+        use ::std::assert_matches::assert_matches;
+
+        use ::rand::{rngs::SmallRng, SeedableRng};
+
+        use super::super::set;
         use crate::{
+            identifier::DIdentifier,
             namespace::Namespace,
-            value::{
-                Expr::{List, Number},
-                Value,
-            },
+            value::{Expr, Value::*},
         };
 
         #[test]
-        fn nums() {
-            let mut namespace = Namespace::root();
+        fn d6() {
             let mut rng = SmallRng::seed_from_u64(0);
-            assert_matches!(
-                sum(&mut namespace, &mut rng, &[Number(3), Number(2)]),
-                Ok(Value::Number(5))
-            )
-        }
+            let mut namespace = Namespace::root();
 
-        #[test]
-        fn vec() {
-            let mut namespace = Namespace::root();
-            let mut rng = SmallRng::seed_from_u64(0);
+            let ident = DIdentifier::new("a").unwrap();
+
+            namespace.let_(ident.clone(), Number(10));
+
             assert_matches!(
-                sum(
+                set(
                     &mut namespace,
                     &mut rng,
-                    &[List(vec![Number(5), Number(6)])]
+                    &[Expr::Reference(ident.clone()), Bool(true).into()]
                 ),
-                Ok(Value::Number(11))
-            )
+                Ok(None)
+            );
+
+            assert_matches!(namespace.get(&ident), Some(Bool(true)))
         }
     }
 }
