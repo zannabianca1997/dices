@@ -9,26 +9,48 @@ use std::{
 use either::Either::{self, Left, Right};
 use rand::Rng;
 use strum::{EnumDiscriminants, EnumIs, EnumTryAs, IntoStaticStr};
+use thiserror::Error;
 
-use crate::{identifier::DIdentifier, intrisics, namespace::Namespace};
+use crate::{
+    identifier::DIdentifier,
+    intrisics::{self, DiceError, JoinError, LetError, ScopeError, SetError, SumError},
+    namespace::Namespace,
+};
 
 type DString = Rc<str>;
 
+#[derive(Debug, Clone, Error)]
+#[error("Undefined reference to {0}")]
+pub struct UndefinedRef(pub DIdentifier);
+
 /// A node into an expression
 pub trait ExprPiece {
+    type SpecializeError;
+
     /// Change all free variables not present in `free_vars` with the one contained in the namespace
-    fn specialize(self, namespace: &Namespace, free_vars: &HashSet<DIdentifier>) -> Result<Self, !>
+    fn specialize(
+        self,
+        namespace: &Namespace,
+        free_vars: &HashSet<DIdentifier>,
+    ) -> Result<Self, Self::SpecializeError>
     where
         Self: Sized;
 
+    type EvalError;
     type Value;
 
     /// Evaluate this expression
-    fn eval(&self, namespace: &mut Namespace, rng: &mut impl Rng) -> Result<Self::Value, !>;
+    fn eval(
+        &self,
+        namespace: &mut Namespace,
+        rng: &mut impl Rng,
+    ) -> Result<Self::Value, Self::EvalError>;
 }
 
 /// A value that can be called
 pub trait CallableValue {
+    type Error;
+
     /// Call this value with the given parameters
     ///
     /// Parameters are still unevaluated, so intrisics can decide the order of evaluation
@@ -37,7 +59,7 @@ pub trait CallableValue {
         namespace: &mut Namespace,
         rng: &mut impl Rng,
         params: &[Expr],
-    ) -> Result<Value, !>;
+    ) -> Result<Value, Self::Error>;
 }
 
 #[derive(Debug, Clone, EnumDiscriminants, EnumTryAs, PartialEq, Eq)]
@@ -55,7 +77,7 @@ pub enum Value {
     Callable(Callable),
 }
 impl Value {
-    pub fn to_number(&self) -> Result<i64, !> {
+    pub fn to_number(&self) -> Result<i64, ToNumberError> {
         Ok(match self {
             Value::Bool(b) => match b {
                 true => 1,
@@ -66,21 +88,25 @@ impl Value {
                 if let [n] = &**l {
                     n.to_number()?
                 } else {
-                    panic!(
-                        "{} of lenght {} cannot be parsed as number",
-                        Type::List,
-                        l.len()
-                    )
+                    return Err(ToNumberError::ListNotSingular(l.len()));
                 }
             }
 
-            _ => panic!("{} cannot be converted to number", self.type_()),
+            _ => return Err(ToNumberError::InvalidType(self.type_())),
         })
     }
 
     pub fn type_(&self) -> Type {
         Type::from(self)
     }
+}
+
+#[derive(Debug, Error, Clone, Copy)]
+pub enum ToNumberError {
+    #[error("List of length {0} is not a valid number")]
+    ListNotSingular(usize),
+    #[error("Type {0} is not acceptable as a number")]
+    InvalidType(Type),
 }
 
 impl Display for Type {
@@ -95,12 +121,21 @@ pub struct Function {
     pub params: Rc<[DIdentifier]>,
     pub body: Expr,
 }
+#[derive(Debug, Clone, Error)]
+#[error("Error while specializing function body")]
+pub struct FunctionEvalError(
+    #[from]
+    #[source]
+    <Expr as ExprPiece>::SpecializeError,
+);
+
 impl ExprPiece for Function {
+    type SpecializeError = <Expr as ExprPiece>::SpecializeError;
     fn specialize(
         self,
         namespace: &Namespace,
         free_vars: &HashSet<DIdentifier>,
-    ) -> Result<Self, !> {
+    ) -> Result<Self, Self::SpecializeError> {
         let mut params = free_vars.clone();
         params.extend(self.params.iter().cloned());
 
@@ -111,7 +146,12 @@ impl ExprPiece for Function {
     }
 
     type Value = Function;
-    fn eval(&self, namespace: &mut Namespace, _: &mut impl Rng) -> Result<Self::Value, !> {
+    type EvalError = FunctionEvalError;
+    fn eval(
+        &self,
+        namespace: &mut Namespace,
+        _: &mut impl Rng,
+    ) -> Result<Self::Value, Self::EvalError> {
         Ok(Function {
             params: self.params.clone(),
             body: self.body.clone().specialize(
@@ -121,16 +161,28 @@ impl ExprPiece for Function {
         })
     }
 }
+
+#[derive(Debug, Clone, Error)]
+pub enum CallFunctionError {
+    #[error("the function takes {expected} params, {given} provided")]
+    WrongParamNum { given: usize, expected: usize },
+    #[error(transparent)]
+    EvalError(#[from] Box<EvalError>),
+}
 impl CallableValue for Function {
+    type Error = CallFunctionError;
     fn call(
         &self,
         namespace: &mut Namespace,
         rng: &mut impl Rng,
         params: &[Expr],
-    ) -> Result<Value, !> {
+    ) -> Result<Value, Self::Error> {
         // check the number of arguments is right
         if params.len() != self.params.len() {
-            panic!("Wrong number of params")
+            return Err(CallFunctionError::WrongParamNum {
+                given: params.len(),
+                expected: self.params.len(),
+            });
         }
         // create new namespace with the given parameters, evaluated
         let mut namespace: Namespace = self
@@ -138,51 +190,66 @@ impl CallableValue for Function {
             .iter()
             .zip(params.into_iter().map(|p| p.eval(namespace, rng)))
             .map(|(n, e)| e.map(|e| (n.clone(), e)))
-            .try_collect()?;
+            .try_collect()
+            .map_err(Box::new)?;
         // body must be able to be evaluated with the parameters alone
-        self.body.eval(&mut namespace, rng)
+        Ok(self.body.eval(&mut namespace, rng).map_err(Box::new)?)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// A callable value
 pub enum Callable {
-    Function(Rc<Function>),
-    // Intrisic functions
+    /// Intrisic functions
     Intrisic(Intrisic),
+    /// Function definition
+    Function(Rc<Function>),
 }
 impl CallableValue for Callable {
+    type Error = Box<Either<CallFunctionError, CallIntrisicError>>;
     fn call(
         &self,
         namespace: &mut Namespace,
         rng: &mut impl Rng,
         params: &[Expr],
-    ) -> Result<Value, !> {
-        match self {
-            Callable::Function(func) => func.call(namespace, rng, params),
-            Callable::Intrisic(intr) => intr.call(namespace, rng, params),
-        }
+    ) -> Result<Value, Self::Error> {
+        Ok(match self {
+            Callable::Function(func) => func.call(namespace, rng, params).map_err(Left)?,
+            Callable::Intrisic(intr) => intr.call(namespace, rng, params).map_err(Right)?,
+        })
     }
 }
 impl ExprPiece for Callable {
     type Value = Callable;
-    fn eval(&self, namespace: &mut Namespace, rng: &mut impl Rng) -> Result<Self::Value, !> {
-        match self {
-            Callable::Function(func) => Ok(Callable::Function(Rc::new(func.eval(namespace, rng)?))),
-            Callable::Intrisic(intr) => Ok(Callable::Intrisic(intr.eval(namespace, rng)?)),
-        }
+    type EvalError = Either<<Function as ExprPiece>::EvalError, <Intrisic as ExprPiece>::EvalError>;
+    fn eval(
+        &self,
+        namespace: &mut Namespace,
+        rng: &mut impl Rng,
+    ) -> Result<Self::Value, Self::EvalError> {
+        Ok(match self {
+            Callable::Function(func) => {
+                Callable::Function(Rc::new(func.eval(namespace, rng).map_err(Left)?))
+            }
+            Callable::Intrisic(intr) => {
+                Callable::Intrisic(intr.eval(namespace, rng).map_err(Right)?)
+            }
+        })
     }
 
+    type SpecializeError = <Function as ExprPiece>::SpecializeError;
     fn specialize(
         self,
         namespace: &Namespace,
         free_vars: &HashSet<DIdentifier>,
-    ) -> Result<Self, !> {
+    ) -> Result<Self, Self::SpecializeError> {
         Ok(match self {
             Callable::Function(func) => Callable::Function(Rc::new(
                 Rc::unwrap_or_clone(func).specialize(namespace, free_vars)?,
             )),
-            Callable::Intrisic(intr) => Callable::Intrisic(intr.specialize(namespace, free_vars)?),
+            Callable::Intrisic(intr) => {
+                Callable::Intrisic(intr.specialize(namespace, free_vars).into_ok())
+            }
         })
     }
 }
@@ -205,27 +272,50 @@ pub enum Intrisic {
     /// `{}` operator: Create a new scope
     Scope,
 }
+#[derive(Debug, Clone, Error)]
+pub enum CallIntrisicError {
+    #[error(transparent)]
+    SumError(#[from] SumError),
+    #[error(transparent)]
+    JoinError(#[from] JoinError),
+    #[error(transparent)]
+    DiceError(#[from] DiceError),
+    #[error(transparent)]
+    SetError(#[from] SetError),
+    #[error(transparent)]
+    ThenError(#[from] EvalError),
+    #[error(transparent)]
+    LetError(#[from] LetError),
+    #[error(transparent)]
+    ScopeError(#[from] ScopeError),
+}
 impl CallableValue for Intrisic {
+    type Error = CallIntrisicError;
     fn call(
         &self,
         namespace: &mut Namespace,
         rng: &mut impl Rng,
         params: &[Expr],
-    ) -> Result<Value, !> {
-        match self {
-            Intrisic::Sum => intrisics::sum(namespace, rng, params),
-            Intrisic::Join => intrisics::join(namespace, rng, params),
-            Intrisic::Dice => intrisics::dice(namespace, rng, params),
-            Intrisic::Set => intrisics::set(namespace, rng, params),
-            Intrisic::Then => intrisics::then(namespace, rng, params),
-            Intrisic::Let => intrisics::let_(namespace, rng, params),
-            Intrisic::Scope => intrisics::scope(namespace, rng, params),
-        }
+    ) -> Result<Value, Self::Error> {
+        Ok(match self {
+            Intrisic::Sum => intrisics::sum(namespace, rng, params)?,
+            Intrisic::Join => intrisics::join(namespace, rng, params)?,
+            Intrisic::Dice => intrisics::dice(namespace, rng, params)?,
+            Intrisic::Set => intrisics::set(namespace, rng, params)?,
+            Intrisic::Then => intrisics::then(namespace, rng, params)?,
+            Intrisic::Let => intrisics::let_(namespace, rng, params)?,
+            Intrisic::Scope => intrisics::scope(namespace, rng, params)?,
+        })
     }
 }
 
 impl ExprPiece for Intrisic {
-    fn specialize(self, _: &Namespace, _: &HashSet<DIdentifier>) -> Result<Self, !>
+    type SpecializeError = !;
+    fn specialize(
+        self,
+        _: &Namespace,
+        _: &HashSet<DIdentifier>,
+    ) -> Result<Self, Self::SpecializeError>
     where
         Self: Sized,
     {
@@ -233,13 +323,15 @@ impl ExprPiece for Intrisic {
     }
 
     type Value = Self;
+    type EvalError = !;
 
-    fn eval(&self, _: &mut Namespace, _: &mut impl Rng) -> Result<Self::Value, !> {
+    fn eval(&self, _: &mut Namespace, _: &mut impl Rng) -> Result<Self::Value, Self::EvalError> {
         Ok(*self)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, EnumDiscriminants, EnumTryAs)]
+#[strum_discriminants(name(ExprKind), derive(EnumIs, IntoStaticStr))]
 /// Value of a expression in `dices`
 pub enum Expr {
     // Plain data types
@@ -275,8 +367,37 @@ impl From<Value> for Expr {
     }
 }
 
+#[derive(Debug, Clone, Error)]
+#[error("Variable {0} of type {1} is not callable")]
+pub struct NotCallable(pub DIdentifier, pub Type);
+
+#[derive(Debug, Clone, Error)]
+pub enum EvalError {
+    #[error(transparent)]
+    CallError(#[from] <Callable as CallableValue>::Error),
+    #[error(transparent)]
+    CallableEval(#[from] <Callable as ExprPiece>::EvalError),
+    #[error(transparent)]
+    UndefinedRef(#[from] UndefinedRef),
+    #[error(transparent)]
+    NotCallable(#[from] NotCallable),
+}
+
+#[derive(Debug, Clone, Error)]
+pub enum SpecializeError {
+    #[error(transparent)]
+    UndefinedRef(#[from] UndefinedRef),
+    #[error(transparent)]
+    NotCallable(#[from] NotCallable),
+}
+
 impl ExprPiece for Expr {
-    fn eval(&self, namespace: &mut Namespace, rng: &mut impl Rng) -> Result<Value, !> {
+    type EvalError = EvalError;
+    fn eval(
+        &self,
+        namespace: &mut Namespace,
+        rng: &mut impl Rng,
+    ) -> Result<Value, Self::EvalError> {
         Ok(match self {
             Expr::None => Value::None,
             Expr::Bool(b) => Value::Bool(*b),
@@ -295,13 +416,10 @@ impl ExprPiece for Expr {
             ),
             Expr::Callable(c) => Value::Callable(c.eval(namespace, rng)?),
 
-            Expr::Reference(name) => {
-                if let Some(val) = namespace.get(name) {
-                    val.clone()
-                } else {
-                    panic!("Invalid reference {name}")
-                }
-            }
+            Expr::Reference(name) => namespace
+                .get(name)
+                .ok_or_else(|| UndefinedRef(name.clone()))?
+                .clone(),
             Expr::Call {
                 called,
                 inputs: params,
@@ -311,8 +429,13 @@ impl ExprPiece for Expr {
                     Either::Left(callable) => callable,
                     Either::Right(name) => match namespace.get(name) {
                         Some(Value::Callable(callable)) => callable,
-                        Some(_) => panic!("Variable {name} is not callable"),
-                        None => panic!("Invalid reference {name}"),
+                        Some(val) => {
+                            return Err(EvalError::NotCallable(NotCallable(
+                                name.clone(),
+                                val.type_(),
+                            )))
+                        }
+                        None => return Err(UndefinedRef(name.clone()).into()),
                     },
                 }
                 .clone();
@@ -322,11 +445,12 @@ impl ExprPiece for Expr {
         })
     }
 
+    type SpecializeError = SpecializeError;
     fn specialize(
         self,
         namespace: &Namespace,
         free_vars: &HashSet<DIdentifier>,
-    ) -> Result<Expr, !> {
+    ) -> Result<Expr, Self::SpecializeError> {
         Ok(match self {
             Expr::None | Expr::Bool(_) | Expr::Number(_) | Expr::String(_) => self,
             Expr::List(l) => Expr::List(
@@ -343,10 +467,12 @@ impl ExprPiece for Expr {
             Expr::Reference(name) => {
                 if free_vars.contains(&name) {
                     Expr::Reference(name)
-                } else if let Some(value) = namespace.get(&name) {
-                    value.clone().into()
                 } else {
-                    panic!("Unrecognized name {name}")
+                    namespace
+                        .get(&name)
+                        .ok_or_else(|| UndefinedRef(name.clone()))?
+                        .clone()
+                        .into()
                 }
             }
             Expr::Call { called, inputs } => {
@@ -355,14 +481,16 @@ impl ExprPiece for Expr {
                     Right(name) => {
                         if free_vars.contains(&name) {
                             Right(name)
-                        } else if let Some(value) = namespace.get(&name) {
-                            if let Value::Callable(callable) = value {
-                                Left(callable.clone())
-                            } else {
-                                panic!("{name} is not callable")
-                            }
                         } else {
-                            panic!("Unrecognized name {name}")
+                            let value = namespace
+                                .get(&name)
+                                .ok_or_else(|| UndefinedRef(name.clone()))?;
+                            Left(
+                                value
+                                    .try_as_callable_ref()
+                                    .ok_or_else(|| NotCallable(name.clone(), value.type_()))?
+                                    .clone(),
+                            )
                         }
                     }
                 };
@@ -377,4 +505,16 @@ impl ExprPiece for Expr {
     }
 
     type Value = Value;
+}
+
+impl Expr {
+    pub fn kind(&self) -> ExprKind {
+        ExprKind::from(self)
+    }
+}
+
+impl Display for ExprKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        <&'static str as Display>::fmt(&self.into(), f)
+    }
 }

@@ -1,38 +1,59 @@
 //! Basic functions of the interpreter
 
 use rand::Rng;
+use thiserror::Error;
 
 use crate::{
     namespace::Namespace,
-    value::{Expr, ExprPiece, Value},
+    value::{EvalError, Expr, ExprKind, ExprPiece, ToNumberError, UndefinedRef, Value},
 };
 
-pub fn sum(namespace: &mut Namespace, rng: &mut impl Rng, params: &[Expr]) -> Result<Value, !> {
+#[derive(Debug, Clone, Error)]
+pub enum SumError {
+    #[error("Invalid number in sum")]
+    NotANumber(
+        #[from]
+        #[source]
+        ToNumberError,
+    ),
+    #[error("While evaluating addend")]
+    EvalError(
+        #[from]
+        #[source]
+        EvalError,
+    ),
+}
+pub fn sum(
+    namespace: &mut Namespace,
+    rng: &mut impl Rng,
+    params: &[Expr],
+) -> Result<Value, SumError> {
     let mut total = 0;
     for expr in params {
         let value = expr.eval(namespace, rng)?;
-        total += match value {
-            Value::Bool(b) => match b {
-                true => 1,
-                false => 0,
-            },
-            Value::Number(n) => n,
-            // flatten lists of numbers
-            Value::List(l) => l
-                .into_iter()
-                .map::<Result<_, !>, _>(|val| match val.to_number() {
-                    Ok(n) => Ok(n),
-                    Err(_) => panic!("Sum is valid only on numbers or list of numbers"),
-                })
-                .try_fold(0, |sum, b| b.map(|b| sum + b))?,
-
-            _ => panic!("{value:?} is invalid in a sum"),
-        }
+        total += if let Value::List(l) = value {
+            l.into_iter()
+                .map(|val| val.to_number())
+                .try_fold(0, |sum, b| b.map(|b| sum + b))
+        } else {
+            value.to_number()
+        }?
     }
     Ok(Value::Number(total))
 }
 
-pub fn join(namespace: &mut Namespace, rng: &mut impl Rng, params: &[Expr]) -> Result<Value, !> {
+#[derive(Debug, Clone, Error)]
+#[error("While evaluating lists to join")]
+pub struct JoinError(
+    #[from]
+    #[source]
+    EvalError,
+);
+pub fn join(
+    namespace: &mut Namespace,
+    rng: &mut impl Rng,
+    params: &[Expr],
+) -> Result<Value, JoinError> {
     let mut total = vec![];
     for expr in params {
         let mut value = expr.eval(namespace, rng)?;
@@ -46,44 +67,107 @@ pub fn join(namespace: &mut Namespace, rng: &mut impl Rng, params: &[Expr]) -> R
     Ok(Value::List(total))
 }
 
-pub fn dice(namespace: &mut Namespace, rng: &mut impl Rng, params: &[Expr]) -> Result<Value, !> {
+#[derive(Debug, Clone, Error)]
+pub enum DiceError {
+    #[error("dice takes one param, {0} provided")]
+    WrongParamNum(usize),
+    #[error("Error in evaluating number of faces")]
+    EvalError(
+        #[from]
+        #[source]
+        EvalError,
+    ),
+    #[error("Number of faces is not a num")]
+    NaNFaces(
+        #[from]
+        #[source]
+        ToNumberError,
+    ),
+    #[error("Number of faces ({0}) is negative")]
+    NegFaces(i64),
+}
+pub fn dice(
+    namespace: &mut Namespace,
+    rng: &mut impl Rng,
+    params: &[Expr],
+) -> Result<Value, DiceError> {
     let [param] = params else {
-        panic!("Dice must have a singular param")
+        return Err(DiceError::WrongParamNum(params.len()));
     };
-    let faces = param
-        .eval(namespace, rng)?
-        .to_number()
-        .map_err(|_| panic!("Dice need an integer number of faces"))?;
+    let faces = param.eval(namespace, rng)?.to_number()?;
     if faces <= 0 {
-        panic!("Invalid number of faces")
+        return Err(DiceError::NegFaces(faces));
     }
     Ok(Value::Number(rng.gen_range(1..=faces)))
 }
 
-pub fn set(namespace: &mut Namespace, rng: &mut impl Rng, params: &[Expr]) -> Result<Value, !> {
-    let [Expr::Reference(name), value] = params else {
-        panic!("Set must be called with a name to set, and a value")
-    };
+#[derive(Debug, Clone, Error)]
+pub enum SetError {
+    #[error("set takes two params, {0} provided")]
+    WrongParamNum(usize),
+    #[error("set first param must be a reference, it was a {0}")]
+    WrongFirstParam(ExprKind),
+    #[error("Error in evaluating value set")]
+    EvalError(
+        #[from]
+        #[source]
+        EvalError,
+    ),
+    #[error(transparent)]
+    UndefinedRef(#[from] UndefinedRef),
+}
+pub fn set(
+    namespace: &mut Namespace,
+    rng: &mut impl Rng,
+    params: &[Expr],
+) -> Result<Value, SetError> {
+    let (name, value) = match params {
+        [Expr::Reference(name), value] => Ok((name, value)),
+        [p1, _] => Err(SetError::WrongFirstParam(p1.kind())),
+        params => Err(SetError::WrongParamNum(params.len())),
+    }?;
     let value = value.eval(namespace, rng)?;
     let target = namespace
         .get_mut(name)
-        .ok_or_else(|| panic!("{name} is undefined"))?;
+        .ok_or_else(|| UndefinedRef(name.clone()))?;
     *target = value;
     Ok(Value::None)
 }
 
-pub fn let_(namespace: &mut Namespace, rng: &mut impl Rng, params: &[Expr]) -> Result<Value, !> {
+#[derive(Debug, Clone, Error)]
+pub enum LetError {
+    #[error("let takes one or two params, {0} provided")]
+    WrongParamNum(usize),
+    #[error("let first param must be a reference, it was a {0}")]
+    WrongFirstParam(ExprKind),
+    #[error("Error in evaluating initial value for let")]
+    EvalError(
+        #[from]
+        #[source]
+        EvalError,
+    ),
+}
+pub fn let_(
+    namespace: &mut Namespace,
+    rng: &mut impl Rng,
+    params: &[Expr],
+) -> Result<Value, LetError> {
     let (name, value) = match params {
-        [Expr::Reference(name), value] => (name, value),
-        [Expr::Reference(name)] => (name, &Expr::None),
-        _ => panic!("Let must be called with a name to set, and a optional value"),
-    };
+        [Expr::Reference(name), value] => Ok((name, value)),
+        [Expr::Reference(name)] => Ok((name, &Expr::None)),
+        [p1, _] => Err(LetError::WrongFirstParam(p1.kind())),
+        params => Err(LetError::WrongParamNum(params.len())),
+    }?;
     let value = value.eval(namespace, rng)?;
     namespace.let_(name.clone(), value);
     Ok(Value::None)
 }
 
-pub fn then(namespace: &mut Namespace, rng: &mut impl Rng, params: &[Expr]) -> Result<Value, !> {
+pub fn then(
+    namespace: &mut Namespace,
+    rng: &mut impl Rng,
+    params: &[Expr],
+) -> Result<Value, EvalError> {
     let Some((last, before)) = params.split_last() else {
         return Ok(Value::None);
     };
@@ -93,12 +177,23 @@ pub fn then(namespace: &mut Namespace, rng: &mut impl Rng, params: &[Expr]) -> R
     last.eval(namespace, rng)
 }
 
-pub fn scope(namespace: &mut Namespace, rng: &mut impl Rng, params: &[Expr]) -> Result<Value, !> {
+#[derive(Debug, Clone, Error)]
+pub enum ScopeError {
+    #[error("let takes one or two params, {0} provided")]
+    WrongParamNum(usize),
+    #[error(transparent)]
+    EvalError(#[from] EvalError),
+}
+pub fn scope(
+    namespace: &mut Namespace,
+    rng: &mut impl Rng,
+    params: &[Expr],
+) -> Result<Value, ScopeError> {
     let [body] = params else {
-        panic!("Scope must contain a single expression")
+        return Err(ScopeError::WrongParamNum(params.len()));
     };
     let mut child = namespace.child();
-    body.eval(&mut child, rng)
+    Ok(body.eval(&mut child, rng)?)
 }
 
 #[cfg(test)]

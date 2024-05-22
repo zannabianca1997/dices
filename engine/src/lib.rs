@@ -3,6 +3,7 @@
 #![feature(iterator_try_collect)]
 #![feature(iterator_try_reduce)]
 #![feature(assert_matches)]
+#![feature(unwrap_infallible)]
 
 pub mod identifier;
 
