@@ -1,14 +1,26 @@
-use std::{fmt::Display, rc::Rc};
+use std::{
+    borrow::{Borrow, Cow},
+    fmt::Display,
+    rc::Rc,
+};
 
 use lazy_regex::regex_is_match;
 
 /// `dices` identifier
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(::serde::Serialize, ::serde::Deserialize),
+    serde(into = "Rc<str>", try_from = "Rc<str>")
+)]
 pub struct DIdentifier(Rc<str>);
 
 impl DIdentifier {
-    pub fn new(value: &str) -> Option<Self> {
-        if Self::is_valid(value) {
+    pub fn new<V>(value: V) -> Option<Self>
+    where
+        V: Into<Rc<str>> + Borrow<str>,
+    {
+        if Self::is_valid(value.borrow()) {
             Some(Self(value.into()))
         } else {
             None

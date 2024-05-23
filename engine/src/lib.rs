@@ -4,11 +4,12 @@
 #![feature(iterator_try_reduce)]
 #![feature(assert_matches)]
 #![feature(unwrap_infallible)]
+#![feature(box_patterns)]
 
 pub mod identifier;
 
 pub mod namespace;
 
-pub mod value;
+pub mod expr;
 
-pub mod intrisics;
+pub mod value;

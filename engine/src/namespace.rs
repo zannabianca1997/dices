@@ -204,9 +204,48 @@ impl Namespace<'_> {
         }
     }
 
+    /// Generate a child namespace that refers to this one, and with the given locals
+    ///
+    /// ```
+    /// # use std::collections::HashMap;
+    /// # use engine::{namespace::Namespace, value::Value::{Number, Bool}};
+    /// let mut root = Namespace::root_with_vars(HashMap::from([
+    ///     ("parent_a".try_into().unwrap(), Number(42)),
+    ///     ("shadowed".try_into().unwrap(), Number(-42)),
+    /// ]));
+    /// {
+    ///     let mut child = root.child_with_vars(Hashmap::from([
+    ///         ("shadowed".try_into().unwrap(), Number(-666)),
+    ///         ("child_b".try_into().unwrap(), Bool(false))
+    ///     ]));
+    ///     
+    ///     assert_eq!(child.get(&"parent_a".try_into().unwrap()), Some(&Number(42)));
+    ///
+    ///     assert_eq!(child.get(&"child_b".try_into().unwrap()), Some(&Bool(false)));
+    ///
+    ///     // child vars can shadow the parent
+    ///     assert_eq!(child.get(&"shadowed".try_into().unwrap()), Some(&Number(-666)));
+    /// }
+    /// ```
+    pub fn child_with_vars<'s, 'c>(&'s mut self, vars: HashMap<DIdentifier, Value>) -> Namespace<'c>
+    where
+        's: 'c,
+    {
+        Namespace {
+            vars,
+            parent: Some(self.into()),
+            phantom: PhantomData,
+        }
+    }
+
     /// Create a new varible, eventually shadowing the ones present in the parent
     pub fn let_(&mut self, ident: DIdentifier, value: Value) {
         self.vars.insert(ident, value);
+    }
+
+    pub fn set(&mut self, name: &DIdentifier, value: Value) -> Result<(), ()> {
+        *self.get_mut(name).ok_or(())? = value;
+        Ok(())
     }
 }
 

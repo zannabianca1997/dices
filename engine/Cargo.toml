@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-either = "1.12.0"
+either = { version = "1.12.0", features = ["serde"] }
 lazy-regex = "3.1.0"
 rand = { version = "0.8.5", features = ["small_rng"] }
+serde = { version = "1.0.202", features = ["derive", "rc"], optional = true }
 strum = { version = "0.26.2", features = ["derive"] }
 thiserror = "1.0.61"
