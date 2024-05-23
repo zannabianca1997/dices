@@ -63,8 +63,15 @@ peg::parser! {
 
     /// Parse any statement
     rule statement() -> Statement
-        = e:expr() { Statement::Expr(e) }
-        / ""       { Statement::Expr(Expr::Null) }
+        = v:ident() _ "=" _ e:expr() {
+            Statement::Set(v, e)
+        }
+        / "let" _ v:ident() e:(_ "=" _ e:expr() {e})? {
+            Statement::Let(v, e)
+        }
+        / e:expr()  { Statement::Expr(e)          }
+        / b:scope() { Statement::Scope(b.into())  }
+        / ""        { Statement::Expr(Expr::Null) }
 
     /// Parse a command - a statetement with optional space
     pub rule command() -> Statement
@@ -72,7 +79,13 @@ peg::parser! {
 
     /// Parse whitespace and comments, discarding them
     rule _ -> ()
-        = ([' ' | '\t' | '\r' | '\n'] / line_comment() / block_comment())* { () }
+        = quiet!{
+            (
+                [' ' | '\t' | '\r' | '\n']
+                / line_comment()
+                / block_comment()
+            )* { () }
+        }
 
     /// C-style line comment
     rule line_comment() -> ()
