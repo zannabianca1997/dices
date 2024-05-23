@@ -6,7 +6,6 @@ use std::{
     rc::Rc,
 };
 
-use either::Either;
 use rand::Rng;
 use strum::{EnumDiscriminants, EnumIs, EnumTryAs, IntoStaticStr};
 use thiserror::Error;

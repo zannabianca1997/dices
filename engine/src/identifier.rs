@@ -1,8 +1,4 @@
-use std::{
-    borrow::{Borrow, Cow},
-    fmt::Display,
-    rc::Rc,
-};
+use std::{borrow::Borrow, fmt::Display, rc::Rc};
 
 use lazy_regex::regex_is_match;
 
