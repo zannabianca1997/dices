@@ -61,7 +61,7 @@ pub enum Expr {
         body: Rc<[Statement]>,
     },
 
-    /// Calling a function
+    /// Calling of a function
     Call { fun: Box<Expr>, params: Vec<Expr> },
 }
 impl Expr {

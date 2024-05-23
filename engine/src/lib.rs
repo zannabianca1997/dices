@@ -13,3 +13,5 @@ pub mod namespace;
 pub mod expr;
 
 pub mod value;
+
+pub mod parser;
