@@ -1,10 +1,9 @@
 use std::{collections::HashMap, fmt::Display, rc::Rc};
 
-use either::Either;
 use strum::{EnumDiscriminants, EnumIs, EnumTryAs, IntoStaticStr};
 use thiserror::Error;
 
-use crate::expr::{Expr, Statement};
+use crate::expr::Statement;
 use crate::identifier::DIdentifier;
 
 /// String type in `dices`
