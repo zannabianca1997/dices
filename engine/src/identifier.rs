@@ -26,6 +26,10 @@ impl DIdentifier {
     fn is_valid(value: &str) -> bool {
         regex_is_match!(r"^(?:_+[a-zA-Z0-9]|[a-zA-Z])[_a-zA-Z0-9]*$", value)
     }
+
+    fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 impl Display for DIdentifier {

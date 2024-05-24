@@ -31,7 +31,7 @@ peg::parser! {
                 List(l)
             }
 
-            "{" _
+            "<|" _
                 elems:(
                     (
                         n:ident() _ ":" _ v:expr() {
@@ -39,11 +39,11 @@ peg::parser! {
                         }
                     ) ** (_ "," _)
                 )
-            _ "}" {
+            _ "|>" {
                 Map(elems.into_iter().collect())
             }
 
-            "(" e:expr() ")" { e }
+            "(" _ e:expr() _ ")" { e }
 
             "|" _ p:(ident() ** (_ "," _)) _ "|" _ b:(
                 e:expr() { vec![Statement::Expr(e)] }

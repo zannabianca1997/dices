@@ -214,7 +214,7 @@ impl Namespace<'_> {
     ///     ("shadowed".try_into().unwrap(), Number(-42)),
     /// ]));
     /// {
-    ///     let mut child = root.child_with_vars(Hashmap::from([
+    ///     let mut child = root.child_with_vars(HashMap::from([
     ///         ("shadowed".try_into().unwrap(), Number(-666)),
     ///         ("child_b".try_into().unwrap(), Bool(false))
     ///     ]));

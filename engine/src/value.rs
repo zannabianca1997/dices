@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, rc::Rc};
+use std::{collections::HashMap, rc::Rc};
 
 use strum::{EnumDiscriminants, EnumIs, EnumTryAs, IntoStaticStr};
 use thiserror::Error;
@@ -10,7 +10,7 @@ use crate::identifier::DIdentifier;
 pub type DString = Rc<str>;
 
 #[derive(Debug, Clone, EnumDiscriminants, EnumTryAs, PartialEq, Eq)]
-#[strum_discriminants(name(Type), derive(EnumIs, IntoStaticStr))]
+#[strum_discriminants(name(Type), derive(EnumIs, IntoStaticStr, strum::Display))]
 #[cfg_attr(
     feature = "serde",
     derive(::serde::Serialize, ::serde::Deserialize),
@@ -74,10 +74,4 @@ pub enum ToNumberError {
     ListNotSingular(usize),
     #[error("Type {0} is not acceptable as a number")]
     InvalidType(Type),
-}
-
-impl Display for Type {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(<&'static str>::from(self), f)
-    }
 }

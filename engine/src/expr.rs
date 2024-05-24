@@ -2,7 +2,6 @@
 
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Display,
     rc::Rc,
 };
 
@@ -31,7 +30,7 @@ pub enum EvalError {
 pub struct UndefinedRef(pub DIdentifier);
 
 #[derive(Debug, Clone, EnumDiscriminants, EnumTryAs, PartialEq, Eq)]
-#[strum_discriminants(name(ExprKind), derive(EnumIs, IntoStaticStr))]
+#[strum_discriminants(name(ExprKind), derive(EnumIs, IntoStaticStr, strum::Display))]
 #[cfg_attr(
     feature = "serde",
     derive(::serde::Serialize, ::serde::Deserialize),
@@ -157,16 +156,27 @@ impl Expr {
                 .collect(),
         }
     }
-}
 
-impl Display for ExprKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(<&'static str>::from(self), f)
+    /// if this function need parenthesis when called to be correctly called
+    ///
+    /// For example, `3` does not need parenthesis, as `3()` is parsed with no ambiguity.
+    /// Instead `|x| x` needs it, as `|x| x()` and `(|x| x)()` are different
+    pub fn need_parents_for_call(&self) -> bool {
+        match self {
+            Expr::Null
+            | Expr::Bool(_)
+            | Expr::Number(_)
+            | Expr::List(_)
+            | Expr::String(_)
+            | Expr::Map(_)
+            | Expr::Reference(_)
+            | Expr::Call { .. } => false,
+            Expr::Function { .. } => true,
+        }
     }
 }
-
 #[derive(Debug, Clone, EnumDiscriminants, EnumTryAs, PartialEq, Eq)]
-#[strum_discriminants(name(StmKind), derive(EnumIs, IntoStaticStr))]
+#[strum_discriminants(name(StmKind), derive(EnumIs, IntoStaticStr, strum::Display))]
 #[cfg_attr(
     feature = "serde",
     derive(::serde::Serialize, ::serde::Deserialize),
@@ -223,11 +233,6 @@ impl Statement {
 
     pub fn kind(&self) -> StmKind {
         self.into()
-    }
-}
-impl Display for StmKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(<&'static str>::from(self), f)
     }
 }
 

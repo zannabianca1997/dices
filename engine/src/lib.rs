@@ -15,3 +15,6 @@ pub mod expr;
 pub mod value;
 
 pub mod parser;
+
+#[cfg(feature = "pretty")]
+mod display;
