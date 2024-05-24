@@ -1,8 +1,14 @@
+use std::rc::Rc;
+
 use peg::str::LineCol;
 
-use crate::expr::Expr::{self, *};
-use crate::expr::Statement;
-use crate::identifier::DIdentifier;
+use crate::{
+    expr::{
+        Expr::{self, *},
+        Statement,
+    },
+    identifier::IdentStr,
+};
 
 peg::parser! {
   grammar grammar() for str {
@@ -11,11 +17,11 @@ peg::parser! {
         = n:$(['0'..='9']+) {? n.parse().or(Err("Literal too long for i64")) }
 
     /// An identifier
-    rule ident() -> DIdentifier
+    rule ident() -> &'input IdentStr
         = i:$(
             (['a'..='z'|'A'..='Z'] / ['_']+ ['0'..='9'|'a'..='z'|'A'..='Z'])
             ['0'..='9'|'a'..='z'|'A'..='Z'|'_']*
-        ) {? DIdentifier::new(i).ok_or("Invalid identifier") }
+        ) {? IdentStr::new(i).ok_or("Invalid identifier") }
 
 
     /// Parse an expression
@@ -25,7 +31,7 @@ peg::parser! {
             "true"     { Bool(true) }
             "false"    { Bool(false) }
             n:number() { Number(n) }
-            i:ident()  { Reference(i) }
+            i:ident()  { Reference(i.into()) }
 
             "[" _ l:(expr() ** (_ "," _)) _ "]" {
                 List(l)
@@ -35,7 +41,7 @@ peg::parser! {
                 elems:(
                     (
                         n:ident() _ ":" _ v:expr() {
-                            (n.into(),v)
+                            (n.as_ref().into(),v)
                         }
                     ) ** (_ "," _)
                 )
@@ -45,7 +51,7 @@ peg::parser! {
 
             "(" _ e:expr() _ ")" { e }
 
-            "|" _ p:(ident() ** (_ "," _)) _ "|" _ b:(
+            "|" _ p:((i: ident() { Rc::<IdentStr>::from(i) }) ** (_ "," _)) _ "|" _ b:(
                 e:expr() { vec![Statement::Expr(e)] }
                 / scope()
             ) {
@@ -64,10 +70,10 @@ peg::parser! {
     /// Parse any statement
     rule statement() -> Statement
         = v:ident() _ "=" _ e:expr() {
-            Statement::Set(v, e)
+            Statement::Set(v.into(), e)
         }
         / "let" _ v:ident() e:(_ "=" _ e:expr() {e})? {
-            Statement::Let(v, e)
+            Statement::Let(v.into(), e)
         }
         / e:expr()  { Statement::Expr(e)          }
         / b:scope() { Statement::Scope(b.into())  }

@@ -5,12 +5,13 @@ use std::{
     rc::Rc,
 };
 
+use itertools::Itertools;
 use rand::Rng;
 use strum::{EnumDiscriminants, EnumIs, EnumTryAs, IntoStaticStr};
 use thiserror::Error;
 
 use crate::{
-    identifier::DIdentifier,
+    identifier::IdentStr,
     namespace::Namespace,
     value::{DString, Type, Value},
 };
@@ -27,7 +28,7 @@ pub enum EvalError {
 
 #[derive(Debug, Clone, Error)]
 #[error("Variable `{0}` is undefined")]
-pub struct UndefinedRef(pub DIdentifier);
+pub struct UndefinedRef(pub Box<IdentStr>);
 
 #[derive(Debug, Clone, EnumDiscriminants, EnumTryAs, PartialEq, Eq)]
 #[strum_discriminants(name(ExprKind), derive(EnumIs, IntoStaticStr, strum::Display))]
@@ -52,11 +53,11 @@ pub enum Expr {
     Map(HashMap<DString, Self>),
 
     /// Reference to variables
-    Reference(DIdentifier),
+    Reference(Rc<IdentStr>),
 
     /// Definition of a function
     Function {
-        params: Rc<[DIdentifier]>,
+        params: Rc<[Rc<IdentStr>]>,
         body: Rc<[Statement]>,
     },
 
@@ -82,16 +83,15 @@ impl Expr {
             ),
             Expr::Reference(r) => namespace
                 .get(r)
-                .ok_or_else(|| UndefinedRef(r.clone()))?
+                .ok_or_else(|| UndefinedRef((&**r).to_owned()))?
                 .clone(),
             Expr::Function { params, body } => {
                 let context = self
                     .free_vars()
                     .into_iter()
-                    .cloned()
                     .map(|n| match namespace.get(&n) {
-                        Some(v) => Ok((n, v.clone())),
-                        None => Err(UndefinedRef(n)),
+                        Some(v) => Ok((n.into(), v.clone())),
+                        None => Err(UndefinedRef(n.to_owned())),
                     })
                     .try_collect()?;
                 Value::Function {
@@ -139,20 +139,20 @@ impl Expr {
         self.into()
     }
 
-    fn free_vars(&self) -> HashSet<&DIdentifier> {
+    fn free_vars(&self) -> HashSet<&IdentStr> {
         match self {
             Expr::Null | Expr::Bool(_) | Expr::Number(_) | Expr::String(_) => HashSet::new(),
             Expr::List(l) => l.into_iter().flat_map(|l| l.free_vars()).collect(),
             Expr::Map(m) => m.values().flat_map(|l| l.free_vars()).collect(),
-            Expr::Reference(r) => HashSet::from([r]),
-            Expr::Call { box fun, params } => params
+            Expr::Reference(r) => HashSet::from([&**r]),
+            Expr::Call { fun, params } => params
                 .iter()
-                .chain(Some(fun))
+                .chain(Some(&**fun))
                 .flat_map(|l| l.free_vars())
                 .collect(),
             Expr::Function { params, body } => scope_free_vars(body)
                 .into_iter()
-                .filter(|var| !params.contains(var))
+                .filter(|var| params.iter().all(|p| &**p != *var))
                 .collect(),
         }
     }
@@ -187,10 +187,10 @@ pub enum Statement {
     Expr(Expr),
 
     /// Setting a variable
-    Set(DIdentifier, Expr),
+    Set(Rc<IdentStr>, Expr),
 
     /// Creating a variable
-    Let(DIdentifier, Option<Expr>),
+    Let(Rc<IdentStr>, Option<Expr>),
 
     /// Block of statements
     Scope(Rc<[Statement]>),
@@ -202,7 +202,7 @@ impl Statement {
             Statement::Set(name, value) => {
                 namespace
                     .set(name, value.eval(namespace, rng)?)
-                    .map_err(|()| UndefinedRef(name.clone()))?;
+                    .map_err(|()| UndefinedRef((&**name).to_owned()))?;
                 Ok(Value::Null)
             }
             Statement::Let(name, value) => {
@@ -236,7 +236,7 @@ impl Statement {
     }
 }
 
-fn scope_free_vars(stms: &[Statement]) -> HashSet<&DIdentifier> {
+fn scope_free_vars(stms: &[Statement]) -> HashSet<&IdentStr> {
     let mut free_vars = HashSet::new();
     // going backward in the body
     for stm in stms.iter().rev() {
@@ -248,7 +248,7 @@ fn scope_free_vars(stms: &[Statement]) -> HashSet<&DIdentifier> {
             Statement::Scope(s) => free_vars.extend(scope_free_vars(s)),
             Statement::Let(v, i) => {
                 // v is declared, so we do not depend on it if used after here
-                free_vars.remove(v);
+                free_vars.remove(&**v);
                 // the init must be calculated before declaring
                 if let Some(i) = i {
                     free_vars.extend(i.free_vars())

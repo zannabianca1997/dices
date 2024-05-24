@@ -4,7 +4,7 @@ use pretty::{DocAllocator, DocBuilder, Pretty};
 
 use crate::{
     expr::{Expr, Statement},
-    identifier::DIdentifier,
+    identifier::IdentStr,
     value::Value,
 };
 
@@ -26,7 +26,7 @@ where
                 .nest(4)
                 .group()
                 .brackets(),
-            Expr::String(_) => todo!(),
+            Expr::String(s) => str_lit(allocator, s),
             Expr::Map(m) => allocator
                 .line_()
                 .append(allocator.intersperse(
@@ -45,7 +45,10 @@ where
                 .enclose("<|", "|>"),
             Expr::Reference(r) => r.pretty(allocator),
             Expr::Function { params, body } => allocator
-                .intersperse(&**params, allocator.text(",").append(allocator.line_()))
+                .intersperse(
+                    params.iter().map(|p| &**p),
+                    allocator.text(",").append(allocator.line_()),
+                )
                 .enclose(allocator.line_(), allocator.line_())
                 .nest(4)
                 .group()
@@ -97,12 +100,11 @@ where
                 .nest(4)
                 .group()
                 .brackets(),
-            Value::String(_) => todo!(),
+            Value::String(s) => str_lit(allocator, s),
             Value::Map(m) => allocator
                 .intersperse(
                     m.iter().map(|(k, v)| {
-                        allocator
-                            .text(&**k)
+                        map_key(allocator, k)
                             .append(allocator.text(":"))
                             .append(allocator.space())
                             .append(v)
@@ -118,7 +120,10 @@ where
                 context,
                 body,
             } => allocator
-                .intersperse(&**params, allocator.text(",").append(allocator.line_()))
+                .intersperse(
+                    params.iter().map(|p| &**p),
+                    allocator.text(",").append(allocator.line_()),
+                )
                 .enclose(allocator.line_(), allocator.line_())
                 .nest(4)
                 .group()
@@ -142,6 +147,29 @@ where
     }
 }
 
+/// Print a map key either as a identifier, or as a string
+fn map_key<'a, D, A>(allocator: &'a D, k: &'a str) -> pretty::DocBuilder<'a, D, A>
+where
+    A: 'a,
+    D: ?Sized + DocAllocator<'a, A> + 'a,
+    DocBuilder<'a, D, A>: Clone,
+{
+    if let Some(k) = IdentStr::new(k) {
+        allocator.text(&**k)
+    } else {
+        str_lit(allocator, k)
+    }
+}
+
+fn str_lit<'a, D, A>(allocator: &'a D, s: &'a str) -> pretty::DocBuilder<'a, D, A>
+where
+    A: 'a,
+    D: ?Sized + DocAllocator<'a, A> + 'a,
+    DocBuilder<'a, D, A>: Clone,
+{
+    todo!()
+}
+
 fn pretty_scope<'a, D, A>(
     allocator: &'a D,
     stm_docs: impl IntoIterator<Item = impl Pretty<'a, D, A>>,
@@ -162,7 +190,7 @@ where
 /// Prettify a let statement. Factored out cause it is used both in closure values and statements
 fn pretty_let<'a, D, A>(
     allocator: &'a D,
-    k: &'a DIdentifier,
+    k: &'a IdentStr,
     v: Option<impl Pretty<'a, D, A>>,
 ) -> pretty::DocBuilder<'a, D, A>
 where
@@ -204,12 +232,12 @@ where
     }
 }
 
-impl<'a, D, A> Pretty<'a, D, A> for &'a DIdentifier
+impl<'a, D, A> Pretty<'a, D, A> for &'a IdentStr
 where
     A: 'a,
     D: ?Sized + DocAllocator<'a, A>,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, A> {
-        allocator.text(self.as_str())
+        allocator.text(self.as_ref())
     }
 }
