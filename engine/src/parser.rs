@@ -83,6 +83,18 @@ peg::parser! {
                 Expr::Function { params: p.into(), body : Rc::new(body)}
             }
             --
+            a:(@) _ "+" _ b:@ { Sum(vec![a,b]) }
+            a:(@) _ "-" _ b:@ { Sum(vec![a, Neg(Box::new(b))]) }
+            --
+            a:(@) _ "*" _ b:@ { Mul(Box::new(a), Box::new(b)) }
+            a:(@) _ "/" _ b:@ { Div(Box::new(a), Box::new(b)) }
+            a:(@) _ "%" _ b:@ { Rem(Box::new(a), Box::new(b)) }
+            --
+            a:(@) _ "^" _ b:@ { Rep(Box::new(a), Box::new(b)) }
+            --
+            "+" _ a:@ { Sum(vec![a]) }
+            "-" _ a:@ { Neg(Box::new(a)) }
+            --
             f:@ _ "(" _ p:(expr() ** (_ "," _)) _ ")" {
                 Expr::Call { fun: Box::new(f), params: p }
             }

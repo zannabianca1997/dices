@@ -2,7 +2,7 @@
 
 use std::iter::once;
 
-use either::Either::{self, Left, Right};
+use either::Either::{Left, Right};
 use pretty::{DocAllocator, DocBuilder, Pretty};
 
 use crate::{
@@ -81,6 +81,45 @@ where
                 .append(allocator.space())
                 .append(value.pretty(allocator)),
             Expr::Scope(exprs) => pretty_scope(allocator, exprs),
+            Expr::Sum(a) => allocator
+                .intersperse(
+                    a.iter().map(|a| a.pretty(allocator).parens()),
+                    allocator.line().append("+").append(allocator.space()),
+                )
+                .group(),
+            Expr::Neg(a) => allocator.text("-").append(a.pretty(allocator)),
+            Expr::Mul(a, b) => a
+                .pretty(allocator)
+                .parens()
+                .append(allocator.line())
+                .append("*")
+                .append(allocator.space())
+                .append(b.pretty(allocator).parens())
+                .group(),
+            Expr::Div(a, b) => a
+                .pretty(allocator)
+                .parens()
+                .append(allocator.line())
+                .append("/")
+                .append(allocator.space())
+                .append(b.pretty(allocator).parens())
+                .group(),
+            Expr::Rem(a, b) => a
+                .pretty(allocator)
+                .parens()
+                .append(allocator.line())
+                .append("%")
+                .append(allocator.space())
+                .append(b.pretty(allocator).parens())
+                .group(),
+            Expr::Rep(a, b) => a
+                .pretty(allocator)
+                .parens()
+                .append(allocator.line())
+                .append("^")
+                .append(allocator.space())
+                .append(b.pretty(allocator).parens())
+                .group(),
         }
     }
 }

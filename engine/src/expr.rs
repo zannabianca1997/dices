@@ -10,7 +10,7 @@ use thiserror::Error;
 use crate::{
     identifier::IdentStr,
     namespace::{Missing, Namespace},
-    value::{DString, Type, Value},
+    value::{div, mul, neg, rem, sum, DString, ToNumberError, Type, Value},
 };
 
 #[derive(Debug, Clone, Error)]
@@ -21,6 +21,16 @@ pub enum EvalError {
     NotCallable(Type),
     #[error("Wrong number of params: {expected} were expected, {given} were given")]
     WrongParamNum { expected: usize, given: usize },
+    #[error("Integer overflow")]
+    IntegerOverflow,
+    #[error(transparent)]
+    ToNumberError(#[from] ToNumberError),
+    #[error("Invalid operands for `{0}`: {1} and {2}")]
+    InvalidTypes(&'static str, Type, Type),
+    #[error("Invalid operand for `{0}`: {1}")]
+    InvalidType(&'static str, Type),
+    #[error("Negative number of repetitions")]
+    NegativeRepsNumber,
 }
 
 #[derive(Debug, Clone, Error)]
@@ -76,6 +86,25 @@ pub enum Expr {
 
     /// Scope
     Scope(Vec<Expr>),
+
+    // --- Expressions ---
+    /// Sum of expressions, flattening lists
+    Sum(Vec<Expr>),
+    /// Negation of expressions, going inside list
+    Neg(Box<Expr>),
+    /// Multiplication of two expressions.
+    /// One can be a list, as long as the second is a number. In that case the first list is multiplied member by member
+    Mul(Box<Expr>, Box<Expr>),
+    /// Division of two expressions.
+    /// The first can be a list, and is divided member by member
+    Div(Box<Expr>, Box<Expr>),
+    /// Remainder of two expressions.
+    /// The first can be a list, and is divided member by member
+    Rem(Box<Expr>, Box<Expr>),
+
+    /// Repetition of an expression
+    /// The second value must be a number, and a list is built by repeating the first expressions
+    Rep(Box<Expr>, Box<Expr>),
 }
 impl Expr {
     pub fn eval(&self, namespace: &mut Namespace, rng: &mut impl Rng) -> Result<Value, EvalError> {
@@ -163,6 +192,39 @@ impl Expr {
                     Value::Null
                 }
             }
+            Expr::Sum(a) => Value::Number(
+                a.iter()
+                    .map(|e| e.eval(namespace, rng).and_then(sum))
+                    .try_fold(0i64, |a, b| {
+                        b.and_then(|b| a.checked_add(b).ok_or(EvalError::IntegerOverflow))
+                    })?,
+            ),
+            Expr::Neg(a) => neg(a.eval(namespace, rng)?)?,
+
+            Expr::Mul(a, b) => {
+                let a = a.eval(namespace, rng)?;
+                let b = b.eval(namespace, rng)?;
+                mul(a, b)?
+            }
+            Expr::Div(a, b) => {
+                let a = a.eval(namespace, rng)?;
+                let b = b.eval(namespace, rng)?;
+                div(a, b)?
+            }
+            Expr::Rem(a, b) => {
+                let a = a.eval(namespace, rng)?;
+                let b = b.eval(namespace, rng)?;
+                rem(a, b)?
+            }
+
+            Expr::Rep(a, n) => {
+                let n: u64 = n
+                    .eval(namespace, rng)?
+                    .to_number()?
+                    .try_into()
+                    .map_err(|_| EvalError::NegativeRepsNumber)?;
+                Value::List((0..n).map(|_| a.eval(namespace, rng)).try_collect()?)
+            }
         })
     }
 
@@ -221,6 +283,18 @@ impl Expr {
                     defines: Default::default(), // blocks do not define anything
                 }
             }
+            Expr::Sum(a) => a
+                .iter()
+                .map(|e| e.vars())
+                .tree_reduce(VarsDelta::combine)
+                .unwrap_or_default(),
+            Expr::Neg(a) => a.vars(),
+            Expr::Mul(a, b) | Expr::Div(a, b) | Expr::Rem(a, b) => {
+                VarsDelta::combine(a.vars(), b.vars())
+            }
+
+            // combine is idempotent (`combine(a,a) = a`) so we can collect all the repetitions.
+            Expr::Rep(r, n) => VarsDelta::combine(n.vars(), r.vars()),
         }
     }
 
@@ -239,7 +313,14 @@ impl Expr {
             | Expr::Reference(_)
             | Expr::Call { .. }
             | Expr::Scope(_) => false,
-            Expr::Function { .. } | Expr::Set { .. } => true,
+            Expr::Sum(_)
+            | Expr::Neg(_)
+            | Expr::Mul(_, _)
+            | Expr::Div(_, _)
+            | Expr::Rem(_, _)
+            | Expr::Rep(_, _)
+            | Expr::Function { .. }
+            | Expr::Set { .. } => true,
         }
     }
 }
