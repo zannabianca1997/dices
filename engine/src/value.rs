@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc};
 use strum::{EnumDiscriminants, EnumIs, EnumTryAs, IntoStaticStr};
 use thiserror::Error;
 
-use crate::{expr::Statement, identifier::IdentStr};
+use crate::{expr::Expr, identifier::IdentStr};
 
 /// String type in `dices`
 pub type DString = Rc<str>;
@@ -24,7 +24,7 @@ pub enum Value {
         /// Captured context
         context: HashMap<Rc<IdentStr>, Value>,
         /// Body of the function
-        body: Rc<[Statement]>,
+        body: Rc<Expr>,
     },
 
     // Plain data types

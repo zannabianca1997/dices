@@ -1,10 +1,11 @@
 //! Implementation of displays
 
-use itertools::Itertools;
+use std::iter::once;
+
 use pretty::{DocAllocator, DocBuilder, Pretty};
 
 use crate::{
-    expr::{Expr, Statement},
+    expr::{Expr, Receiver},
     identifier::IdentStr,
     value::Value,
 };
@@ -55,15 +56,7 @@ where
                 .group()
                 .enclose("|", "|")
                 .append(allocator.space())
-                .append({
-                    if let [Statement::Expr(e)] = &**body {
-                        // simple expression
-                        e.pretty(allocator)
-                    } else {
-                        // complex body
-                        pretty_scope(allocator, body.iter())
-                    }
-                }),
+                .append(body.pretty(allocator)),
             Expr::Call { box fun, params } => {
                 let fun_doc = fun.pretty(allocator);
                 let fun_doc = if fun.need_parents_for_call() {
@@ -80,6 +73,12 @@ where
                         .parens(),
                 )
             }
+            Expr::Set { receiver, value } => receiver
+                .pretty(allocator)
+                .append(allocator.space())
+                .append("=")
+                .append(allocator.space())
+                .append(value.pretty(allocator)),
         }
     }
 }
@@ -131,19 +130,37 @@ where
                 .enclose("|", "|")
                 .append(allocator.space())
                 .append({
-                    if let (true, [Statement::Expr(e)]) = (context.is_empty(), &**body) {
+                    if context.is_empty() {
                         // simple expression
-                        e.pretty(allocator)
+                        body.pretty(allocator)
                     } else {
                         // complex body or non null context
                         // context is added as a series of let statements
                         let stm_docs = context
                             .iter()
                             .map(|(k, v)| pretty_let(allocator, k, Some(v)))
-                            .chain(body.iter().map(|s| s.pretty(allocator)));
+                            .chain(once(body.pretty(allocator)));
                         pretty_scope(allocator, stm_docs)
                     }
                 }),
+        }
+    }
+}
+
+impl<'a, D, A> Pretty<'a, D, A> for &'a Receiver
+where
+    A: 'a,
+    D: ?Sized + DocAllocator<'a, A> + 'a,
+    DocBuilder<'a, D, A>: Clone,
+{
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, A> {
+        match self {
+            Receiver::Set(var) => var.pretty(allocator),
+            Receiver::Let(var) => allocator
+                .text("let")
+                .append(allocator.space())
+                .append(var.pretty(allocator)),
+            Receiver::Discard => allocator.text("_"),
         }
     }
 }
@@ -252,27 +269,6 @@ where
                 .append(allocator.space())
                 .append(v)
         }))
-}
-
-impl<'a, D, A> Pretty<'a, D, A> for &'a Statement
-where
-    A: 'a,
-    D: ?Sized + DocAllocator<'a, A> + 'a,
-    DocBuilder<'a, D, A>: Clone,
-{
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, A> {
-        match self {
-            Statement::Expr(e) => e.pretty(allocator),
-            Statement::Set(n, v) => n
-                .pretty(allocator)
-                .append(allocator.space())
-                .append("=")
-                .append(allocator.space())
-                .append(v),
-            Statement::Let(n, v) => pretty_let(allocator, n, v.as_ref()),
-            Statement::Scope(body) => pretty_scope(allocator, body.iter()),
-        }
-    }
 }
 
 impl<'a, D, A> Pretty<'a, D, A> for &'a IdentStr

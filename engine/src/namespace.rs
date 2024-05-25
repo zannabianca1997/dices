@@ -72,6 +72,8 @@
 
 use std::{collections::HashMap, marker::PhantomData, ptr::NonNull as NonNullPtr, rc::Rc};
 
+use thiserror::Error;
+
 use crate::{identifier::IdentStr, value::Value};
 
 /// A namespace
@@ -246,11 +248,15 @@ impl Namespace<'_> {
         self.vars.insert(ident, value);
     }
 
-    pub fn set(&mut self, name: &IdentStr, value: Value) -> Result<(), ()> {
-        *self.get_mut(name).ok_or(())? = value;
+    pub fn set<'i>(&mut self, name: &'i IdentStr, value: Value) -> Result<(), Missing<'i>> {
+        *self.get_mut(name).ok_or(Missing(name))? = value;
         Ok(())
     }
 }
+
+#[derive(Debug, Clone, Copy, Error)]
+#[error("Undefined variable {0}")]
+pub struct Missing<'i>(pub &'i IdentStr);
 
 impl Extend<(Rc<IdentStr>, Value)> for Namespace<'_> {
     fn extend<T: IntoIterator<Item = (Rc<IdentStr>, Value)>>(&mut self, iter: T) {
