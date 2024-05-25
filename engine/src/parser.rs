@@ -86,6 +86,8 @@ peg::parser! {
             a:(@) _ "+" _ b:@ { Sum(vec![a,b]) }
             a:(@) _ "-" _ b:@ { Sum(vec![a, Neg(Box::new(b))]) }
             --
+            a:(@) _ "~" _ b:@ { Join(Box::new(a), Box::new(b)) }
+            --
             a:(@) _ "*" _ b:@ { Mul(Box::new(a), Box::new(b)) }
             a:(@) _ "/" _ b:@ { Div(Box::new(a), Box::new(b)) }
             a:(@) _ "%" _ b:@ { Rem(Box::new(a), Box::new(b)) }

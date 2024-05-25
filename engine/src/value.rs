@@ -166,3 +166,26 @@ pub fn rem(a: Value, b: Value) -> Result<Value, EvalError> {
         (Err(v1), Err(v2)) => return Err(EvalError::InvalidTypes("%", v1.type_(), v2.type_())),
     })
 }
+
+pub fn join(a: Value, b: Value) -> Value {
+    match (a, b) {
+        (Value::List(mut l1), Value::List(mut l2)) => {
+            l1.append(&mut l2);
+            Value::List(l1)
+        }
+        (Value::String(s1), Value::String(s2)) => {
+            let mut s = String::with_capacity(s1.len() + s2.len());
+            s.push_str(&*s1);
+            s.push_str(&*s2);
+            Value::String(s.into())
+        }
+        (Value::Map(mut m1), Value::Map(m2)) => {
+            m1.extend(m2);
+            Value::Map(m1)
+        }
+
+        // upgrading to lists
+        (a @ Value::List(_), b) => join(a, Value::List(vec![b])),
+        (a, b) => join(Value::List(vec![a]), b),
+    }
+}

@@ -10,7 +10,7 @@ use thiserror::Error;
 use crate::{
     identifier::IdentStr,
     namespace::{Missing, Namespace},
-    value::{div, mul, neg, rem, sum, DString, ToNumberError, Type, Value},
+    value::{div, join, mul, neg, rem, sum, DString, ToNumberError, Type, Value},
 };
 
 #[derive(Debug, Clone, Error)]
@@ -112,6 +112,9 @@ pub enum Expr {
 
     /// Dice throw
     Dice(Box<Expr>),
+
+    /// List/String/Map concatenation
+    Join(Box<Expr>, Box<Expr>),
 }
 impl Expr {
     pub fn eval(&self, namespace: &mut Namespace, rng: &mut impl Rng) -> Result<Value, EvalError> {
@@ -241,6 +244,11 @@ impl Expr {
                     .map_err(|_| EvalError::NegativeDiceFaces)?;
                 Value::Number(rng.gen_range(1..=(f as i64)))
             }
+            Expr::Join(a, b) => {
+                let a = a.eval(namespace, rng)?;
+                let b = b.eval(namespace, rng)?;
+                join(a, b)
+            }
         })
     }
 
@@ -305,7 +313,7 @@ impl Expr {
                 .tree_reduce(VarsDelta::combine)
                 .unwrap_or_default(),
             Expr::Neg(a) => a.vars(),
-            Expr::Mul(a, b) | Expr::Div(a, b) | Expr::Rem(a, b) => {
+            Expr::Mul(a, b) | Expr::Div(a, b) | Expr::Rem(a, b) | Expr::Join(a, b) => {
                 VarsDelta::combine(a.vars(), b.vars())
             }
 

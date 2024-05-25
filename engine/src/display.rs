@@ -113,6 +113,14 @@ where
                 .append(b.pretty(allocator).parens())
                 .group(),
             Expr::Dice(f) => allocator.text("d").append(f.pretty(allocator).parens()),
+            Expr::Join(a, b) => a
+                .pretty(allocator)
+                .parens()
+                .append(allocator.line())
+                .append("~")
+                .append(allocator.space())
+                .append(b.pretty(allocator).parens())
+                .group(),
         }
     }
 }
