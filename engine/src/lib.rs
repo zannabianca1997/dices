@@ -69,10 +69,7 @@ impl<RNG: Rng> Engine<RNG> {
 
     #[cfg(feature = "parse")]
     /// Evaluate a REPL line, discarding all values except the last
-    pub fn eval_line(
-        &mut self,
-        line: &str,
-    ) -> Result<Value, Either<peg::error::ParseError<peg::str::LineCol>, EvalError>> {
+    pub fn eval_line(&mut self, line: &str) -> Result<Value, ParseEvalError> {
         let exprs = parse_exprs(line).map_err(Either::Left)?;
         let Some((last, init)) = exprs.split_last() else {
             return Ok(Value::Null);
@@ -83,3 +80,6 @@ impl<RNG: Rng> Engine<RNG> {
         self.eval(last).map_err(Either::Right)
     }
 }
+
+#[cfg(feature = "parse")]
+pub type ParseEvalError = Either<peg::error::ParseError<peg::str::LineCol>, EvalError>;

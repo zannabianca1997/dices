@@ -1,10 +1,14 @@
 [package]
 name = "repl"
-version = "0.1.0"
+description = "A REPL connected to a `dices` instance"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
 engine = { path = "../engine", features = ["parse", "pretty"] }
+figment = { version = "0.10.19", features = ["env", "toml"] }
 rand = { version = "0.8.5", features = ["small_rng"] }
 rustyline = "14.0.0"
+serde = { version = "1.0.203", features = ["derive"] }
 thiserror = "1.0.61"
