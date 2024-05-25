@@ -3,7 +3,8 @@
 use std::iter::once;
 
 use either::Either::{Left, Right};
-use pretty::{DocAllocator, DocBuilder, Pretty};
+use pretty::DocBuilder;
+pub use pretty::{Arena, DocAllocator, Pretty};
 
 use crate::{
     expr::{Expr, Receiver},

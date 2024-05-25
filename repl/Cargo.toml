@@ -1,0 +1,10 @@
+[package]
+name = "repl"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+engine = { path = "../engine", features = ["parse", "pretty"] }
+rand = { version = "0.8.5", features = ["small_rng"] }
+rustyline = "14.0.0"
+thiserror = "1.0.61"

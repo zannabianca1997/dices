@@ -1,26 +1,17 @@
-//! A very bare bone repl
+//! A REPL connected to a `dice` engine
 #![feature(error_reporter)]
 
-use std::{error::Report, fmt::Debug};
+use std::error::Report;
 
-use engine::{expr::EvalError, namespace::Namespace, parser::parse_exprs, value::Value};
-use peg::{error::ParseError, str::LineCol};
-use pretty::{Arena, DocAllocator, Pretty};
-use rand::{rngs::SmallRng, SeedableRng};
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-enum Error {
-    #[error(transparent)]
-    Parse(ParseError<LineCol>),
-    #[error(transparent)]
-    Eval(#[from] EvalError),
-}
+use engine::{
+    pretty::{Arena, DocAllocator, Pretty},
+    Engine, Value,
+};
+use rand::rngs::SmallRng;
 
 fn main() -> rustyline::Result<()> {
     let mut rl = rustyline::DefaultEditor::new()?;
-    let mut namespace = Namespace::root();
-    let mut rng = SmallRng::from_entropy();
+    let mut engine = Engine::<SmallRng>::new();
     'repl: loop {
         // Read
         let line = match rl.readline(">> ") {
@@ -30,15 +21,7 @@ fn main() -> rustyline::Result<()> {
             Err(err) => return Err(err),
         };
         // Eval
-        let res = parse_exprs(&line).map_err(Error::Parse).and_then(|stm| {
-            let Some((last, init)) = stm.split_last() else {
-                return Ok(Value::Null);
-            };
-            for expr in init {
-                expr.eval(&mut namespace, &mut rng)?;
-            }
-            Ok(last.eval(&mut namespace, &mut rng)?)
-        });
+        let res = engine.eval_line(&line);
         // Print
         match res {
             Ok(Value::Null) => (),

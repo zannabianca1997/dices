@@ -156,7 +156,9 @@ peg::parser! {
   }
 }
 
-pub fn parse_exprs(input: &str) -> Result<Vec<Expr>, peg::error::ParseError<LineCol>> {
+pub type ParseError = peg::error::ParseError<LineCol>;
+
+pub fn parse_exprs(input: &str) -> Result<Vec<Expr>, ParseError> {
     grammar::scope_inner(input)
 }
 

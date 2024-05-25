@@ -24,10 +24,10 @@ pub use value::Value;
 #[cfg(feature = "parse")]
 pub mod parser;
 #[cfg(feature = "parse")]
-pub use parser::parse_exprs;
+pub use parser::{parse_exprs, ParseError};
 
 #[cfg(feature = "pretty")]
-mod display;
+pub mod pretty;
 
 #[derive(Debug, Clone)]
 /// The `dices` engine.
