@@ -5,16 +5,17 @@ edition = "2021"
 
 [features]
 serde = ["dep:serde", "either/serde"]
+parse = ["dep:peg"]
 
 [[example]]
 name = "repl"
-required-features = ["pretty"]
+required-features = ["pretty", "parse"]
 
 [dependencies]
 either = { version = "1.12.0" }
 itertools = "0.13.0"
 lazy-regex = { version = "3.1.0", features = ["unicode"] }
-peg = "0.8.3"
+peg = { version = "0.8.3", optional = true }
 phf = { version = "0.11.2", features = ["macros"] }
 pretty = { version = "0.12.3", optional = true }
 rand = "0.8.5"
