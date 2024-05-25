@@ -76,6 +76,7 @@ use thiserror::Error;
 
 use crate::{identifier::IdentStr, value::Value};
 
+#[derive(Debug)]
 /// A namespace
 pub struct Namespace<'r> {
     /// Variable stored in this namespace
@@ -267,6 +268,20 @@ impl Extend<(Rc<IdentStr>, Value)> for Namespace<'_> {
 impl FromIterator<(Rc<IdentStr>, Value)> for Namespace<'static> {
     fn from_iter<T: IntoIterator<Item = (Rc<IdentStr>, Value)>>(iter: T) -> Self {
         Self::root_with_vars(HashMap::from_iter(iter))
+    }
+}
+
+impl Clone for Namespace<'static> {
+    fn clone(&self) -> Self {
+        assert!(
+            self.parent.is_none(),
+            "Cloning a child namespace is unsound, as it contains a mutable reference to the parent"
+        );
+        Self {
+            vars: self.vars.clone(),
+            parent: None,
+            phantom: PhantomData,
+        }
     }
 }
 
