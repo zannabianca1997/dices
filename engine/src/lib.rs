@@ -5,6 +5,7 @@
 #![feature(assert_matches)]
 #![feature(unwrap_infallible)]
 #![feature(box_patterns)]
+#![feature(ascii_char)]
 
 pub mod identifier;
 

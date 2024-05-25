@@ -1,5 +1,6 @@
 //! Implementation of displays
 
+use itertools::Itertools;
 use pretty::{DocAllocator, DocBuilder, Pretty};
 
 use crate::{
@@ -161,13 +162,55 @@ where
     }
 }
 
-fn str_lit<'a, D, A>(allocator: &'a D, s: &'a str) -> pretty::DocBuilder<'a, D, A>
+fn escape<'a, D, A>(allocator: &'a D, ch: char) -> Option<pretty::DocBuilder<'a, D, A>>
 where
     A: 'a,
     D: ?Sized + DocAllocator<'a, A> + 'a,
     DocBuilder<'a, D, A>: Clone,
 {
-    todo!()
+    match ch {
+        // special escapes that must be used whenever possible
+        '\n' => Some(allocator.text("\\n")),
+        '\r' => Some(allocator.text("\\r")),
+        '\t' => Some(allocator.text("\\t")),
+        '\0' => Some(allocator.text("\\0")),
+        '\"' => Some(allocator.text("\\\"")),
+        '\\' => Some(allocator.text("\\\\")),
+        // char we can show literally
+        _ if ch.is_alphanumeric() || ch.is_whitespace() || ch.is_ascii_graphic() => None,
+        // catch all for escaping
+        '\x00'..='\x7f' => Some(allocator.text(format!("\\x{:02x}", ch as u32))),
+        _ => Some(allocator.text(format!("\\u{{{:x}}}", ch as u32))),
+    }
+}
+
+fn str_lit<'a, D, A>(allocator: &'a D, mut s: &'a str) -> pretty::DocBuilder<'a, D, A>
+where
+    A: 'a,
+    D: ?Sized + DocAllocator<'a, A> + 'a,
+    DocBuilder<'a, D, A>: Clone,
+{
+    let mut res = allocator.nil();
+
+    while !s.is_empty() {
+        let Some((start, end, escape)) = s.char_indices().find_map(|(pos, ch)| {
+            escape(allocator, ch).map(|code| (pos, pos + ch.len_utf8(), code))
+        }) else {
+            // no more escape codes in the string, add the final unescaped part
+            res = res.append(s);
+            break;
+        };
+        // append unescaped part
+        if start > 0 {
+            res = res.append(&s[..start])
+        }
+        // append escape code
+        res = res.append(escape);
+        // cut the string
+        s = &s[end..]
+    }
+
+    res.double_quotes()
 }
 
 fn pretty_scope<'a, D, A>(

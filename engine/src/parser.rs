@@ -1,5 +1,6 @@
-use std::rc::Rc;
+use std::{borrow::Cow, rc::Rc};
 
+use either::Either::{Left, Right};
 use peg::str::LineCol;
 
 use crate::{
@@ -24,6 +25,49 @@ peg::parser! {
         ) {? IdentStr::new(i).ok_or("identifier") }
 
 
+        /// A string literal
+        rule str_lit() -> std::borrow::Cow<'input,str>
+            = ['"'] parts: (
+                lit: $( [^ '"' | '\\']+ ) { Left(lit) }
+                / "\\" escape:(
+                      "n" {'\n'}
+                      / "r" {'\r'}
+                      / "t" {'\t'}
+                      / "0" {'\0'}
+                      / "\\" {'\\'}
+                      / "\'" {'\''}
+                      / "\"" {'"'}
+                      / hex:(
+                        "x" hex: $(['0'..='7']['a'..='f'|'A'..='F'|'0'..='9']) {hex}
+                        / "u{" hex: $(['a'..='f'|'A'..='F'|'0'..='9']*<,6>) "}" {hex}) {?
+                             char::from_u32(u32::from_str_radix(hex, 16).unwrap())
+                                .ok_or("unicode codepoint")
+                        }
+                      / expected!("escape code")
+
+                ) {Right(escape)}
+             )* ['"'] {
+                if let [Left(part)] = &*parts {
+                    Cow::Borrowed(*part)
+                } else {
+                    // some escapes remains. We need to build a string
+                    let mut buf = std::string::String::with_capacity(
+                        parts.iter().map(|p| match p {
+                            Left(s) => s.len(),
+                            Right(c) => c.len_utf8(),
+                        }).sum()
+                    );
+                    for p in parts {
+                        match p {
+                            Left(s) => buf.push_str(s),
+                            Right(ch) => buf.push(ch),
+                        }
+                    }
+                    Cow::Owned(buf)
+                }
+             }
+
+
     /// Parse an expression
     rule expr() -> Expr
         = precedence!{
@@ -35,11 +79,12 @@ peg::parser! {
                 Expr::Function { params: p.into(), body: [Statement::Expr(e)].into() }
             }
             --
-            "null"     { Null }
-            "true"     { Bool(true) }
-            "false"    { Bool(false) }
-            n:number() { Number(n) }
-            i:ident()  { Reference(i.into()) }
+            "null"      { Null }
+            "true"      { Bool(true) }
+            "false"     { Bool(false) }
+            n:number()  { Number(n) }
+            i:ident()   { Reference(i.into()) }
+            s:str_lit() { String(s.into()) }
 
             "[" _ l:(expr() ** (_ "," _)) _ "]" {
                 List(l)
@@ -48,8 +93,8 @@ peg::parser! {
             "<|" _
                 elems:(
                     (
-                        n:ident() _ ":" _ v:expr() {
-                            (n.as_ref().into(),v)
+                        n:(n:ident() {n.as_ref().into()} / s:str_lit() {s.into()}) _ ":" _ v:expr() {
+                            (n,v)
                         }
                     ) ** (_ "," _)
                 )
@@ -105,8 +150,6 @@ pub fn parse_statement(input: &str) -> Result<Statement, peg::error::ParseError<
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use crate::expr::{
         Expr::*,
         Statement::{self, *},
