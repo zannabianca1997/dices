@@ -73,6 +73,9 @@ pub enum Expr {
         receiver: Receiver,
         value: Box<Expr>,
     },
+
+    /// Scope
+    Scope(Vec<Expr>),
 }
 impl Expr {
     pub fn eval(&self, namespace: &mut Namespace, rng: &mut impl Rng) -> Result<Value, EvalError> {
@@ -148,6 +151,18 @@ impl Expr {
                 receiver.set(namespace, &value)?;
                 value
             }
+            Expr::Scope(exprs) => {
+                // scoping
+                let mut namespace = namespace.child();
+                if let Some((last, setup)) = exprs.split_last() {
+                    for expr in setup {
+                        expr.eval(&mut namespace, rng)?;
+                    }
+                    last.eval(&mut namespace, rng)?
+                } else {
+                    Value::Null
+                }
+            }
         })
     }
 
@@ -192,6 +207,20 @@ impl Expr {
                 value.vars(),    // first the value is calculated
                 receiver.vars(), // then they are moved into the namespace
             ),
+            Expr::Scope(exprs) => {
+                let VarsDelta {
+                    requires,
+                    defines: _,
+                } = exprs
+                    .iter()
+                    .map(|e| e.vars())
+                    .tree_reduce(VarsDelta::combine)
+                    .unwrap_or_default();
+                VarsDelta {
+                    requires,
+                    defines: Default::default(), // blocks do not define anything
+                }
+            }
         }
     }
 
@@ -208,7 +237,8 @@ impl Expr {
             | Expr::String(_)
             | Expr::Map(_)
             | Expr::Reference(_)
-            | Expr::Call { .. } => false,
+            | Expr::Call { .. }
+            | Expr::Scope(_) => false,
             Expr::Function { .. } | Expr::Set { .. } => true,
         }
     }

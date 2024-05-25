@@ -79,6 +79,9 @@ where
                 .append("=")
                 .append(allocator.space())
                 .append(value.pretty(allocator)),
+            Expr::Scope(exprs) => {
+                pretty_scope(allocator, exprs.into_iter().map(|e| e.pretty(allocator))).braces()
+            }
         }
     }
 }

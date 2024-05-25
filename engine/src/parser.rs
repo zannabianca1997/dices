@@ -111,13 +111,21 @@ peg::parser! {
             }
 
             "(" _ e:expr() _ ")" { e }
+
+            "{" _  inner:scope_inner() _ "}" { Scope(inner)}
         }
         / expected!("expression")
 
 
     /// Parse a command - a statetement with optional space
-    pub rule command() -> Expr
-        = _ stm:expr() _ { stm }
+    pub rule scope_inner() -> Vec<Expr>
+        = _  stms:expr() ** (_ ";" _) dangling:";"? _ {
+            let mut stms = stms;
+            if dangling.is_some() {
+                stms.push(Expr::Null)
+            }
+            stms
+        }
 
     /// Parse whitespace and comments, discarding them
     rule _ -> ()
@@ -131,35 +139,44 @@ peg::parser! {
   }
 }
 
-pub fn parse_statement(input: &str) -> Result<Expr, peg::error::ParseError<LineCol>> {
-    grammar::command(input)
+pub fn parse_exprs(input: &str) -> Result<Vec<Expr>, peg::error::ParseError<LineCol>> {
+    grammar::scope_inner(input)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::expr::Expr::{self, *};
 
-    use super::parse_statement;
+    use super::parse_exprs;
 
-    fn parse_test(src: &str, res: Expr) {
-        match parse_statement(src) {
+    fn parse_test(src: &str, res: &[Expr]) {
+        match parse_exprs(src) {
             Ok(parsed) => assert_eq!(parsed, res),
             Err(err) => panic!("{err:#}"),
         }
     }
 
     macro_rules! parse_tests {
+        ()=>{};
         (
-            $(
-            $name:ident : $src:literal => $res:expr
-            );* $(;)?
+            $name:ident : $src:literal => $res:expr ;
+            $($rest:tt)*
         ) => {
-            $(
-                #[test]
-                fn $name() {
-                    parse_test($src, $res)
-                }
-            )*
+            #[test]
+            fn $name() {
+                parse_test($src, &[$res])
+            }
+            parse_tests!{$($rest)*}
+        };
+        (
+            $name:ident : $src:literal => [$($res:expr),* $(,)?] ;
+            $($rest:tt)*
+        ) => {
+            #[test]
+            fn $name() {
+                parse_test($src, &[$($res),*])
+            }
+            parse_tests!{$($rest)*}
         };
     }
 

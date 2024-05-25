@@ -3,7 +3,7 @@
 
 use std::{error::Report, fmt::Debug};
 
-use engine::{expr::EvalError, namespace::Namespace, parser::parse_statement, value::Value};
+use engine::{expr::EvalError, namespace::Namespace, parser::parse_exprs, value::Value};
 use peg::{error::ParseError, str::LineCol};
 use pretty::{Arena, DocAllocator, Pretty};
 use rand::{rngs::SmallRng, SeedableRng};
@@ -14,7 +14,7 @@ enum Error {
     #[error(transparent)]
     Parse(ParseError<LineCol>),
     #[error(transparent)]
-    Eval(EvalError),
+    Eval(#[from] EvalError),
 }
 
 fn main() -> rustyline::Result<()> {
@@ -30,9 +30,15 @@ fn main() -> rustyline::Result<()> {
             Err(err) => return Err(err),
         };
         // Eval
-        let res = parse_statement(&line)
-            .map_err(Error::Parse)
-            .and_then(|stm| stm.eval(&mut namespace, &mut rng).map_err(Error::Eval));
+        let res = parse_exprs(&line).map_err(Error::Parse).and_then(|stm| {
+            let Some((last, init)) = stm.split_last() else {
+                return Ok(Value::Null);
+            };
+            for expr in init {
+                expr.eval(&mut namespace, &mut rng)?;
+            }
+            Ok(last.eval(&mut namespace, &mut rng)?)
+        });
         // Print
         match res {
             Ok(Value::Null) => (),
