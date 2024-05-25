@@ -2,6 +2,7 @@
 
 use std::iter::once;
 
+use either::Either::{self, Left, Right};
 use pretty::{DocAllocator, DocBuilder, Pretty};
 
 use crate::{
@@ -79,9 +80,7 @@ where
                 .append("=")
                 .append(allocator.space())
                 .append(value.pretty(allocator)),
-            Expr::Scope(exprs) => {
-                pretty_scope(allocator, exprs.into_iter().map(|e| e.pretty(allocator))).braces()
-            }
+            Expr::Scope(exprs) => pretty_scope(allocator, exprs),
         }
     }
 }
@@ -142,7 +141,15 @@ where
                         let stm_docs = context
                             .iter()
                             .map(|(k, v)| pretty_let(allocator, k, Some(v)))
-                            .chain(once(body.pretty(allocator)));
+                            .chain(
+                                if let Expr::Scope(exprs) = &**body {
+                                    Right(&**exprs)
+                                } else {
+                                    Left(once(&**body))
+                                }
+                                .into_iter()
+                                .map(|e| e.pretty(allocator)),
+                            );
                         pretty_scope(allocator, stm_docs)
                     }
                 }),
