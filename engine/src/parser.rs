@@ -95,6 +95,9 @@ peg::parser! {
             "+" _ a:@ { Sum(vec![a]) }
             "-" _ a:@ { Neg(Box::new(a)) }
             --
+            "d" _ f:@ { Dice(Box::new(f))}
+            n:@ _ "d" _ f:(@) { Rep(Box::new(Dice(Box::new(f))), Box::new(n))}
+            --
             f:@ _ "(" _ p:(expr() ** (_ "," _)) _ ")" {
                 Expr::Call { fun: Box::new(f), params: p }
             }

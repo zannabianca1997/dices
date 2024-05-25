@@ -31,6 +31,10 @@ pub enum EvalError {
     InvalidType(&'static str, Type),
     #[error("Negative number of repetitions")]
     NegativeRepsNumber,
+    #[error("Number of dice faces must be a number")]
+    NaNDiceFaces(#[source] ToNumberError),
+    #[error("Negative number of dice faces")]
+    NegativeDiceFaces,
 }
 
 #[derive(Debug, Clone, Error)]
@@ -105,6 +109,9 @@ pub enum Expr {
     /// Repetition of an expression
     /// The second value must be a number, and a list is built by repeating the first expressions
     Rep(Box<Expr>, Box<Expr>),
+
+    /// Dice throw
+    Dice(Box<Expr>),
 }
 impl Expr {
     pub fn eval(&self, namespace: &mut Namespace, rng: &mut impl Rng) -> Result<Value, EvalError> {
@@ -225,6 +232,15 @@ impl Expr {
                     .map_err(|_| EvalError::NegativeRepsNumber)?;
                 Value::List((0..n).map(|_| a.eval(namespace, rng)).try_collect()?)
             }
+            Expr::Dice(f) => {
+                let f: u64 = f
+                    .eval(namespace, rng)?
+                    .to_number()
+                    .map_err(EvalError::NaNDiceFaces)?
+                    .try_into()
+                    .map_err(|_| EvalError::NegativeDiceFaces)?;
+                Value::Number(rng.gen_range(1..=(f as i64)))
+            }
         })
     }
 
@@ -295,32 +311,8 @@ impl Expr {
 
             // combine is idempotent (`combine(a,a) = a`) so we can collect all the repetitions.
             Expr::Rep(r, n) => VarsDelta::combine(n.vars(), r.vars()),
-        }
-    }
 
-    /// if this value need parenthesis when called to be correctly reparsed
-    ///
-    /// For example, `3` does not need parenthesis, as `3()` is parsed with no ambiguity.
-    /// Instead `|x| x` needs it, as `|x| x()` and `(|x| x)()` are different
-    pub fn need_parents_for_call(&self) -> bool {
-        match self {
-            Expr::Null
-            | Expr::Bool(_)
-            | Expr::Number(_)
-            | Expr::List(_)
-            | Expr::String(_)
-            | Expr::Map(_)
-            | Expr::Reference(_)
-            | Expr::Call { .. }
-            | Expr::Scope(_) => false,
-            Expr::Sum(_)
-            | Expr::Neg(_)
-            | Expr::Mul(_, _)
-            | Expr::Div(_, _)
-            | Expr::Rem(_, _)
-            | Expr::Rep(_, _)
-            | Expr::Function { .. }
-            | Expr::Set { .. } => true,
+            Expr::Dice(f) => f.vars(),
         }
     }
 }

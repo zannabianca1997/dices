@@ -58,22 +58,14 @@ where
                 .enclose("|", "|")
                 .append(allocator.space())
                 .append(body.pretty(allocator)),
-            Expr::Call { box fun, params } => {
-                let fun_doc = fun.pretty(allocator);
-                let fun_doc = if fun.need_parents_for_call() {
-                    fun_doc.parens()
-                } else {
-                    fun_doc
-                };
-                fun_doc.append(
-                    allocator
-                        .intersperse(&**params, allocator.text(",").append(allocator.line_()))
-                        .enclose(allocator.line_(), allocator.line_())
-                        .nest(4)
-                        .group()
-                        .parens(),
-                )
-            }
+            Expr::Call { box fun, params } => fun.pretty(allocator).parens().append(
+                allocator
+                    .intersperse(&**params, allocator.text(",").append(allocator.line_()))
+                    .enclose(allocator.line_(), allocator.line_())
+                    .nest(4)
+                    .group()
+                    .parens(),
+            ),
             Expr::Set { receiver, value } => receiver
                 .pretty(allocator)
                 .append(allocator.space())
@@ -120,6 +112,7 @@ where
                 .append(allocator.space())
                 .append(b.pretty(allocator).parens())
                 .group(),
+            Expr::Dice(f) => allocator.text("d").append(f.pretty(allocator).parens()),
         }
     }
 }
