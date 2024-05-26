@@ -142,19 +142,27 @@ impl Expr {
                 .ok_or_else(|| UndefinedRef((&**r).to_owned()))?
                 .clone(),
             Expr::Function { params, body } => {
-                let context = self
+                let context: Vec<_> = self
                     .vars()
                     .requires
                     .into_iter()
                     .map(|n| match namespace.get(&n) {
-                        Some(v) => Ok((n.into(), v.clone())),
+                        Some(v) => Ok(Expr::Set {
+                            receiver: Receiver::Let(n.into()),
+                            value: Box::new(Expr::Const(v.clone())),
+                        }),
                         None => Err(UndefinedRef(n.to_owned())),
                     })
                     .try_collect()?;
+                let mut body = if context.is_empty() {
+                    (&**body).clone()
+                } else {
+                    Expr::Scope(context.into_iter().chain(once((&**body).clone())).collect())
+                };
+                body.constant_fold()?; // body is folded before storing
                 Value::Function {
                     params: params.clone().into(),
-                    context,
-                    body: body.clone().into(),
+                    body: body.into(),
                 }
             }
             Expr::Call {
@@ -163,26 +171,23 @@ impl Expr {
             } => {
                 // evaluating the function
                 match fun.eval(namespace, rng)? {
-                    Value::Function {
-                        params,
-                        mut context,
-                        body,
-                    } => {
+                    Value::Function { params, body } => {
                         if params.len() != call_params.len() {
                             return Err(EvalError::WrongParamNum {
                                 expected: params.len(),
                                 given: call_params.len(),
                             });
                         }
-                        // evaluating params and adding to the context
-                        for (n, p) in params.iter().zip(call_params) {
-                            let p = p.eval(namespace, rng)?;
-                            context.insert(n.clone(), p);
-                        }
-                        // creating the namespace with the captured context
+                        // evaluating params
+                        let params = params
+                            .iter()
+                            .zip(call_params)
+                            .map(|(n, p)| p.eval(namespace, rng).map(|p| (n.clone(), p)))
+                            .try_collect()?;
+                        // creating the namespace with the param values
                         // this is not a child of `namespace`, as function cannot see the *current* surrounding context,
                         // but only the one captured at the definition
-                        let mut namespace = Namespace::root_with_vars(context);
+                        let mut namespace = Namespace::root_with_vars(params);
                         // evaluating the body, scoping it accordingly
                         body.eval(&mut namespace, rng)?
                     }
@@ -373,7 +378,6 @@ impl Expr {
                 {
                     *self = Expr::Const(Value::Function {
                         params: mem::take(params).into(),
-                        context: Default::default(),
                         body: mem::take(body).into(),
                     })
                 }
@@ -411,17 +415,26 @@ impl Expr {
                 for addend in a.iter_mut() {
                     addend.constant_fold()?
                 }
-                // collecting all constants in a single one, while doing constant folding
-                let const_term = a
-                    .extract_if(|addend| addend.is_const())
-                    .map(|a| sum(a.unwrap_const()))
-                    .try_fold(0i64, |a, b| {
-                        a.checked_add(b?).ok_or(EvalError::IntegerOverflow)
-                    })?;
+                // expanding inner sums
+                let mut expanding = a.drain(..).rev().collect_vec();
+                let mut const_term = 0i64;
+                while let Some(exp) = expanding.pop() {
+                    if let Expr::Sum(inners) = exp {
+                        expanding.extend(inners.into_iter().rev())
+                    } else if let Expr::Const(exp) = exp {
+                        const_term = const_term
+                            .checked_add(sum(exp)?)
+                            .ok_or(EvalError::IntegerOverflow)?
+                    } else {
+                        a.push(exp)
+                    }
+                }
                 if a.is_empty() {
                     *self = Expr::Const(Value::Number(const_term))
                 } else {
-                    a.push(Expr::Const(Value::Number(const_term)))
+                    if const_term != 0 {
+                        a.push(Expr::Const(Value::Number(const_term)))
+                    }
                 }
             }
             Expr::Neg(a) => {

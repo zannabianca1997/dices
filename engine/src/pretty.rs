@@ -1,8 +1,5 @@
 //! Implementation of displays
 
-use std::iter::once;
-
-use either::Either::{Left, Right};
 use pretty::DocBuilder;
 pub use pretty::{Arena, DocAllocator, Pretty};
 
@@ -159,11 +156,7 @@ where
                 .nest(4)
                 .group()
                 .enclose("<|", "|>"),
-            Value::Function {
-                params,
-                context,
-                body,
-            } => allocator
+            Value::Function { params, body } => allocator
                 .intersperse(
                     params.iter().map(|p| &**p),
                     allocator.text(",").append(allocator.line_()),
@@ -173,28 +166,7 @@ where
                 .group()
                 .enclose("|", "|")
                 .append(allocator.space())
-                .append({
-                    if context.is_empty() {
-                        // simple expression
-                        body.pretty(allocator)
-                    } else {
-                        // complex body or non null context
-                        // context is added as a series of let statements
-                        let stm_docs = context
-                            .iter()
-                            .map(|(k, v)| pretty_let(allocator, k, Some(v)))
-                            .chain(
-                                if let Expr::Scope(exprs) = &**body {
-                                    Right(&**exprs)
-                                } else {
-                                    Left(once(&**body))
-                                }
-                                .into_iter()
-                                .map(|e| e.pretty(allocator)),
-                            );
-                        pretty_scope(allocator, stm_docs)
-                    }
-                }),
+                .append(body.pretty(allocator)),
         }
     }
 }
@@ -297,30 +269,6 @@ where
         .nest(4)
         .group()
         .braces()
-}
-
-/// Prettify a let statement. Factored out cause it is used both in closure values and statements
-fn pretty_let<'a, D, A>(
-    allocator: &'a D,
-    k: &'a IdentStr,
-    v: Option<impl Pretty<'a, D, A>>,
-) -> pretty::DocBuilder<'a, D, A>
-where
-    A: 'a,
-    D: ?Sized + DocAllocator<'a, A> + 'a,
-    DocBuilder<'a, D, A>: Clone,
-{
-    allocator
-        .text("let")
-        .append(allocator.space())
-        .append(k)
-        .append(v.map(|v| {
-            allocator
-                .space()
-                .append("=")
-                .append(allocator.space())
-                .append(v)
-        }))
 }
 
 impl<'a, D, A> Pretty<'a, D, A> for &'a IdentStr

@@ -24,8 +24,6 @@ pub enum Value {
     Function {
         /// Parameters of the function
         params: Rc<[Rc<IdentStr>]>,
-        /// Captured context
-        context: HashMap<Rc<IdentStr>, Value>,
         /// Body of the function
         body: Rc<Expr>,
     },
