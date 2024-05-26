@@ -80,7 +80,7 @@ peg::parser! {
             receiver:receiver() _ "=" _ value:@ { Set { receiver, value: Box::new(value) }}
             --
             "|" _ p:((i: ident() { Rc::<IdentStr>::from(i) }) ** (_ "," _)) _ "|" _ body:@ {
-                Expr::Function { params: p.into(), body : Rc::new(body)}
+                Expr::Function { params: p.into(), body : Box::new(body)}
             }
             --
             a:(@) _ "+" _ b:@ { Sum(vec![a,b]) }

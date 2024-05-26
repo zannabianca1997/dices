@@ -1,6 +1,6 @@
 //! `dice` expression
 
-use std::{collections::HashSet, iter::once, rc::Rc};
+use std::{collections::HashSet, iter::once, mem, rc::Rc};
 
 use itertools::Itertools;
 use rand::Rng;
@@ -47,7 +47,7 @@ impl From<Missing<'_>> for UndefinedRef {
     }
 }
 
-#[derive(Debug, Clone, EnumDiscriminants, EnumTryAs, PartialEq, Eq)]
+#[derive(Debug, Clone, EnumDiscriminants, EnumTryAs, PartialEq, Eq, Default)]
 #[strum_discriminants(name(ExprKind), derive(EnumIs, IntoStaticStr, strum::Display))]
 #[cfg_attr(
     feature = "serde",
@@ -57,6 +57,7 @@ impl From<Missing<'_>> for UndefinedRef {
 pub enum Expr {
     // Simple literals and value constructors
     /// Null
+    #[default]
     Null,
     /// Boolean
     Bool(bool),
@@ -69,14 +70,16 @@ pub enum Expr {
     /// Map
     Map(Vec<(DString, Self)>),
 
+    /// Constant value
+    Const(Value),
+
     /// Reference to variables
     Reference(Rc<IdentStr>),
 
     /// Definition of a function
     Function {
-        // those are Rc cause we expect to copy them into a function value
-        params: Rc<[Rc<IdentStr>]>,
-        body: Rc<Expr>,
+        params: Box<[Rc<IdentStr>]>,
+        body: Box<Expr>,
     },
 
     /// Calling of a function
@@ -100,10 +103,10 @@ pub enum Expr {
     /// One can be a list, as long as the second is a number. In that case the first list is multiplied member by member
     Mul(Box<Expr>, Box<Expr>),
     /// Division of two expressions.
-    /// The first can be a list, and is divided member by member
+    /// One can be a list, as long as the second is a number. In that case the first list is divided/divide by member by member
     Div(Box<Expr>, Box<Expr>),
     /// Remainder of two expressions.
-    /// The first can be a list, and is divided member by member
+    /// One can be a list, as long as the second is a number. In that case the first list is divided/divide by member by member
     Rem(Box<Expr>, Box<Expr>),
 
     /// Repetition of an expression
@@ -133,6 +136,7 @@ impl Expr {
                     .map(|(n, v)| v.eval(namespace, rng).map(|v| (n.clone(), v)))
                     .try_collect()?,
             ),
+            Expr::Const(val) => val.clone(),
             Expr::Reference(r) => namespace
                 .get(r)
                 .ok_or_else(|| UndefinedRef((&**r).to_owned()))?
@@ -148,9 +152,9 @@ impl Expr {
                     })
                     .try_collect()?;
                 Value::Function {
-                    params: params.clone(),
+                    params: params.clone().into(),
                     context,
-                    body: body.clone(),
+                    body: body.clone().into(),
                 }
             }
             Expr::Call {
@@ -259,7 +263,9 @@ impl Expr {
     /// The interaction with the namespace of this expression
     fn vars(&self) -> VarsDelta {
         match self {
-            Expr::Null | Expr::Bool(_) | Expr::Number(_) | Expr::String(_) => VarsDelta::none(),
+            Expr::Null | Expr::Bool(_) | Expr::Number(_) | Expr::String(_) | Expr::Const(_) => {
+                VarsDelta::none()
+            }
 
             Expr::Reference(var) => VarsDelta::require(var),
 
@@ -322,6 +328,177 @@ impl Expr {
 
             Expr::Dice(f) => f.vars(),
         }
+    }
+
+    /// Constant folding
+    pub fn constant_fold(&mut self) -> Result<(), EvalError> {
+        match self {
+            Expr::Null => *self = Expr::Const(Value::Null),
+            Expr::Bool(b) => *self = Expr::Const(Value::Bool(*b)),
+            Expr::Number(n) => *self = Expr::Const(Value::Number(*n)),
+            Expr::List(l) => {
+                for e in l.iter_mut() {
+                    e.constant_fold()?
+                }
+                if l.iter().all(Self::is_const) {
+                    *self = Expr::Const(Value::List(
+                        mem::take(l).into_iter().map(Self::unwrap_const).collect(),
+                    ));
+                }
+            }
+            Expr::String(s) => *self = Expr::Const(Value::String(s.clone())),
+            Expr::Map(m) => {
+                for (_, e) in m.iter_mut() {
+                    e.constant_fold()?
+                }
+                if m.iter().all(|(_, e)| e.is_const()) {
+                    *self = Expr::Const(Value::Map(
+                        mem::take(m)
+                            .into_iter()
+                            .map(|(k, v)| (k, v.unwrap_const()))
+                            .collect(),
+                    ))
+                }
+            }
+            Expr::Function { params, body } => {
+                body.constant_fold()?;
+                // if it does not capture anything, it can be made const
+                if body
+                    .vars()
+                    .requires // all variables required by the body
+                    .into_iter()
+                    .filter(|v| !params.iter().any(|p| &**p == *v)) // but not contained into the parameters
+                    .next()
+                    .is_none()
+                {
+                    *self = Expr::Const(Value::Function {
+                        params: mem::take(params).into(),
+                        context: Default::default(),
+                        body: mem::take(body).into(),
+                    })
+                }
+            }
+            Expr::Call { fun, params } => {
+                fun.constant_fold()?;
+                for p in params.iter_mut() {
+                    p.constant_fold()?
+                }
+                // TODO: constant calls?
+            }
+            Expr::Set { value, .. } => value.constant_fold()?,
+            Expr::Scope(s) => {
+                for e in s.iter_mut() {
+                    e.constant_fold()?
+                }
+                // splitting the last
+                let Some(last) = s.pop() else {
+                    *self = Expr::Const(Value::Null);
+                    return Ok(());
+                };
+                // all const expression, except the last, can be removed from the body
+                // as their value would be discarded
+                s.retain(|s| !s.is_const());
+                // If a single expression remains, and it does not define any variable, it can be inlined
+                // in particular if the body resolved to a constant, this propagate the constant upward
+                if s.is_empty() && last.vars().defines.is_empty() {
+                    *self = last;
+                    return Ok(());
+                }
+                // reinserting the last expression
+                s.push(last)
+            }
+            Expr::Sum(a) => {
+                for addend in a.iter_mut() {
+                    addend.constant_fold()?
+                }
+                // collecting all constants in a single one, while doing constant folding
+                let const_term = a
+                    .extract_if(|addend| addend.is_const())
+                    .map(|a| sum(a.unwrap_const()))
+                    .try_fold(0i64, |a, b| {
+                        a.checked_add(b?).ok_or(EvalError::IntegerOverflow)
+                    })?;
+                if a.is_empty() {
+                    *self = Expr::Const(Value::Number(const_term))
+                } else {
+                    a.push(Expr::Const(Value::Number(const_term)))
+                }
+            }
+            Expr::Neg(a) => {
+                a.constant_fold()?;
+                if a.is_const() {
+                    *self = Expr::Const(neg(mem::take(a).unwrap_const())?)
+                }
+            }
+            Expr::Mul(a, b) => {
+                a.constant_fold()?;
+                b.constant_fold()?;
+                if a.is_const() && b.is_const() {
+                    *self = Expr::Const(mul(
+                        mem::take(a).unwrap_const(),
+                        mem::take(b).unwrap_const(),
+                    )?)
+                }
+            }
+            Expr::Div(a, b) => {
+                a.constant_fold()?;
+                b.constant_fold()?;
+                if a.is_const() && b.is_const() {
+                    *self = Expr::Const(div(
+                        mem::take(a).unwrap_const(),
+                        mem::take(b).unwrap_const(),
+                    )?)
+                }
+            }
+            Expr::Rem(a, b) => {
+                a.constant_fold()?;
+                b.constant_fold()?;
+                if a.is_const() && b.is_const() {
+                    *self = Expr::Const(rem(
+                        mem::take(a).unwrap_const(),
+                        mem::take(b).unwrap_const(),
+                    )?)
+                }
+            }
+            Expr::Rep(a, b) => {
+                a.constant_fold()?;
+                b.constant_fold()?;
+                if a.is_const() && b.is_const() {
+                    *self = Expr::Const(Value::List(vec![
+                        mem::take(a).unwrap_const();
+                        mem::take(b)
+                            .unwrap_const()
+                            .to_number()?
+                            .try_into()
+                            .map_err(|_| {
+                                EvalError::NegativeRepsNumber
+                            })?
+                    ]))
+                }
+            }
+            Expr::Dice(f) => f.constant_fold()?,
+            Expr::Join(a, b) => {
+                a.constant_fold()?;
+                b.constant_fold()?;
+                if a.is_const() && b.is_const() {
+                    *self = Expr::Const(join(
+                        mem::take(a).unwrap_const(),
+                        mem::take(b).unwrap_const(),
+                    ))
+                }
+            }
+
+            // nothing to do here
+            Expr::Const(_) | Expr::Reference(_) => (),
+        }
+        Ok(())
+    }
+    fn is_const(&self) -> bool {
+        matches!(self, Expr::Const(_))
+    }
+    fn unwrap_const(self) -> Value {
+        let Expr::Const(v) = self else { unreachable!() };
+        v
     }
 }
 

@@ -6,6 +6,7 @@
 #![feature(unwrap_infallible)]
 #![feature(box_patterns)]
 #![feature(ascii_char)]
+#![feature(extract_if)]
 
 use either::Either;
 

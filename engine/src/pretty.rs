@@ -47,6 +47,7 @@ where
                 .nest(4)
                 .group()
                 .enclose("<|", "|>"),
+            Expr::Const(v) => v.pretty(allocator),
             Expr::Reference(r) => r.pretty(allocator),
             Expr::Function { params, body } => allocator
                 .intersperse(

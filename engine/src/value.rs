@@ -89,7 +89,7 @@ pub fn sum(a: Value) -> Result<i64, EvalError> {
         Err(Value::List(l)) => l.into_iter().map(sum).try_fold(0i64, |a, b| {
             b.and_then(|b| a.checked_add(b).ok_or(EvalError::IntegerOverflow))
         }),
-        Err(v) => Err(EvalError::InvalidType("-", v.type_())),
+        Err(v) => Err(EvalError::InvalidType("+", v.type_())),
     }
 }
 
@@ -132,7 +132,16 @@ pub fn mul(a: Value, b: Value) -> Result<Value, EvalError> {
 pub fn div(a: Value, b: Value) -> Result<Value, EvalError> {
     Ok(match (a.try_to_number(), b.try_to_number()) {
         (Ok(a), Ok(b)) => Value::Number(a.checked_div(b).ok_or(EvalError::IntegerOverflow)?),
-        (Ok(n), Err(Value::List(l))) | (Err(Value::List(l)), Ok(n)) => Value::List(
+        (Ok(n), Err(Value::List(l))) => Value::List(
+            l.into_iter()
+                .map(|v| {
+                    n.checked_div(v.to_number()?)
+                        .map(Value::Number)
+                        .ok_or(EvalError::IntegerOverflow)
+                })
+                .try_collect()?,
+        ),
+        (Err(Value::List(l)), Ok(n)) => Value::List(
             l.into_iter()
                 .map(|v| {
                     v.to_number()?
@@ -151,7 +160,16 @@ pub fn div(a: Value, b: Value) -> Result<Value, EvalError> {
 pub fn rem(a: Value, b: Value) -> Result<Value, EvalError> {
     Ok(match (a.try_to_number(), b.try_to_number()) {
         (Ok(a), Ok(b)) => Value::Number(a.checked_rem(b).ok_or(EvalError::IntegerOverflow)?),
-        (Ok(n), Err(Value::List(l))) | (Err(Value::List(l)), Ok(n)) => Value::List(
+        (Ok(n), Err(Value::List(l))) => Value::List(
+            l.into_iter()
+                .map(|v| {
+                    n.checked_rem(v.to_number()?)
+                        .map(Value::Number)
+                        .ok_or(EvalError::IntegerOverflow)
+                })
+                .try_collect()?,
+        ),
+        (Err(Value::List(l)), Ok(n)) => Value::List(
             l.into_iter()
                 .map(|v| {
                     v.to_number()?
