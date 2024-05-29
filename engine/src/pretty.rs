@@ -120,6 +120,38 @@ where
                 .append(allocator.space())
                 .append(b.pretty(allocator).parens())
                 .group(),
+            Expr::KeepHigh(a, b) => a
+                .pretty(allocator)
+                .parens()
+                .append(allocator.line())
+                .append("kh")
+                .append(allocator.space())
+                .append(b.pretty(allocator).parens())
+                .group(),
+            Expr::KeepLow(a, b) => a
+                .pretty(allocator)
+                .parens()
+                .append(allocator.line())
+                .append("kl")
+                .append(allocator.space())
+                .append(b.pretty(allocator).parens())
+                .group(),
+            Expr::RemoveHigh(a, b) => a
+                .pretty(allocator)
+                .parens()
+                .append(allocator.line())
+                .append("rh")
+                .append(allocator.space())
+                .append(b.pretty(allocator).parens())
+                .group(),
+            Expr::RemoveLow(a, b) => a
+                .pretty(allocator)
+                .parens()
+                .append(allocator.line())
+                .append("rl")
+                .append(allocator.space())
+                .append(b.pretty(allocator).parens())
+                .group(),
         }
     }
 }

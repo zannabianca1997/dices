@@ -10,7 +10,10 @@ use thiserror::Error;
 use crate::{
     identifier::IdentStr,
     namespace::{Missing, Namespace},
-    value::{div, join, mul, neg, rem, sum, DString, ToNumberError, Type, Value},
+    value::{
+        div, join, keephigh, keeplow, mul, neg, rem, removehigh, removelow, sum, DString,
+        ToNumberError, Type, Value,
+    },
 };
 
 #[derive(Debug, Clone, Error)]
@@ -29,12 +32,10 @@ pub enum EvalError {
     InvalidTypes(&'static str, Type, Type),
     #[error("Invalid operand for `{0}`: {1}")]
     InvalidType(&'static str, Type),
-    #[error("Negative number of repetitions")]
-    NegativeRepsNumber,
     #[error("Number of dice faces must be a number")]
     NaNDiceFaces(#[source] ToNumberError),
-    #[error("Negative number of dice faces")]
-    NegativeDiceFaces,
+    #[error("Negative number of {0}")]
+    InvalidNegative(&'static str),
 }
 
 #[derive(Debug, Clone, Error)]
@@ -83,7 +84,10 @@ pub enum Expr {
     },
 
     /// Calling of a function
-    Call { fun: Box<Expr>, params: Vec<Expr> },
+    Call {
+        fun: Box<Expr>,
+        params: Vec<Expr>,
+    },
 
     /// Setting a value
     Set {
@@ -118,6 +122,11 @@ pub enum Expr {
 
     /// List/String/Map concatenation
     Join(Box<Expr>, Box<Expr>),
+    // Filters
+    KeepHigh(Box<Expr>, Box<Expr>),
+    KeepLow(Box<Expr>, Box<Expr>),
+    RemoveHigh(Box<Expr>, Box<Expr>),
+    RemoveLow(Box<Expr>, Box<Expr>),
 }
 impl Expr {
     pub fn eval(&self, namespace: &mut Namespace, rng: &mut impl Rng) -> Result<Value, EvalError> {
@@ -241,7 +250,7 @@ impl Expr {
                     .eval(namespace, rng)?
                     .to_number()?
                     .try_into()
-                    .map_err(|_| EvalError::NegativeRepsNumber)?;
+                    .map_err(|_| EvalError::InvalidNegative("number of repetitions"))?;
                 Value::List((0..n).map(|_| a.eval(namespace, rng)).try_collect()?)
             }
             Expr::Dice(f) => {
@@ -250,13 +259,33 @@ impl Expr {
                     .to_number()
                     .map_err(EvalError::NaNDiceFaces)?
                     .try_into()
-                    .map_err(|_| EvalError::NegativeDiceFaces)?;
+                    .map_err(|_| EvalError::InvalidNegative("faces of dice"))?;
                 Value::Number(rng.gen_range(1..=(f as i64)))
             }
             Expr::Join(a, b) => {
                 let a = a.eval(namespace, rng)?;
                 let b = b.eval(namespace, rng)?;
                 join(a, b)
+            }
+            Expr::KeepHigh(a, b) => {
+                let a = a.eval(namespace, rng)?;
+                let b = b.eval(namespace, rng)?;
+                keephigh(a, b)?
+            }
+            Expr::KeepLow(a, b) => {
+                let a = a.eval(namespace, rng)?;
+                let b = b.eval(namespace, rng)?;
+                keeplow(a, b)?
+            }
+            Expr::RemoveHigh(a, b) => {
+                let a = a.eval(namespace, rng)?;
+                let b = b.eval(namespace, rng)?;
+                removehigh(a, b)?
+            }
+            Expr::RemoveLow(a, b) => {
+                let a = a.eval(namespace, rng)?;
+                let b = b.eval(namespace, rng)?;
+                removelow(a, b)?
             }
         })
     }
@@ -324,9 +353,14 @@ impl Expr {
                 .tree_reduce(VarsDelta::combine)
                 .unwrap_or_default(),
             Expr::Neg(a) => a.vars(),
-            Expr::Mul(a, b) | Expr::Div(a, b) | Expr::Rem(a, b) | Expr::Join(a, b) => {
-                VarsDelta::combine(a.vars(), b.vars())
-            }
+            Expr::Mul(a, b)
+            | Expr::Div(a, b)
+            | Expr::Rem(a, b)
+            | Expr::Join(a, b)
+            | Expr::KeepHigh(a, b)
+            | Expr::KeepLow(a, b)
+            | Expr::RemoveHigh(a, b)
+            | Expr::RemoveLow(a, b) => VarsDelta::combine(a.vars(), b.vars()),
 
             // combine is idempotent (`combine(a,a) = a`) so we can collect all the repetitions.
             Expr::Rep(r, n) => VarsDelta::combine(n.vars(), r.vars()),
@@ -484,7 +518,7 @@ impl Expr {
                             .to_number()?
                             .try_into()
                             .map_err(|_| {
-                                EvalError::NegativeRepsNumber
+                                EvalError::InvalidNegative("number of repetitions")
                             })?
                     ]))
                 }
@@ -498,6 +532,46 @@ impl Expr {
                         mem::take(a).unwrap_const(),
                         mem::take(b).unwrap_const(),
                     ))
+                }
+            }
+            Expr::KeepHigh(a, b) => {
+                a.constant_fold()?;
+                b.constant_fold()?;
+                if a.is_const() && b.is_const() {
+                    *self = Expr::Const(keephigh(
+                        mem::take(a).unwrap_const(),
+                        mem::take(b).unwrap_const(),
+                    )?)
+                }
+            }
+            Expr::KeepLow(a, b) => {
+                a.constant_fold()?;
+                b.constant_fold()?;
+                if a.is_const() && b.is_const() {
+                    *self = Expr::Const(keeplow(
+                        mem::take(a).unwrap_const(),
+                        mem::take(b).unwrap_const(),
+                    )?)
+                }
+            }
+            Expr::RemoveHigh(a, b) => {
+                a.constant_fold()?;
+                b.constant_fold()?;
+                if a.is_const() && b.is_const() {
+                    *self = Expr::Const(removehigh(
+                        mem::take(a).unwrap_const(),
+                        mem::take(b).unwrap_const(),
+                    )?)
+                }
+            }
+            Expr::RemoveLow(a, b) => {
+                a.constant_fold()?;
+                b.constant_fold()?;
+                if a.is_const() && b.is_const() {
+                    *self = Expr::Const(removelow(
+                        mem::take(a).unwrap_const(),
+                        mem::take(b).unwrap_const(),
+                    )?)
                 }
             }
 

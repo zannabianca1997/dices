@@ -93,6 +93,10 @@ peg::parser! {
             a:(@) _ "%" _ b:@ { Rem(Box::new(a), Box::new(b)) }
             --
             a:(@) _ "^" _ b:@ { Rep(Box::new(a), Box::new(b)) }
+            a:(@) _ "kh" _ b:@ { KeepHigh(Box::new(a), Box::new(b)) }
+            a:(@) _ "kl" _ b:@ { KeepLow(Box::new(a), Box::new(b)) }
+            a:(@) _ "rh" _ b:@ { RemoveHigh(Box::new(a), Box::new(b)) }
+            a:(@) _ "rl" _ b:@ { RemoveLow(Box::new(a), Box::new(b)) }
             --
             "+" _ a:@ { Sum(vec![a]) }
             "-" _ a:@ { Neg(Box::new(a)) }

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, mem, rc::Rc};
 
+use itertools::Itertools;
 use strum::{EnumDiscriminants, EnumIs, EnumTryAs, IntoStaticStr};
 use thiserror::Error;
 
@@ -203,5 +204,149 @@ pub fn join(a: Value, b: Value) -> Value {
         // upgrading to lists
         (a @ Value::List(_), b) => join(a, Value::List(vec![b])),
         (a, b) => join(Value::List(vec![a]), b),
+    }
+}
+
+pub fn keephigh(a: Value, b: Value) -> Result<Value, EvalError> {
+    let b: u64 = b
+        .to_number()?
+        .try_into()
+        .map_err(|_| EvalError::InvalidNegative("results to keep"))?;
+    match a {
+        Value::List(l) => Ok(Value::List(
+            l.into_iter()
+                .map(|v| v.to_number())
+                .process_results(|values| values.k_largest(b as _))?
+                .into_iter()
+                .map(Value::Number)
+                .collect(),
+        )),
+        Value::Map(m) => Ok(Value::Map(
+            m.into_iter()
+                .map(|(n, v)| v.to_number().map(|v| (n, v)))
+                .process_results(|values| values.k_largest_by_key(b as _, |(_, v)| *v))?
+                .into_iter()
+                .map(|(k, v)| (k, Value::Number(v)))
+                .collect(),
+        )),
+        _ => {
+            let a = a.to_number()?;
+            if b > 0 {
+                return Ok(Value::List(vec![Value::Number(a)]));
+            } else {
+                return Ok(Value::List(vec![]));
+            }
+        }
+    }
+}
+
+pub fn keeplow(a: Value, b: Value) -> Result<Value, EvalError> {
+    let b: u64 = b
+        .to_number()?
+        .try_into()
+        .map_err(|_| EvalError::InvalidNegative("results to keep"))?;
+    match a {
+        Value::List(l) => Ok(Value::List(
+            l.into_iter()
+                .map(|v| v.to_number())
+                .process_results(|values| values.k_smallest(b as _))?
+                .into_iter()
+                .map(Value::Number)
+                .collect(),
+        )),
+        Value::Map(m) => Ok(Value::Map(
+            m.into_iter()
+                .map(|(n, v)| v.to_number().map(|v| (n, v)))
+                .process_results(|values| values.k_smallest_by_key(b as _, |(_, v)| *v))?
+                .into_iter()
+                .map(|(k, v)| (k, Value::Number(v)))
+                .collect(),
+        )),
+        _ => {
+            let a = a.to_number()?;
+            if b > 0 {
+                return Ok(Value::List(vec![Value::Number(a)]));
+            } else {
+                return Ok(Value::List(vec![]));
+            }
+        }
+    }
+}
+
+pub fn removehigh(a: Value, b: Value) -> Result<Value, EvalError> {
+    let b: u64 = b
+        .to_number()?
+        .try_into()
+        .map_err(|_| EvalError::InvalidNegative("results to remove"))?;
+    match a {
+        Value::List(l) => {
+            let b = (l.len() as u64).saturating_sub(b);
+            Ok(Value::List(
+                l.into_iter()
+                    .map(|v| v.to_number())
+                    .process_results(|values| values.k_largest(b as _))?
+                    .into_iter()
+                    .map(Value::Number)
+                    .collect(),
+            ))
+        }
+        Value::Map(m) => {
+            let b = (m.len() as u64).saturating_sub(b);
+            Ok(Value::Map(
+                m.into_iter()
+                    .map(|(n, v)| v.to_number().map(|v| (n, v)))
+                    .process_results(|values| values.k_largest_by_key(b as _, |(_, v)| *v))?
+                    .into_iter()
+                    .map(|(k, v)| (k, Value::Number(v)))
+                    .collect(),
+            ))
+        }
+        _ => {
+            let a = a.to_number()?;
+            if b > 0 {
+                return Ok(Value::List(vec![]));
+            } else {
+                return Ok(Value::List(vec![Value::Number(a)]));
+            }
+        }
+    }
+}
+
+pub fn removelow(a: Value, b: Value) -> Result<Value, EvalError> {
+    let b: u64 = b
+        .to_number()?
+        .try_into()
+        .map_err(|_| EvalError::InvalidNegative("results to remove"))?;
+    match a {
+        Value::List(l) => {
+            let b = (l.len() as u64).saturating_sub(b);
+            Ok(Value::List(
+                l.into_iter()
+                    .map(|v| v.to_number())
+                    .process_results(|values| values.k_smallest(b as _))?
+                    .into_iter()
+                    .map(Value::Number)
+                    .collect(),
+            ))
+        }
+        Value::Map(m) => {
+            let b = (m.len() as u64).saturating_sub(b);
+            Ok(Value::Map(
+                m.into_iter()
+                    .map(|(n, v)| v.to_number().map(|v| (n, v)))
+                    .process_results(|values| values.k_smallest_by_key(b as _, |(_, v)| *v))?
+                    .into_iter()
+                    .map(|(k, v)| (k, Value::Number(v)))
+                    .collect(),
+            ))
+        }
+        _ => {
+            let a = a.to_number()?;
+            if b > 0 {
+                return Ok(Value::List(vec![]));
+            } else {
+                return Ok(Value::List(vec![Value::Number(a)]));
+            }
+        }
     }
 }

@@ -6,7 +6,7 @@ use lazy_regex::{lazy_regex, Lazy, Regex};
 use thiserror::Error;
 
 static KEYWORDS: phf::Set<&'static str> = phf::phf_set! {
-    "let", "true", "false", "null", "d"
+    "let", "true", "false", "null", "d", "kh","kl","rl","rh"
 };
 
 static IDENT_RE: Lazy<Regex> = lazy_regex!(r"^(?:_+[^_\W]|[^_\d\W])\w*$");
