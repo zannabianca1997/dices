@@ -1,6 +1,6 @@
 //! `dice` expression
 
-use std::{assert_matches::assert_matches, collections::HashSet, iter::once, mem, rc::Rc};
+use std::{collections::HashSet, iter::once, mem, rc::Rc};
 
 use either::Either::{Left, Right};
 use itertools::Itertools;
