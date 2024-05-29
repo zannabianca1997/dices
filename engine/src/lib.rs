@@ -30,6 +30,31 @@ pub use parser::{parse_exprs, ParseError};
 #[cfg(feature = "pretty")]
 pub mod pretty;
 
+/// Context of an expression evaluation
+pub enum EvalContext<'e, 'n, RNG> {
+    Engine {
+        namespace: &'e mut Namespace<'n>,
+        rng: &'e mut RNG,
+    },
+    Const {
+        namespace: &'e mut Namespace<'n>,
+    },
+}
+impl<'e, 'n, RNG> EvalContext<'e, 'n, RNG> {
+    pub fn namespace(&mut self) -> &mut Namespace<'n> {
+        match self {
+            EvalContext::Engine { namespace, .. } => *namespace,
+            EvalContext::Const { namespace, .. } => *namespace,
+        }
+    }
+    pub fn rng(&mut self) -> Option<&mut RNG> {
+        match self {
+            EvalContext::Engine { rng, .. } => Some(*rng),
+            EvalContext::Const { .. } => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 /// The `dices` engine.
 pub struct Engine<RNG> {
@@ -65,7 +90,10 @@ impl<RNG: SeedableRng> Engine<RNG> {
 impl<RNG: Rng> Engine<RNG> {
     /// Evaluate an expression
     pub fn eval(&mut self, expr: &Expr) -> Result<Value, EvalError> {
-        expr.eval(&mut self.namespace, &mut self.rng)
+        expr.eval(&mut EvalContext::Engine {
+            namespace: &mut self.namespace,
+            rng: &mut self.rng,
+        })
     }
 
     #[cfg(feature = "parse")]

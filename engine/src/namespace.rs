@@ -253,6 +253,18 @@ impl Namespace<'_> {
         *self.get_mut(name).ok_or(Missing(name))? = value;
         Ok(())
     }
+
+    /// check that no variables are defined into this namespace, or parent ones
+    pub fn is_empty(&self) -> bool {
+        self.vars.is_empty()
+            && !self.parent.is_some_and(|p| {
+                !unsafe {
+                    /* SAFETY: see top module explanation */
+                    p.as_ref()
+                }
+                .is_empty()
+            })
+    }
 }
 
 #[derive(Debug, Clone, Copy, Error)]

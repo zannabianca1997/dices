@@ -1,9 +1,9 @@
 //! `dice` expression
 
-use std::{collections::HashSet, iter::once, mem, rc::Rc};
+use std::{collections::HashSet, iter::once, rc::Rc};
 
 use itertools::Itertools;
-use rand::Rng;
+use rand::{Rng, RngCore};
 use strum::{EnumDiscriminants, EnumIs, EnumTryAs, IntoStaticStr};
 use thiserror::Error;
 
@@ -14,6 +14,7 @@ use crate::{
         div, join, keephigh, keeplow, mul, neg, rem, removehigh, removelow, sum, DString,
         ToNumberError, Type, Value,
     },
+    EvalContext,
 };
 
 #[derive(Debug, Clone, Error)]
@@ -36,6 +37,17 @@ pub enum EvalError {
     NaNDiceFaces(#[source] ToNumberError),
     #[error("Negative number of {0}")]
     InvalidNegative(&'static str),
+    #[error("Required an rng in a const context")]
+    RngInConstContext,
+}
+impl EvalError {
+    /// Check if this error can be solved by evaluating the expression outside a const context
+    fn can_be_solved_outside_const(&self) -> bool {
+        matches!(
+            self,
+            EvalError::RngInConstContext | EvalError::UndefinedRef(_)
+        )
+    }
 }
 
 #[derive(Debug, Clone, Error)]
@@ -129,24 +141,21 @@ pub enum Expr {
     RemoveLow(Box<Expr>, Box<Expr>),
 }
 impl Expr {
-    pub fn eval(&self, namespace: &mut Namespace, rng: &mut impl Rng) -> Result<Value, EvalError> {
+    pub fn eval<R: Rng>(&self, context: &mut EvalContext<'_, '_, R>) -> Result<Value, EvalError> {
         Ok(match self {
             Expr::Null => Value::Null,
             Expr::Bool(b) => Value::Bool(*b),
             Expr::Number(n) => Value::Number(*n),
-            Expr::List(l) => Value::List(
-                l.into_iter()
-                    .map(|l| l.eval(namespace, rng))
-                    .try_collect()?,
-            ),
+            Expr::List(l) => Value::List(l.into_iter().map(|l| l.eval(context)).try_collect()?),
             Expr::String(s) => Value::String(s.clone()),
             Expr::Map(m) => Value::Map(
                 m.into_iter()
-                    .map(|(n, v)| v.eval(namespace, rng).map(|v| (n.clone(), v)))
+                    .map(|(n, v)| v.eval(context).map(|v| (n.clone(), v)))
                     .try_collect()?,
             ),
             Expr::Const(val) => val.clone(),
-            Expr::Reference(r) => namespace
+            Expr::Reference(r) => context
+                .namespace()
                 .get(r)
                 .ok_or_else(|| UndefinedRef((&**r).to_owned()))?
                 .clone(),
@@ -155,7 +164,7 @@ impl Expr {
                     .vars()
                     .requires
                     .into_iter()
-                    .map(|n| match namespace.get(&n) {
+                    .map(|n| match context.namespace().get(&n) {
                         Some(v) => Ok(Expr::Set {
                             receiver: Receiver::Let(n.into()),
                             value: Box::new(Expr::Const(v.clone())),
@@ -179,7 +188,7 @@ impl Expr {
                 params: call_params,
             } => {
                 // evaluating the function
-                match fun.eval(namespace, rng)? {
+                match fun.eval(context)? {
                     Value::Function { params, body } => {
                         if params.len() != call_params.len() {
                             return Err(EvalError::WrongParamNum {
@@ -191,100 +200,129 @@ impl Expr {
                         let params = params
                             .iter()
                             .zip(call_params)
-                            .map(|(n, p)| p.eval(namespace, rng).map(|p| (n.clone(), p)))
+                            .map(|(n, p)| p.eval(context).map(|p| (n.clone(), p)))
                             .try_collect()?;
                         // creating the namespace with the param values
                         // this is not a child of `namespace`, as function cannot see the *current* surrounding context,
                         // but only the one captured at the definition
                         let mut namespace = Namespace::root_with_vars(params);
+                        let mut context = match context {
+                            EvalContext::Engine { namespace: _, rng } => EvalContext::Engine {
+                                namespace: &mut namespace,
+                                rng: *rng,
+                            },
+                            EvalContext::Const { namespace: _ } => EvalContext::Const {
+                                namespace: &mut namespace,
+                            },
+                        };
                         // evaluating the body, scoping it accordingly
-                        body.eval(&mut namespace, rng)?
+                        body.eval(&mut context)?
                     }
                     not_callable => return Err(EvalError::NotCallable(not_callable.type_())),
                 }
             }
             Expr::Set { receiver, value } => {
-                let value = value.eval(namespace, rng)?;
-                receiver.set(namespace, &value)?;
+                let value = value.eval(context)?;
+                receiver.set(context.namespace(), &value)?;
                 value
             }
             Expr::Scope(exprs) => {
                 // scoping
-                let mut namespace = namespace.child();
+                let mut child_namespace;
+                let mut context = match context {
+                    EvalContext::Engine { namespace, rng } => {
+                        child_namespace = namespace.child();
+                        EvalContext::Engine {
+                            namespace: &mut child_namespace,
+                            rng: *rng,
+                        }
+                    }
+                    EvalContext::Const { namespace } => {
+                        child_namespace = namespace.child();
+                        EvalContext::Const {
+                            namespace: &mut child_namespace,
+                        }
+                    }
+                };
                 if let Some((last, setup)) = exprs.split_last() {
                     for expr in setup {
-                        expr.eval(&mut namespace, rng)?;
+                        expr.eval(&mut context)?;
                     }
-                    last.eval(&mut namespace, rng)?
+                    last.eval(&mut context)?
                 } else {
                     Value::Null
                 }
             }
             Expr::Sum(a) => Value::Number(
                 a.iter()
-                    .map(|e| e.eval(namespace, rng).and_then(sum))
+                    .map(|e| e.eval(context).and_then(sum))
                     .try_fold(0i64, |a, b| {
                         b.and_then(|b| a.checked_add(b).ok_or(EvalError::IntegerOverflow))
                     })?,
             ),
-            Expr::Neg(a) => neg(a.eval(namespace, rng)?)?,
+            Expr::Neg(a) => neg(a.eval(context)?)?,
 
             Expr::Mul(a, b) => {
-                let a = a.eval(namespace, rng)?;
-                let b = b.eval(namespace, rng)?;
+                let a = a.eval(context)?;
+                let b = b.eval(context)?;
                 mul(a, b)?
             }
             Expr::Div(a, b) => {
-                let a = a.eval(namespace, rng)?;
-                let b = b.eval(namespace, rng)?;
+                let a = a.eval(context)?;
+                let b = b.eval(context)?;
                 div(a, b)?
             }
             Expr::Rem(a, b) => {
-                let a = a.eval(namespace, rng)?;
-                let b = b.eval(namespace, rng)?;
+                let a = a.eval(context)?;
+                let b = b.eval(context)?;
                 rem(a, b)?
             }
 
             Expr::Rep(a, n) => {
                 let n: u64 = n
-                    .eval(namespace, rng)?
+                    .eval(context)?
                     .to_number()?
                     .try_into()
                     .map_err(|_| EvalError::InvalidNegative("number of repetitions"))?;
-                Value::List((0..n).map(|_| a.eval(namespace, rng)).try_collect()?)
+                Value::List((0..n).map(|_| a.eval(context)).try_collect()?)
             }
             Expr::Dice(f) => {
                 let f: u64 = f
-                    .eval(namespace, rng)?
+                    .eval(context)?
                     .to_number()
                     .map_err(EvalError::NaNDiceFaces)?
                     .try_into()
                     .map_err(|_| EvalError::InvalidNegative("faces of dice"))?;
-                Value::Number(rng.gen_range(1..=(f as i64)))
+                Value::Number(
+                    context
+                        .rng()
+                        .ok_or(EvalError::RngInConstContext)?
+                        .gen_range(1..=(f as i64)),
+                )
             }
             Expr::Join(a, b) => {
-                let a = a.eval(namespace, rng)?;
-                let b = b.eval(namespace, rng)?;
+                let a = a.eval(context)?;
+                let b = b.eval(context)?;
                 join(a, b)
             }
             Expr::KeepHigh(a, b) => {
-                let a = a.eval(namespace, rng)?;
-                let b = b.eval(namespace, rng)?;
+                let a = a.eval(context)?;
+                let b = b.eval(context)?;
                 keephigh(a, b)?
             }
             Expr::KeepLow(a, b) => {
-                let a = a.eval(namespace, rng)?;
-                let b = b.eval(namespace, rng)?;
+                let a = a.eval(context)?;
+                let b = b.eval(context)?;
                 keeplow(a, b)?
             }
             Expr::RemoveHigh(a, b) => {
-                let a = a.eval(namespace, rng)?;
-                let b = b.eval(namespace, rng)?;
+                let a = a.eval(context)?;
+                let b = b.eval(context)?;
                 removehigh(a, b)?
             }
             Expr::RemoveLow(a, b) => {
-                let a = a.eval(namespace, rng)?;
-                let b = b.eval(namespace, rng)?;
+                let a = a.eval(context)?;
+                let b = b.eval(context)?;
                 removelow(a, b)?
             }
         })
@@ -370,222 +408,95 @@ impl Expr {
     }
 
     /// Constant folding
-    pub fn constant_fold(&mut self) -> Result<(), EvalError> {
+    pub fn constant_fold(&mut self) -> Result<bool, EvalError> {
+        // collecting branches to recurse into
+        let mut branches = vec![];
         match self {
-            Expr::Null => *self = Expr::Const(Value::Null),
-            Expr::Bool(b) => *self = Expr::Const(Value::Bool(*b)),
-            Expr::Number(n) => *self = Expr::Const(Value::Number(*n)),
-            Expr::List(l) => {
-                for e in l.iter_mut() {
-                    e.constant_fold()?
-                }
-                if l.iter().all(Self::is_const) {
-                    *self = Expr::Const(Value::List(
-                        mem::take(l).into_iter().map(Self::unwrap_const).collect(),
-                    ));
-                }
-            }
-            Expr::String(s) => *self = Expr::Const(Value::String(s.clone())),
-            Expr::Map(m) => {
-                for (_, e) in m.iter_mut() {
-                    e.constant_fold()?
-                }
-                if m.iter().all(|(_, e)| e.is_const()) {
-                    *self = Expr::Const(Value::Map(
-                        mem::take(m)
-                            .into_iter()
-                            .map(|(k, v)| (k, v.unwrap_const()))
-                            .collect(),
-                    ))
-                }
-            }
-            Expr::Function { params, body } => {
-                body.constant_fold()?;
-                // if it does not capture anything, it can be made const
-                if body
-                    .vars()
-                    .requires // all variables required by the body
-                    .into_iter()
-                    .filter(|v| !params.iter().any(|p| &**p == *v)) // but not contained into the parameters
-                    .next()
-                    .is_none()
-                {
-                    *self = Expr::Const(Value::Function {
-                        params: mem::take(params).into(),
-                        body: mem::take(body).into(),
-                    })
-                }
-            }
-            Expr::Call { fun, params } => {
-                fun.constant_fold()?;
-                for p in params.iter_mut() {
-                    p.constant_fold()?
-                }
-                // TODO: constant calls?
-            }
-            Expr::Set { value, .. } => value.constant_fold()?,
-            Expr::Scope(s) => {
-                for e in s.iter_mut() {
-                    e.constant_fold()?
-                }
-                // splitting the last
-                let Some(last) = s.pop() else {
-                    *self = Expr::Const(Value::Null);
-                    return Ok(());
-                };
-                // all const expression, except the last, can be removed from the body
-                // as their value would be discarded
-                s.retain(|s| !s.is_const());
-                // If a single expression remains, and it does not define any variable, it can be inlined
-                // in particular if the body resolved to a constant, this propagate the constant upward
-                if s.is_empty() && last.vars().defines.is_empty() {
-                    *self = last;
-                    return Ok(());
-                }
-                // reinserting the last expression
-                s.push(last)
-            }
-            Expr::Sum(a) => {
-                for addend in a.iter_mut() {
-                    addend.constant_fold()?
-                }
-                // expanding inner sums
-                let mut expanding = a.drain(..).rev().collect_vec();
-                let mut const_term = 0i64;
-                while let Some(exp) = expanding.pop() {
-                    if let Expr::Sum(inners) = exp {
-                        expanding.extend(inners.into_iter().rev())
-                    } else if let Expr::Const(exp) = exp {
-                        const_term = const_term
-                            .checked_add(sum(exp)?)
-                            .ok_or(EvalError::IntegerOverflow)?
-                    } else {
-                        a.push(exp)
-                    }
-                }
-                if a.is_empty() {
-                    *self = Expr::Const(Value::Number(const_term))
-                } else {
-                    if const_term != 0 {
-                        a.push(Expr::Const(Value::Number(const_term)))
-                    }
-                }
-            }
-            Expr::Neg(a) => {
-                a.constant_fold()?;
-                if a.is_const() {
-                    *self = Expr::Const(neg(mem::take(a).unwrap_const())?)
-                }
-            }
-            Expr::Mul(a, b) => {
-                a.constant_fold()?;
-                b.constant_fold()?;
-                if a.is_const() && b.is_const() {
-                    *self = Expr::Const(mul(
-                        mem::take(a).unwrap_const(),
-                        mem::take(b).unwrap_const(),
-                    )?)
-                }
-            }
-            Expr::Div(a, b) => {
-                a.constant_fold()?;
-                b.constant_fold()?;
-                if a.is_const() && b.is_const() {
-                    *self = Expr::Const(div(
-                        mem::take(a).unwrap_const(),
-                        mem::take(b).unwrap_const(),
-                    )?)
-                }
-            }
-            Expr::Rem(a, b) => {
-                a.constant_fold()?;
-                b.constant_fold()?;
-                if a.is_const() && b.is_const() {
-                    *self = Expr::Const(rem(
-                        mem::take(a).unwrap_const(),
-                        mem::take(b).unwrap_const(),
-                    )?)
-                }
-            }
-            Expr::Rep(a, b) => {
-                a.constant_fold()?;
-                b.constant_fold()?;
-                if a.is_const() && b.is_const() {
-                    *self = Expr::Const(Value::List(vec![
-                        mem::take(a).unwrap_const();
-                        mem::take(b)
-                            .unwrap_const()
-                            .to_number()?
-                            .try_into()
-                            .map_err(|_| {
-                                EvalError::InvalidNegative("number of repetitions")
-                            })?
-                    ]))
-                }
-            }
-            Expr::Dice(f) => f.constant_fold()?,
-            Expr::Join(a, b) => {
-                a.constant_fold()?;
-                b.constant_fold()?;
-                if a.is_const() && b.is_const() {
-                    *self = Expr::Const(join(
-                        mem::take(a).unwrap_const(),
-                        mem::take(b).unwrap_const(),
-                    ))
-                }
-            }
-            Expr::KeepHigh(a, b) => {
-                a.constant_fold()?;
-                b.constant_fold()?;
-                if a.is_const() && b.is_const() {
-                    *self = Expr::Const(keephigh(
-                        mem::take(a).unwrap_const(),
-                        mem::take(b).unwrap_const(),
-                    )?)
-                }
-            }
-            Expr::KeepLow(a, b) => {
-                a.constant_fold()?;
-                b.constant_fold()?;
-                if a.is_const() && b.is_const() {
-                    *self = Expr::Const(keeplow(
-                        mem::take(a).unwrap_const(),
-                        mem::take(b).unwrap_const(),
-                    )?)
-                }
-            }
-            Expr::RemoveHigh(a, b) => {
-                a.constant_fold()?;
-                b.constant_fold()?;
-                if a.is_const() && b.is_const() {
-                    *self = Expr::Const(removehigh(
-                        mem::take(a).unwrap_const(),
-                        mem::take(b).unwrap_const(),
-                    )?)
-                }
-            }
-            Expr::RemoveLow(a, b) => {
-                a.constant_fold()?;
-                b.constant_fold()?;
-                if a.is_const() && b.is_const() {
-                    *self = Expr::Const(removelow(
-                        mem::take(a).unwrap_const(),
-                        mem::take(b).unwrap_const(),
-                    )?)
-                }
-            }
-
-            // nothing to do here
-            Expr::Const(_) | Expr::Reference(_) => (),
+            Expr::Null
+            | Expr::Bool(_)
+            | Expr::Number(_)
+            | Expr::String(_)
+            | Expr::Const(_)
+            | Expr::Reference(_) => (),
+            Expr::List(l) => branches.extend(l),
+            Expr::Map(m) => branches.extend(m.iter_mut().map(|(_, v)| v)),
+            Expr::Function {
+                params: _,
+                box body,
+            } => branches.push(body),
+            Expr::Call { box fun, params } => branches.extend(once(fun).chain(params)),
+            Expr::Set {
+                receiver: _,
+                box value,
+            } => branches.push(value),
+            Expr::Scope(s) => branches.extend(s),
+            Expr::Sum(a) => branches.extend(a),
+            Expr::Neg(box a) | Expr::Dice(box a) => branches.push(a),
+            Expr::Mul(box a, box b)
+            | Expr::Div(box a, box b)
+            | Expr::Rem(box a, box b)
+            | Expr::Rep(box a, box b)
+            | Expr::Join(box a, box b)
+            | Expr::KeepHigh(box a, box b)
+            | Expr::KeepLow(box a, box b)
+            | Expr::RemoveHigh(box a, box b)
+            | Expr::RemoveLow(box a, box b) => branches.extend([a, b]),
         }
-        Ok(())
+        // did it fold up to here?
+        if branches
+            .into_iter()
+            .map(|b| b.constant_fold())
+            .process_results(|mut f| f.any(|x| !x))?
+        {
+            // constant folding did not reach this node
+            // but no error was caused...
+            return Ok(false);
+        }
+        // Evaluating in a const context.
+        let mut namespace = Namespace::root();
+        match self.eval::<FakeRng>(&mut EvalContext::Const {
+            namespace: &mut namespace,
+        }) {
+            Ok(v) if namespace.is_empty() => {
+                // element is correctly evaluated in a const context, and had no side effect.
+                // Substituting it with a constant value
+                *self = Expr::Const(v);
+                Ok(true)
+            }
+            Ok(_) => {
+                // element is const, but defined something.
+                // It cannot be substituted by something const
+                Ok(false)
+            }
+            Err(err) if err.can_be_solved_outside_const() => {
+                // element errored out, but the error might be resolved at runtime.
+                Ok(false)
+            }
+            Err(err) => {
+                // element errored out, and the error won't be resolved at runtime.
+                Err(err)
+            }
+        }
     }
-    fn is_const(&self) -> bool {
-        matches!(self, Expr::Const(_))
+}
+
+/// A dummy rng to solve type constraints
+struct FakeRng(!);
+impl RngCore for FakeRng {
+    fn next_u32(&mut self) -> u32 {
+        self.0
     }
-    fn unwrap_const(self) -> Value {
-        let Expr::Const(v) = self else { unreachable!() };
-        v
+
+    fn next_u64(&mut self) -> u64 {
+        self.0
+    }
+
+    fn fill_bytes(&mut self, _dest: &mut [u8]) {
+        self.0
+    }
+
+    fn try_fill_bytes(&mut self, _dest: &mut [u8]) -> Result<(), rand::Error> {
+        self.0
     }
 }
 
