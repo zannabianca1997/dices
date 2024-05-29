@@ -442,12 +442,17 @@ impl Expr {
             | Expr::RemoveHigh(box a, box b)
             | Expr::RemoveLow(box a, box b) => branches.extend([a, b]),
         }
-        // did it fold up to here?
-        if branches
+        // recursively fold the branches, and check if they
+        let branches_fold = branches
             .into_iter()
             .map(|b| b.constant_fold())
-            .process_results(|mut f| f.any(|x| !x))?
-        {
+            .process_results(|mut f| f.all(|x| x))?;
+        // can we try to evaluate this node?
+        if !(
+            branches_fold || // do not evaluate if the folding did not reach this deep
+            matches!(self, Expr::Scope(_))
+            // but evaluate scopes anyway, as they might enclose all variables needed to solve them
+        ) {
             // constant folding did not reach this node
             // but no error was caused...
             return Ok(false);
