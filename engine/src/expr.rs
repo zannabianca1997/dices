@@ -1,7 +1,8 @@
 //! `dice` expression
 
-use std::{collections::HashSet, iter::once, rc::Rc};
+use std::{assert_matches::assert_matches, collections::HashSet, iter::once, mem, rc::Rc};
 
+use either::Either::{Left, Right};
 use itertools::Itertools;
 use rand::{Rng, RngCore};
 use strum::{EnumDiscriminants, EnumIs, EnumTryAs, IntoStaticStr};
@@ -333,6 +334,7 @@ impl Expr {
     }
 
     /// The interaction with the namespace of this expression
+    #[inline(always)]
     fn vars(&self) -> VarsDelta {
         match self {
             Expr::Null | Expr::Bool(_) | Expr::Number(_) | Expr::String(_) | Expr::Const(_) => {
@@ -442,15 +444,72 @@ impl Expr {
             | Expr::RemoveHigh(box a, box b)
             | Expr::RemoveLow(box a, box b) => branches.extend([a, b]),
         }
-        // recursively fold the branches, and check if they
-        let branches_fold = branches
-            .into_iter()
-            .map(|b| b.constant_fold())
-            .process_results(|mut f| f.all(|x| x))?;
+        // recursively fold the branches
+        let mut branches_folded = true;
+        for b in branches {
+            // this avoid using iterator `all` so it is not short circuiting
+            let b_folded = b.constant_fold()?;
+            branches_folded = b_folded && branches_folded;
+        }
+
+        // Special semplifications
+
+        // Scopes cleanup: aside the last expression, all consts can be eliminated as they have no side effects
+        if let Expr::Scope(exprs) = self {
+            // if there are some non-tail expressions
+            if let Some(last) = exprs.pop() {
+                // eliminate all non-tail const expressions
+                exprs.retain(|e| !matches!(e, Expr::Const(_)));
+                // put the tail back
+                exprs.push(last)
+            }
+            // if a single expression remains, and it does not define anything, it can be inlined
+            if exprs.len() == 1 && exprs[0].vars().defines.is_empty() {
+                let expr = exprs.pop().unwrap();
+                *self = expr
+            }
+        }
+        // Sums flattening and collection of consts
+        if let Expr::Sum(terms) = self {
+            // flattenening
+            let mut consts = 0i64;
+            for term in mem::take(terms).into_iter().flat_map(|t| {
+                if let Expr::Sum(t) = t {
+                    Left(t.into_iter())
+                } else {
+                    Right(once(t))
+                }
+            }) {
+                match term {
+                    Expr::Const(v) => {
+                        consts = consts
+                            .checked_add(sum(v)?)
+                            .ok_or(EvalError::IntegerOverflow)?
+                    }
+                    Expr::Sum(_) => {
+                        unreachable!("Sum of sums should be already flattened in branch folding")
+                    }
+                    term => terms.push(term), // reinserting terms
+                }
+            }
+            // Adding the const term back
+            if terms.is_empty() {
+                *self = Expr::Const(Value::Number(consts))
+            } else {
+                if consts != 0 {
+                    terms.push(Expr::Const(Value::Number(consts)))
+                }
+            }
+        }
+
         // can we try to evaluate this node?
+        if matches!(self, Expr::Const(_)) {
+            // Skip evaluation step
+            return Ok(true);
+        }
         if !(
-            branches_fold || // do not evaluate if the folding did not reach this deep
-            matches!(self, Expr::Scope(_))
+            branches_folded  // do not evaluate if the folding did not reach this deep
+            ||  matches!(self, Expr::Scope(_))
             // but evaluate scopes anyway, as they might enclose all variables needed to solve them
         ) {
             // constant folding did not reach this node
@@ -466,22 +525,20 @@ impl Expr {
                 // element is correctly evaluated in a const context, and had no side effect.
                 // Substituting it with a constant value
                 *self = Expr::Const(v);
-                Ok(true)
             }
             Ok(_) => {
                 // element is const, but defined something.
                 // It cannot be substituted by something const
-                Ok(false)
             }
             Err(err) if err.can_be_solved_outside_const() => {
                 // element errored out, but the error might be resolved at runtime.
-                Ok(false)
             }
             Err(err) => {
                 // element errored out, and the error won't be resolved at runtime.
-                Err(err)
+                return Err(err);
             }
         }
+        Ok(matches!(self, Expr::Const(_)))
     }
 }
 
