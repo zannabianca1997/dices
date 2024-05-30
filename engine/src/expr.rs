@@ -18,6 +18,20 @@ use crate::{
     EvalContext,
 };
 
+/// Events that might interrupt an evaluation
+#[derive(Debug)]
+pub(crate) enum EvalInterrupt {
+    Error(EvalError),
+    CannotEvalInConst(&'static str),
+    Quitted(Box<[Value]>),
+}
+
+impl From<EvalError> for EvalInterrupt {
+    fn from(value: EvalError) -> Self {
+        Self::Error(value)
+    }
+}
+
 #[derive(Debug, Clone, Error)]
 pub enum EvalError {
     #[error(transparent)]
@@ -38,17 +52,6 @@ pub enum EvalError {
     NaNDiceFaces(#[source] ToNumberError),
     #[error("Negative number of {0}")]
     InvalidNegative(&'static str),
-    #[error("Required an rng in a const context")]
-    RngInConstContext,
-}
-impl EvalError {
-    /// Check if this error can be solved by evaluating the expression outside a const context
-    fn can_be_solved_outside_const(&self) -> bool {
-        matches!(
-            self,
-            EvalError::RngInConstContext | EvalError::UndefinedRef(_)
-        )
-    }
 }
 
 #[derive(Debug, Clone, Error)]
@@ -142,7 +145,20 @@ pub enum Expr {
     RemoveLow(Box<Expr>, Box<Expr>),
 }
 impl Expr {
-    pub fn eval<R: Rng>(&self, context: &mut EvalContext<'_, '_, R>) -> Result<Value, EvalError> {
+    pub(crate) fn eval<R: Rng>(
+        &self,
+        context: &mut EvalContext<'_, '_, R>,
+    ) -> Result<Value, EvalInterrupt> {
+        let fail_eval = {
+            let const_context = context.is_const();
+            move |name: &IdentStr| {
+                if const_context {
+                    EvalInterrupt::CannotEvalInConst("Reference to unknow variable")
+                } else {
+                    EvalInterrupt::Error(EvalError::UndefinedRef(UndefinedRef(name.to_owned())))
+                }
+            }
+        };
         Ok(match self {
             Expr::Null => Value::Null,
             Expr::Bool(b) => Value::Bool(*b),
@@ -158,9 +174,13 @@ impl Expr {
             Expr::Reference(r) => context
                 .namespace()
                 .get(r)
-                .ok_or_else(|| UndefinedRef((&**r).to_owned()))?
+                .ok_or_else(|| fail_eval(r))?
                 .clone(),
             Expr::Function { params, body } => {
+                let mut body = Box::into_inner(body.clone());
+                body.constant_fold()?; // body is folded before storing
+
+                // capturing context in a series of `let` expressions
                 let context: Vec<_> = self
                     .vars()
                     .requires
@@ -170,15 +190,16 @@ impl Expr {
                             receiver: Receiver::Let(n.into()),
                             value: Box::new(Expr::Const(v.clone())),
                         }),
-                        None => Err(UndefinedRef(n.to_owned())),
+                        None => Err(fail_eval(n)),
                     })
                     .try_collect()?;
                 let mut body = if context.is_empty() {
-                    (&**body).clone()
+                    body
                 } else {
-                    Expr::Scope(context.into_iter().chain(once((&**body).clone())).collect())
+                    Expr::Scope(context.into_iter().chain(once(body)).collect())
                 };
-                body.constant_fold()?; // body is folded before storing
+
+                body.constant_fold()?; // body is folded again so the let expressions can be folded
                 Value::Function {
                     params: params.clone().into(),
                     body: body.into(),
@@ -195,7 +216,8 @@ impl Expr {
                             return Err(EvalError::WrongParamNum {
                                 expected: params.len(),
                                 given: call_params.len(),
-                            });
+                            }
+                            .into());
                         }
                         // evaluating params
                         let params = params
@@ -203,9 +225,9 @@ impl Expr {
                             .zip(call_params)
                             .map(|(n, p)| p.eval(context).map(|p| (n.clone(), p)))
                             .try_collect()?;
-                        // creating the namespace with the param values
-                        // this is not a child of `namespace`, as function cannot see the *current* surrounding context,
-                        // but only the one captured at the definition
+                        /*  creating the namespace with the param values
+                        this is not a child of `namespace`, as function cannot see the *current* surrounding context,
+                        but only the one captured at the definition */
                         let mut namespace = Namespace::root_with_vars(params);
                         let mut context = match context {
                             EvalContext::Engine { namespace: _, rng } => EvalContext::Engine {
@@ -219,12 +241,38 @@ impl Expr {
                         // evaluating the body, scoping it accordingly
                         body.eval(&mut context)?
                     }
-                    not_callable => return Err(EvalError::NotCallable(not_callable.type_())),
+                    Value::Intrisic(intr) => {
+                        // evaluating params
+                        let params = call_params
+                            .into_iter()
+                            .map(|p| p.eval(context))
+                            .try_collect()?;
+                        /* creating the jail namespace
+                        this is not a child of `namespace`, as function cannot see the *current* surrounding context,
+                        but only the one captured at the definition
+                        Intrisics might be more powerful than this, giving them accesso to the current namespace.
+                        That would impede the static examination of the variable access, and context capture */
+                        let mut namespace = Namespace::root();
+                        let mut context = match context {
+                            EvalContext::Engine { namespace: _, rng } => EvalContext::Engine {
+                                namespace: &mut namespace,
+                                rng: *rng,
+                            },
+                            EvalContext::Const { namespace: _ } => EvalContext::Const {
+                                namespace: &mut namespace,
+                            },
+                        };
+
+                        intr.call(params, &mut context)?
+                    }
+                    not_callable => return Err(EvalError::NotCallable(not_callable.type_()).into()),
                 }
             }
             Expr::Set { receiver, value } => {
                 let value = value.eval(context)?;
-                receiver.set(context.namespace(), &value)?;
+                receiver
+                    .set(context.namespace(), &value)
+                    .map_err(|UndefinedRef(r)| fail_eval(&r))?;
                 value
             }
             Expr::Scope(exprs) => {
@@ -256,9 +304,9 @@ impl Expr {
             }
             Expr::Sum(a) => Value::Number(
                 a.iter()
-                    .map(|e| e.eval(context).and_then(sum))
+                    .map(|e| e.eval(context).and_then(|a| sum(a).map_err(Into::into)))
                     .try_fold(0i64, |a, b| {
-                        b.and_then(|b| a.checked_add(b).ok_or(EvalError::IntegerOverflow))
+                        b.and_then(|b| a.checked_add(b).ok_or(EvalError::IntegerOverflow.into()))
                     })?,
             ),
             Expr::Neg(a) => neg(a.eval(context)?)?,
@@ -282,7 +330,8 @@ impl Expr {
             Expr::Rep(a, n) => {
                 let n: u64 = n
                     .eval(context)?
-                    .to_number()?
+                    .to_number()
+                    .map_err(|e| EvalError::from(e))?
                     .try_into()
                     .map_err(|_| EvalError::InvalidNegative("number of repetitions"))?;
                 Value::List((0..n).map(|_| a.eval(context)).try_collect()?)
@@ -297,7 +346,7 @@ impl Expr {
                 Value::Number(
                     context
                         .rng()
-                        .ok_or(EvalError::RngInConstContext)?
+                        .ok_or(EvalInterrupt::CannotEvalInConst("`d` expressions"))?
                         .gen_range(1..=(f as i64)),
                 )
             }
@@ -530,12 +579,15 @@ impl Expr {
                 // element is const, but defined something.
                 // It cannot be substituted by something const
             }
-            Err(err) if err.can_be_solved_outside_const() => {
-                // element errored out, but the error might be resolved at runtime.
+            Err(EvalInterrupt::Error(err)) => {
+                // element errored out, and the error cannot be resolved at runtime
+                return Err(err);
+            }
+            Err(EvalInterrupt::CannotEvalInConst(_reason)) => {
+                // element errored out, but the error can be resolved at runtime.
             }
             Err(err) => {
-                // element errored out, and the error won't be resolved at runtime.
-                return Err(err);
+                unreachable!("Other interrupts must not be emitted under const context, but {err:?} was emitted")
             }
         }
         Ok(matches!(self, Expr::Const(_)))

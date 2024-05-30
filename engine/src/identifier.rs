@@ -202,6 +202,12 @@ impl From<Box<IdentStr>> for Box<str> {
         }
     }
 }
+pub fn from_rc(value: Rc<IdentStr>) -> Rc<str> {
+    unsafe {
+        // SAFETY: `#[repr(transparent)]` guarantee the two types have the same memory layout
+        Rc::from_raw(Rc::into_raw(value) as *mut str)
+    }
+}
 
 // fallible conversion from str
 

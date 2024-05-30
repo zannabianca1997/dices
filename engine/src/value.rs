@@ -7,6 +7,7 @@ use thiserror::Error;
 use crate::{
     expr::{EvalError, Expr},
     identifier::IdentStr,
+    intrisics::Intrisic,
 };
 
 /// String type in `dices`
@@ -21,14 +22,6 @@ pub type DString = Rc<str>;
 )]
 /// Value of a variable in `dices`
 pub enum Value {
-    /// A callable
-    Function {
-        /// Parameters of the function
-        params: Rc<[Rc<IdentStr>]>,
-        /// Body of the function
-        body: Rc<Expr>,
-    },
-
     // Plain data types
     /// Null
     #[default]
@@ -43,6 +36,17 @@ pub enum Value {
     String(DString),
     /// Map
     Map(HashMap<DString, Self>),
+
+    // Callables
+    /// A user-defined function
+    Function {
+        /// Parameters of the function
+        params: Rc<[Rc<IdentStr>]>,
+        /// Body of the function
+        body: Rc<Expr>,
+    },
+    /// An intrisic
+    Intrisic(Intrisic),
 }
 
 impl Value {

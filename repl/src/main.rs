@@ -1,6 +1,7 @@
 //! A REPL connected to a `dice` engine
 #![feature(error_reporter)]
 #![feature(iter_intersperse)]
+#![feature(box_patterns)]
 
 use std::{
     borrow::Cow,
@@ -12,13 +13,13 @@ use std::{
 use clap::{Args, Parser, ValueEnum};
 use engine::{
     pretty::{Arena, DocAllocator, Pretty},
-    Engine, ParseEvalError, Value,
+    EngineBuilder, EvalResult, ParseEvalError, Value,
 };
 use figment::{
     providers::{Env, Format, Serialized, Toml},
     Figment,
 };
-use rand::rngs::SmallRng;
+use rand::{rngs::SmallRng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -168,7 +169,10 @@ fn main() -> Result<(), Error> {
     // making the eventual command a string
     let run: Option<String> = run.map(|args| args.iter().map(|x| &**x).intersperse(" ").collect());
 
-    let mut engine = Engine::<SmallRng>::new();
+    let mut engine = EngineBuilder::<SmallRng>::new()
+        .with_prelude()
+        .rng(SmallRng::from_entropy())
+        .build();
 
     if let Some(header) = graphic.header() {
         println!("{header}")
@@ -199,10 +203,14 @@ fn main() -> Result<(), Error> {
             };
             // Eval
             let res = engine.eval_line(&line);
+            let quitting = res.as_ref().is_ok_and(|v| v.is_quitted());
             // Print
             print(res, width);
             // Loop
             rl.add_history_entry(line)?;
+            if quitting {
+                break 'repl;
+            }
         }
     }
     if let Some(bye) = graphic.bye() {
@@ -211,16 +219,27 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn print(res: Result<Value, ParseEvalError>, width: usize) {
+fn print(res: Result<EvalResult, ParseEvalError>, width: usize) {
     match res {
-        Ok(Value::Null) => (),
-        Ok(val) => {
+        Ok(EvalResult::Ok(Value::Null)) => (),
+        Ok(EvalResult::Ok(val)) => {
             // we sadly have to allocate a new arena for every value we print, as there is no way of guarantee that
             // the arena is empty after the printing
             let docs_arena = Arena::<()>::new();
             // now we render the result
             let doc = &*val.pretty(&docs_arena).append(docs_arena.hardline());
             print!("{}", doc.pretty(width))
+        }
+        Ok(EvalResult::Quitted(params)) => {
+            if !params.is_empty() {
+                let docs_arena = Arena::<()>::new();
+                let val = match Box::<[Value; 1]>::try_from(params) {
+                    Ok(box [val]) => val,
+                    Err(params) => Value::List(params.into_vec()),
+                };
+                let doc = &*val.pretty(&docs_arena).append(docs_arena.hardline());
+                print!("{}", doc.pretty(width))
+            }
         }
         Err(err) => eprintln!("{}", Report::new(err).pretty(true)),
     }

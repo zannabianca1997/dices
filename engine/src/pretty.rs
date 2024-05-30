@@ -199,6 +199,11 @@ where
                 .enclose("|", "|")
                 .append(allocator.space())
                 .append(body.pretty(allocator)),
+            Value::Intrisic(intr) => allocator
+                .text("intrisic")
+                .append(allocator.space())
+                .append(allocator.text::<&str>(intr.into()))
+                .angles(),
         }
     }
 }
