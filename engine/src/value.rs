@@ -354,3 +354,36 @@ pub fn removelow(a: Value, b: Value) -> Result<Value, EvalError> {
         }
     }
 }
+
+pub fn member_access(value: Value, member: Value) -> Result<Value, EvalError> {
+    match value {
+        value @ (Value::Null
+        | Value::Bool(_)
+        | Value::Number(_)
+        | Value::String(_)
+        | Value::Function { .. }
+        | Value::Intrisic(_)) => Err(EvalError::DoesNotSupportMembers(value.type_())),
+        Value::List(mut l) => match member.to_number() {
+            Ok(n) => {
+                if n >= 0 && n < l.len() as i64 {
+                    Ok(l.remove(n as usize))
+                } else if n < 0 && n >= -(l.len() as i64) {
+                    Ok(l.remove((l.len() as i64 - n) as usize))
+                } else {
+                    Err(EvalError::IndexOutOfRange(n, l.len()))
+                }
+            }
+            Err(m) => Err(EvalError::InvalidListIndex(m)),
+        },
+        Value::Map(mut m) => {
+            if let Value::String(s) = member {
+                match m.remove(&s) {
+                    Some(v) => Ok(v),
+                    None => Err(EvalError::MissingMapIndex(s)),
+                }
+            } else {
+                Err(EvalError::InvalidMapIndex(member.type_()))
+            }
+        }
+    }
+}

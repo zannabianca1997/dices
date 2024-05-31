@@ -152,6 +152,21 @@ where
                 .append(allocator.space())
                 .append(b.pretty(allocator).parens())
                 .group(),
+            Expr::MemberAccess { value, member } => {
+                value.pretty(allocator).parens().append(match &**member {
+                    Expr::Number(n) | Expr::Const(Value::Number(n)) => {
+                        allocator.text(".").append(n.to_string())
+                    }
+                    e @ (Expr::String(s) | Expr::Const(Value::String(s))) => allocator
+                        .text(".")
+                        .append(if let Some(ident) = IdentStr::new(&**s) {
+                            ident.pretty(allocator)
+                        } else {
+                            e.pretty(allocator)
+                        }),
+                    _ => member.pretty(allocator).brackets(),
+                })
+            }
         }
     }
 }

@@ -58,7 +58,7 @@ struct Setup {
     /// Customized prompt for the REPL
     prompt: Option<String>,
 
-    #[clap(short, long, default_value_t = 180)]
+    #[clap(short, long, default_value_t = 120)]
     /// Line width before wrapping long values
     width: usize,
 }
@@ -67,7 +67,7 @@ impl Default for Setup {
         Self {
             graphic: Default::default(),
             prompt: None,
-            width: 180,
+            width: 120,
         }
     }
 }
@@ -169,9 +169,10 @@ fn main() -> Result<(), Error> {
     // making the eventual command a string
     let run: Option<String> = run.map(|args| args.iter().map(|x| &**x).intersperse(" ").collect());
 
-    let mut engine = EngineBuilder::<SmallRng>::new()
+    let mut engine = EngineBuilder::new()
         .with_prelude()
         .rng(SmallRng::from_entropy())
+        .print(|v| print(Ok(EvalResult::Ok(v)), width))
         .build();
 
     if let Some(header) = graphic.header() {

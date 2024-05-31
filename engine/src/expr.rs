@@ -12,10 +12,10 @@ use crate::{
     identifier::IdentStr,
     namespace::{Missing, Namespace},
     value::{
-        div, join, keephigh, keeplow, mul, neg, rem, removehigh, removelow, sum, DString,
-        ToNumberError, Type, Value,
+        div, join, keephigh, keeplow, member_access, mul, neg, rem, removehigh, removelow, sum,
+        DString, ToNumberError, Type, Value,
     },
-    EvalContext,
+    EvalContext, NotAvailable, Printer,
 };
 
 /// Events that might interrupt an evaluation
@@ -52,6 +52,16 @@ pub enum EvalError {
     NaNDiceFaces(#[source] ToNumberError),
     #[error("Negative number of {0}")]
     InvalidNegative(&'static str),
+    #[error("Value of type {0} does not support member access")]
+    DoesNotSupportMembers(Type),
+    #[error("Lists must be indicized with a number")]
+    InvalidListIndex(#[source] ToNumberError),
+    #[error("Index {0} is out of range for list of lenght {1}")]
+    IndexOutOfRange(i64, usize),
+    #[error("Member {0} isn't present in the mapping")]
+    MissingMapIndex(Rc<str>),
+    #[error("Impossible to index a map with a value of type {0}")]
+    InvalidMapIndex(Type),
 }
 
 #[derive(Debug, Clone, Error)]
@@ -105,6 +115,12 @@ pub enum Expr {
         params: Vec<Expr>,
     },
 
+    /// Access of a member
+    MemberAccess {
+        value: Box<Expr>,
+        member: Box<Expr>,
+    },
+
     /// Setting a value
     Set {
         receiver: Receiver,
@@ -145,9 +161,9 @@ pub enum Expr {
     RemoveLow(Box<Expr>, Box<Expr>),
 }
 impl Expr {
-    pub(crate) fn eval<R: Rng>(
+    pub(crate) fn eval<R: Rng, P: Printer>(
         &self,
-        context: &mut EvalContext<'_, '_, R>,
+        context: &mut EvalContext<'_, '_, R, P>,
     ) -> Result<Value, EvalInterrupt> {
         let fail_eval = {
             let const_context = context.is_const();
@@ -230,9 +246,14 @@ impl Expr {
                         but only the one captured at the definition */
                         let mut namespace = Namespace::root_with_vars(params);
                         let mut context = match context {
-                            EvalContext::Engine { namespace: _, rng } => EvalContext::Engine {
+                            EvalContext::Engine {
+                                namespace: _,
+                                rng,
+                                callbacks,
+                            } => EvalContext::Engine {
                                 namespace: &mut namespace,
                                 rng: *rng,
+                                callbacks: *callbacks,
                             },
                             EvalContext::Const { namespace: _ } => EvalContext::Const {
                                 namespace: &mut namespace,
@@ -254,9 +275,14 @@ impl Expr {
                         That would impede the static examination of the variable access, and context capture */
                         let mut namespace = Namespace::root();
                         let mut context = match context {
-                            EvalContext::Engine { namespace: _, rng } => EvalContext::Engine {
+                            EvalContext::Engine {
+                                namespace: _,
+                                rng,
+                                callbacks,
+                            } => EvalContext::Engine {
                                 namespace: &mut namespace,
                                 rng: *rng,
+                                callbacks: *callbacks,
                             },
                             EvalContext::Const { namespace: _ } => EvalContext::Const {
                                 namespace: &mut namespace,
@@ -279,11 +305,16 @@ impl Expr {
                 // scoping
                 let mut child_namespace;
                 let mut context = match context {
-                    EvalContext::Engine { namespace, rng } => {
+                    EvalContext::Engine {
+                        namespace,
+                        rng,
+                        callbacks,
+                    } => {
                         child_namespace = namespace.child();
                         EvalContext::Engine {
                             namespace: &mut child_namespace,
                             rng: *rng,
+                            callbacks: *callbacks,
                         }
                     }
                     EvalContext::Const { namespace } => {
@@ -375,6 +406,11 @@ impl Expr {
                 let b = b.eval(context)?;
                 removelow(a, b)?
             }
+            Expr::MemberAccess { value, member } => {
+                let value = value.eval(context)?;
+                let member = member.eval(context)?;
+                member_access(value, member)?
+            }
         })
     }
 
@@ -455,6 +491,7 @@ impl Expr {
             Expr::Rep(r, n) => VarsDelta::combine(n.vars(), r.vars()),
 
             Expr::Dice(f) => f.vars(),
+            Expr::MemberAccess { value, member } => VarsDelta::combine(value.vars(), member.vars()),
         }
     }
 
@@ -491,7 +528,11 @@ impl Expr {
             | Expr::KeepHigh(box a, box b)
             | Expr::KeepLow(box a, box b)
             | Expr::RemoveHigh(box a, box b)
-            | Expr::RemoveLow(box a, box b) => branches.extend([a, b]),
+            | Expr::RemoveLow(box a, box b)
+            | Expr::MemberAccess {
+                value: box a,
+                member: box b,
+            } => branches.extend([a, b]),
         }
         // recursively fold the branches
         let mut branches_folded = true;
@@ -567,7 +608,7 @@ impl Expr {
         }
         // Evaluating in a const context.
         let mut namespace = Namespace::root();
-        match self.eval::<FakeRng>(&mut EvalContext::Const {
+        match self.eval::<FakeRng, NotAvailable>(&mut EvalContext::Const {
             namespace: &mut namespace,
         }) {
             Ok(v) if namespace.is_empty() => {

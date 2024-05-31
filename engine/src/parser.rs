@@ -107,6 +107,16 @@ peg::parser! {
             f:@ _ "(" _ p:(expr() ** (_ "," _)) _ ")" {
                 Expr::Call { fun: Box::new(f), params: p }
             }
+            value:@ _ "[" _ member:expr() _ "]" {
+                Expr::MemberAccess { value: Box::new(value), member: Box::new(member) }
+            }
+            value:@ _ "." _ member:(
+                i:ident()      { String((&**i).into()) }
+                / s: str_lit() { String(s.into()) }
+                / n: number()  { Number(n) }
+            ) {
+                Expr::MemberAccess { value: Box::new(value), member: Box::new(member) }
+            }
             --
             "null"      { Null }
             "true"      { Bool(true) }
