@@ -368,7 +368,7 @@ pub fn member_access(value: Value, member: Value) -> Result<Value, EvalError> {
                 if n >= 0 && n < l.len() as i64 {
                     Ok(l.remove(n as usize))
                 } else if n < 0 && n >= -(l.len() as i64) {
-                    Ok(l.remove((l.len() as i64 - n) as usize))
+                    Ok(l.remove((l.len() as i64 + n) as usize))
                 } else {
                     Err(EvalError::IndexOutOfRange(n, l.len()))
                 }
