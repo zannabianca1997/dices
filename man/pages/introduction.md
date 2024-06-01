@@ -9,14 +9,14 @@ You can use this program to throw dice, and much more.
 ## TL;DR Examples
 They say an image is worth a thousand words, but this is a text interface, so let's get you started with some examples.
 As the most basic usage, `dices` can, you guess it, throw dices:
-```
+```dices
 >> d20
 15
 >> d6
 3
 ```
 If you need multiple dice, you can request them:
-```
+```dices
 >> 5d12       // homogeneus throws
 [12, 3, 4, 12, 9]
 >> d12 ~ d6   // different throws
@@ -25,20 +25,20 @@ If you need multiple dice, you can request them:
 [4, 3, 5, 7, 3, 4]
 ```
 There are some basic filters, like keep high values, keep low, etc. (see `help("operators/filters")`)
-```
+```dices
 >> 2d20kh1 + 3  // throw 2 d20, keep the highest result, add 3
 23
 ```
 
 Integer math is implemented:
-```
+```dices
 >> 3+2
 5
 >> d20 - 10
 -5
 ```
 and when used within a sum multiple throws are summed together:
-```
+```dices
 >> 2d6+d4
 8
 >> +5d20
@@ -47,14 +47,14 @@ and when used within a sum multiple throws are summed together:
 See `help("operators/math")` for more details.
 
 You can store values for later:
-```
+```dices
 >> let str = 5 // creating variable str
 5
 >> 4d6 + str   // using it later
 22
 ```
 And even store throws:
-```
+```dices
 >> let axe_damage = || 4d6 + 5
 || ((d(6)) ^ (4)) + (5)
 >> axe_damage()
@@ -64,7 +64,7 @@ And even store throws:
 ```
 Those parentheses remind you of functions? They should, because they are full-blown *closures*, that you can leverage for parametrized throws (see `help("closures")`).
 For example:
-```
+```dices
 >> let throw_with_advantage = |modifier| 2d20kh1 + modifier
 |modifier| (((d(20)) ^ (2)) kh (1)) + (modifier)
 >> throw_with_advantage(0)

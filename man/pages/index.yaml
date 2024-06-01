@@ -1,6 +1,7 @@
 items: 
   - introduction.md
   - !Index 
-  - intrisics
+  - types.md
   - operators
+  - intrisics
   - ../../LICENSE
