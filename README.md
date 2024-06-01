@@ -1,8 +1,24 @@
-# dices 0.1.0
-This is a REPL able to simulate dice throwing, specified via a mathematical notation. Throw repetition, concatenation, summation and subset selection are available via mathematical operators.
+# `dices` 0.2.0
+This is a program able to simulate dice throwing. It supports traditional dice notation, but also mathematical operations, variables and closures. See the internal [help page](https://github.com/zannabianca1997/dices/blob/main/man/pages/introduction.md) to have an idea of the language.
 
-## Compilation
-This is a [rust](https://www.rust-lang.org/it) package. Simply run `cargo run --release` in the main directory.
+## Running
+> [!NOTE]
+> If you know your way around git and the Rust build system, just clone the repository and run `cargo run --bin repl`.
 
-## Usage
-The program is a REPL. All commands are documented in the internal help. If you want to gauge the capabilities of the program before installing, check it out online for the main [`throw`](https://github.com/zannabianca1997/dices/blob/main/src/help/throw.md) command.
+To compile and run this program, you must first ensure that both [`git`](https://git-scm.com/) and [`cargo`](https://doc.rust-lang.org/cargo/) are present on your system. Then from a console clone the repository and run the project:
+```bash
+$ git clone https://github.com/zannabianca1997/dices.git
+$ cd dices
+$ cargo run --bin repl
+```
+You should see a lot of text, and then a prompt similar to `>>`. Type `quit()` or press Ctrl + C to exit.
+
+## Where to go from there
+`dices` has an internal manual. Type `help()` in the *REPL* to get started. The manual is not specifically targeted neither to programmers nor tabletop gamers, but to the kind of people that use a computer program to play *DnD*. I tried to make it accessible to people that only want to throw dice, but some arguments might need more programming knowledge. 
+
+## License
+This software is distributed under the **MIT** license, if you need to know. Use it at will.
+
+## Contacts
+This program was made by *zannabianca1997*, trying to resist the urge to buy a dice set.
+If you found any problem with the program itself, or want to contribute, you can send a PR, or contact me at [zannabianca199712@gmail.com](mailto:zannabianca199712@gmail.com).

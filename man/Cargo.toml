@@ -1,0 +1,16 @@
+[package]
+name = "man"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+phf = "0.11.2"
+
+[build-dependencies]
+anyhow = "1.0.86"
+data-encoding = "2.6.0"
+lazy-regex = "3.1.0"
+phf_codegen = "0.11.2"
+quote = "1.0.36"
+serde = { version = "1.0.203", features = ["derive"] }
+serde_yml = "0.0.10"
