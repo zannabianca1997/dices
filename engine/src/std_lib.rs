@@ -5,17 +5,17 @@ use std::rc::Rc;
 use crate::{
     identifier::{self, IdentStr},
     intrisics::Intrisic,
-    Printer, Value,
+    Callbacks, Value,
 };
 
-pub fn std_lib<RNG, P: Printer>() -> Value {
+pub fn std_lib<RNG, C: Callbacks>() -> Value {
     Value::Map(
         [
-            ("intrisics".into(), Intrisic::lib::<RNG, P>()),
+            ("intrisics".into(), Intrisic::lib::<RNG, C>()),
             (
                 "prelude".into(),
                 Value::Map(
-                    prelude::<RNG, P>()
+                    prelude::<RNG, C>()
                         .into_iter()
                         .map(|(k, v)| (identifier::from_rc(k), v))
                         .collect(),
@@ -26,20 +26,22 @@ pub fn std_lib<RNG, P: Printer>() -> Value {
     )
 }
 
-pub fn prelude<RNG, P: Printer>() -> impl IntoIterator<Item = (Rc<IdentStr>, Value)> {
+pub fn prelude<RNG, C: Callbacks>() -> impl IntoIterator<Item = (Rc<IdentStr>, Value)> {
     let mut prelude = vec![];
     prelude.push((
         IdentStr::new("quit").unwrap().into(),
         Value::Intrisic(Intrisic::Quit),
     ));
-    prelude.push((
-        IdentStr::new("help").unwrap().into(),
-        Value::Intrisic(Intrisic::Help),
-    ));
-    if Intrisic::Print.available::<RNG, P>() {
+    if Intrisic::Print.available::<RNG, C>() {
         prelude.push((
             IdentStr::new("print").unwrap().into(),
             Value::Intrisic(Intrisic::Print),
+        ))
+    }
+    if Intrisic::Help.available::<RNG, C>() {
+        prelude.push((
+            IdentStr::new("help").unwrap().into(),
+            Value::Intrisic(Intrisic::Help),
         ))
     }
     prelude

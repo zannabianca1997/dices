@@ -15,7 +15,7 @@ use crate::{
         div, join, keephigh, keeplow, member_access, mul, neg, rem, removehigh, removelow, sum,
         DString, ToNumberError, Type, Value,
     },
-    EvalContext, NotAvailable, Printer,
+    Callbacks, EvalContext,
 };
 
 /// Events that might interrupt an evaluation
@@ -161,9 +161,9 @@ pub enum Expr {
     RemoveLow(Box<Expr>, Box<Expr>),
 }
 impl Expr {
-    pub(crate) fn eval<R: Rng, P: Printer>(
+    pub(crate) fn eval<R: Rng, C: Callbacks>(
         &self,
-        context: &mut EvalContext<'_, '_, R, P>,
+        context: &mut EvalContext<'_, '_, R, C>,
     ) -> Result<Value, EvalInterrupt> {
         let fail_eval = {
             let const_context = context.is_const();
@@ -608,7 +608,7 @@ impl Expr {
         }
         // Evaluating in a const context.
         let mut namespace = Namespace::root();
-        match self.eval::<FakeRng, NotAvailable>(&mut EvalContext::Const {
+        match self.eval::<FakeRng, ConstCallbacks>(&mut EvalContext::Const {
             namespace: &mut namespace,
         }) {
             Ok(v) if namespace.is_empty() => {
@@ -651,6 +651,22 @@ impl RngCore for FakeRng {
     }
 
     fn try_fill_bytes(&mut self, _dest: &mut [u8]) -> Result<(), rand::Error> {
+        self.0
+    }
+}
+
+/// A dummy callback handler
+struct ConstCallbacks(!);
+impl Callbacks for ConstCallbacks {
+    const PRINT_AVAIL: bool = false;
+
+    fn print(&mut self, _value: Value) {
+        self.0
+    }
+
+    const HELP_AVAIL: bool = false;
+
+    fn help(&mut self, _text: &str) {
         self.0
     }
 }

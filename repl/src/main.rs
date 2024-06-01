@@ -13,7 +13,7 @@ use std::{
 use clap::{Args, Parser, ValueEnum};
 use engine::{
     pretty::{Arena, DocAllocator, Pretty},
-    EngineBuilder, EvalResult, ParseEvalError, Value,
+    Callbacks, EngineBuilder, EvalResult, ParseEvalError, Value,
 };
 use figment::{
     providers::{Env, Format, Serialized, Toml},
@@ -21,6 +21,7 @@ use figment::{
 };
 use rand::{rngs::SmallRng, SeedableRng};
 use serde::{Deserialize, Serialize};
+use termimad::MadSkin;
 use thiserror::Error;
 
 #[derive(Debug, Parser)]
@@ -50,9 +51,9 @@ struct CLI {
 
 #[derive(Debug, Serialize, Deserialize, Args)]
 struct Setup {
-    #[clap(short, long, default_value = "auto")]
+    #[clap(short, long)]
     /// Graphic level of the repl
-    graphic: Graphic,
+    graphic: Option<Graphic>,
 
     #[clap(short, long, short)]
     /// Customized prompt for the REPL
@@ -72,7 +73,7 @@ impl Default for Setup {
     }
 }
 
-#[derive(Debug, Clone, Copy, ValueEnum, Deserialize, Serialize, Default)]
+#[derive(Debug, Clone, Copy, ValueEnum, Deserialize, Serialize)]
 /// Graphic level of the repl
 enum Graphic {
     /// No graphic at all
@@ -81,9 +82,6 @@ enum Graphic {
     Simple,
     /// Emoji Galore
     Nice,
-    /// Select None if not a tty or not interactive, else Nice
-    #[default]
-    Auto,
 }
 impl Graphic {
     fn header(&self) -> Option<&'static str> {
@@ -95,7 +93,6 @@ impl Graphic {
                 env!("CARGO_PKG_VERSION"),
                 " ~ 🐉\n    by zannabianca1997🐺\n"
             )),
-            Graphic::Auto => unreachable!(),
         }
     }
     fn prompt(&self) -> &'static str {
@@ -103,7 +100,6 @@ impl Graphic {
             Graphic::None => "",
             Graphic::Simple => ">> ",
             Graphic::Nice => "🎲>> ",
-            Graphic::Auto => unreachable!(),
         }
     }
     fn bye(&self) -> Option<&'static str> {
@@ -111,7 +107,6 @@ impl Graphic {
             Graphic::None => None,
             Graphic::Simple => Some("Bye!"),
             Graphic::Nice => Some("\n⛓️ ~ Thank you for playing! ~ 🐉"),
-            Graphic::Auto => unreachable!(),
         }
     }
 
@@ -157,10 +152,10 @@ fn main() -> Result<(), Error> {
     };
     // choosing defaults
     let interactive = interactive || run.is_none(); // if no command is given, force interaction
-    let graphic = if let Graphic::Auto = graphic {
-        Graphic::detect(interactive) // choosing a sensible graphic
-    } else {
-        graphic
+    let graphic = graphic.unwrap_or_else(|| Graphic::detect(interactive));
+    let skin = match graphic {
+        Graphic::None | Graphic::Simple => MadSkin::no_style(),
+        Graphic::Nice => MadSkin::default(),
     };
     // choosing the default prompt if no prompt was given
     let prompt = prompt
@@ -170,9 +165,11 @@ fn main() -> Result<(), Error> {
     let run: Option<String> = run.map(|args| args.iter().map(|x| &**x).intersperse(" ").collect());
 
     let mut engine = EngineBuilder::new()
-        .with_prelude()
         .rng(SmallRng::from_entropy())
-        .print(|v| print(Ok(EvalResult::Ok(v)), width))
+        .callbacks(REPLCallbacks {
+            width: &width,
+            skin: &skin,
+        })
         .build();
 
     if let Some(header) = graphic.header() {
@@ -218,6 +215,25 @@ fn main() -> Result<(), Error> {
         println!("{bye}")
     }
     Ok(())
+}
+
+struct REPLCallbacks<'s> {
+    width: &'s usize,
+    skin: &'s termimad::MadSkin,
+}
+impl Callbacks for REPLCallbacks<'_> {
+    const PRINT_AVAIL: bool = true;
+
+    fn print(&mut self, value: Value) {
+        print(Ok(EvalResult::Ok(value)), *self.width)
+    }
+
+    const HELP_AVAIL: bool = true;
+
+    fn help(&mut self, text: &str) {
+        self.skin.print_text(text);
+        println!();
+    }
 }
 
 fn print(res: Result<EvalResult, ParseEvalError>, width: usize) {
