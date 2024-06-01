@@ -172,7 +172,7 @@ fn main() -> Result<(), Error> {
         })
         .build();
 
-    if let Some(header) = graphic.header() {
+    if let Some(header) = interactive.then(|| graphic.header()).flatten() {
         println!("{header}")
     }
     if let Some(run) = run.as_ref() {
@@ -211,7 +211,7 @@ fn main() -> Result<(), Error> {
             }
         }
     }
-    if let Some(bye) = graphic.bye() {
+    if let Some(bye) = interactive.then(|| graphic.bye()).flatten() {
         println!("{bye}")
     }
     Ok(())
