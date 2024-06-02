@@ -5,7 +5,7 @@ use std::{
     fmt::{Display, Write as _},
 };
 
-use lazy_regex::{regex, regex_replace_all, Lazy, Regex};
+use lazy_regex::{regex, Lazy, Regex};
 
 static INDEX: phf::Map<&'static str, Page> = include!(concat!(env!("OUT_DIR"), "/index.rs"));
 
