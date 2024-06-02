@@ -14,7 +14,7 @@ use std::{
 
 use clap::{Args, Parser, ValueEnum};
 use engine::{
-    pretty::{Arena, DocAllocator, Pretty},
+    pretty::{Arena, Pretty},
     Callbacks, Engine, EngineBuilder, EvalResult, ParseEvalError, Value,
 };
 use figment::{
@@ -188,8 +188,8 @@ fn main() -> Result<(), Error> {
         let res = engine.eval_line(&run);
         // Print
         match print(res, width, &skin) {
-            Ok(ok) => print!("{ok}"),
-            Err(err) => eprint!("{err}"),
+            Ok(ok) => println!("{ok}"),
+            Err(err) => eprintln!("{err}"),
         };
     }
     if interactive {
@@ -211,8 +211,8 @@ fn main() -> Result<(), Error> {
             let quitting = res.as_ref().is_ok_and(|v| v.is_quitted());
             // Print
             match print(res, width, &skin) {
-                Ok(ok) => print!("{ok}"),
-                Err(err) => eprint!("{err}"),
+                Ok(ok) => println!("{ok}"),
+                Err(err) => eprintln!("{err}"),
             };
             // Loop
             rl.add_history_entry(line)?;
@@ -265,7 +265,7 @@ fn print(
             // the arena is empty after the printing
             let docs_arena = Arena::<()>::new();
             // now we render the result
-            let doc = &*val.pretty(&docs_arena).append(docs_arena.hardline());
+            let doc = &*val.pretty(&docs_arena);
             write!(&mut buf, "{}", doc.pretty(width)).unwrap();
             Ok(buf)
         }
@@ -276,13 +276,13 @@ fn print(
                     Ok(box [val]) => val,
                     Err(params) => Value::List(params.into_vec()),
                 };
-                let doc = &*val.pretty(&docs_arena).append(docs_arena.hardline());
+                let doc = &*val.pretty(&docs_arena);
                 write!(&mut buf, "{}", doc.pretty(width)).unwrap();
             }
             Ok(buf)
         }
         Err(err) => {
-            writeln!(&mut buf, "{}", Report::new(err).pretty(true)).unwrap();
+            write!(&mut buf, "{}", Report::new(err).pretty(true)).unwrap();
             Err(buf)
         }
     }
