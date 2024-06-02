@@ -1,6 +1,5 @@
 //! Intrisics of the language
 
-use man::man;
 use rand::Rng;
 use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 
@@ -53,11 +52,12 @@ impl Intrisic {
         match self {
             Intrisic::Quit => true,
             Intrisic::Print => C::PRINT_AVAIL,
-            Intrisic::Help => C::HELP_AVAIL,
+            Intrisic::Help => C::HELP_AVAIL && cfg!(feature = "man"),
         }
     }
 }
 
+#[cfg(feature = "man")]
 fn help<R, C: Callbacks>(
     context: &mut EvalContext<R, C>,
     params: Vec<Value>,
@@ -71,14 +71,22 @@ fn help<R, C: Callbacks>(
                 // help do not throw any errors, at most it print the general help page
                 _ => "intrisics/help",
             };
-            let page = man(topic)
-                .unwrap_or_else(|| man("index").expect("The index should always be generated"));
+            let page = man::man(topic).unwrap_or_else(|| {
+                man::man("index").expect("The index should always be generated")
+            });
 
             callbacks.help(&page.content);
             Ok(Value::Null)
         }
         EvalContext::Const { .. } => Err(EvalInterrupt::CannotEvalInConst("help")),
     }
+}
+#[cfg(not(feature = "man"))]
+fn help<R, C: Callbacks>(
+    _context: &mut EvalContext<R, C>,
+    _params: Vec<Value>,
+) -> Result<Value, EvalInterrupt> {
+    unreachable!("help() should be always unavailable if feature `man` is not specified")
 }
 
 fn quit<R, C>(context: &mut EvalContext<R, C>, params: Vec<Value>) -> Result<Value, EvalInterrupt> {

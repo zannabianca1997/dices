@@ -19,4 +19,5 @@ rand = "0.8.5"
 serde = { version = "1.0.202", features = ["derive", "rc"], optional = true }
 strum = { version = "0.26.2", features = ["derive"] }
 thiserror = "1.0.61"
-man = { path = "../man" }
+man = { path = "../man", optional = true }
+tracing = "0.1.40"
