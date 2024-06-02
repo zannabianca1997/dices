@@ -838,6 +838,7 @@ dependencies = [
  "clap",
  "engine",
  "figment",
+ "man",
  "rand",
  "rustyline",
  "serde",

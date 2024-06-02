@@ -6,19 +6,22 @@
 use std::{
     borrow::Cow,
     error::Report,
+    fmt::Write as _,
     io::{stdout, IsTerminal},
+    mem,
     path::PathBuf,
 };
 
 use clap::{Args, Parser, ValueEnum};
 use engine::{
     pretty::{Arena, DocAllocator, Pretty},
-    Callbacks, EngineBuilder, EvalResult, ParseEvalError, Value,
+    Callbacks, Engine, EngineBuilder, EvalResult, ParseEvalError, Value,
 };
 use figment::{
     providers::{Env, Format, Serialized, Toml},
     Figment,
 };
+use man::DocRunner;
 use rand::{rngs::SmallRng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use termimad::MadSkin;
@@ -167,6 +170,7 @@ fn main() -> Result<(), Error> {
     let mut engine = EngineBuilder::new()
         .rng(SmallRng::from_entropy())
         .callbacks(REPLCallbacks {
+            prompt: &prompt,
             width: &width,
             skin: &skin,
         })
@@ -183,7 +187,10 @@ fn main() -> Result<(), Error> {
         // Eval
         let res = engine.eval_line(&run);
         // Print
-        print(res, width);
+        match print(res, width, &skin) {
+            Ok(ok) => print!("{ok}"),
+            Err(err) => eprint!("{err}"),
+        };
     }
     if interactive {
         let mut rl = rustyline::DefaultEditor::new()?;
@@ -203,7 +210,10 @@ fn main() -> Result<(), Error> {
             let res = engine.eval_line(&line);
             let quitting = res.as_ref().is_ok_and(|v| v.is_quitted());
             // Print
-            print(res, width);
+            match print(res, width, &skin) {
+                Ok(ok) => print!("{ok}"),
+                Err(err) => eprint!("{err}"),
+            };
             // Loop
             rl.add_history_entry(line)?;
             if quitting {
@@ -217,7 +227,9 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
+#[derive(Debug, Clone, Copy)]
 struct REPLCallbacks<'s> {
+    prompt: &'s str,
     width: &'s usize,
     skin: &'s termimad::MadSkin,
 }
@@ -225,27 +237,37 @@ impl Callbacks for REPLCallbacks<'_> {
     const PRINT_AVAIL: bool = true;
 
     fn print(&mut self, value: Value) {
-        print(Ok(EvalResult::Ok(value)), *self.width)
+        match print(Ok(EvalResult::Ok(value)), *self.width, self.skin) {
+            Ok(ok) => print!("{ok}"),
+            Err(err) => eprint!("{err}"),
+        }
     }
 
     const HELP_AVAIL: bool = true;
 
-    fn help(&mut self, text: &str) {
-        self.skin.print_text(text);
+    fn help(&mut self, mut page: man::Page) {
+        page.run_docs(|| REPLDocRunner::new(self.prompt, self.width, self.skin));
+        self.skin.print_text(&page.content);
         println!();
     }
 }
 
-fn print(res: Result<EvalResult, ParseEvalError>, width: usize) {
+fn print(
+    res: Result<EvalResult, ParseEvalError>,
+    width: usize,
+    _skin: &MadSkin,
+) -> Result<String, String> {
+    let mut buf = String::new();
     match res {
-        Ok(EvalResult::Ok(Value::Null)) => (),
+        Ok(EvalResult::Ok(Value::Null)) => Ok(buf),
         Ok(EvalResult::Ok(val)) => {
             // we sadly have to allocate a new arena for every value we print, as there is no way of guarantee that
             // the arena is empty after the printing
             let docs_arena = Arena::<()>::new();
             // now we render the result
             let doc = &*val.pretty(&docs_arena).append(docs_arena.hardline());
-            print!("{}", doc.pretty(width))
+            write!(&mut buf, "{}", doc.pretty(width)).unwrap();
+            Ok(buf)
         }
         Ok(EvalResult::Quitted(params)) => {
             if !params.is_empty() {
@@ -255,9 +277,74 @@ fn print(res: Result<EvalResult, ParseEvalError>, width: usize) {
                     Err(params) => Value::List(params.into_vec()),
                 };
                 let doc = &*val.pretty(&docs_arena).append(docs_arena.hardline());
-                print!("{}", doc.pretty(width))
+                write!(&mut buf, "{}", doc.pretty(width)).unwrap();
             }
+            Ok(buf)
         }
-        Err(err) => eprintln!("{}", Report::new(err).pretty(true)),
+        Err(err) => {
+            writeln!(&mut buf, "{}", Report::new(err).pretty(true)).unwrap();
+            Err(buf)
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct REPLDocRunner<'s> {
+    prompt: &'s str,
+    width: &'s usize,
+    skin: &'s MadSkin,
+    engine: Engine<SmallRng, RunnerCallbacks<'s>>,
+}
+impl<'s> REPLDocRunner<'s> {
+    fn new(prompt: &'s str, width: &'s usize, skin: &'s MadSkin) -> Self {
+        Self {
+            prompt,
+            width,
+            skin,
+            engine: EngineBuilder::new()
+                .rng(SmallRng::seed_from_u64(42)) // know seed so the doc are constant
+                .callbacks(RunnerCallbacks {
+                    width,
+                    skin,
+                    printed: String::new(),
+                })
+                .build(),
+        }
+    }
+}
+impl DocRunner for REPLDocRunner<'_> {
+    fn prompt(&self) -> impl std::fmt::Display {
+        self.prompt
+    }
+
+    fn exec(&mut self, cmd: &str) -> impl std::fmt::Display {
+        let res = self.engine.eval_line(cmd);
+        let (Ok(res) | Err(res)) = print(res, *self.width, self.skin);
+        let mut printed = mem::take(&mut self.engine.callbacks_mut().printed);
+        printed.push_str(&res);
+        printed
+    }
+}
+
+#[derive(Debug, Clone)]
+struct RunnerCallbacks<'s> {
+    width: &'s usize,
+    skin: &'s termimad::MadSkin,
+
+    printed: String,
+}
+impl Callbacks for RunnerCallbacks<'_> {
+    const PRINT_AVAIL: bool = true;
+
+    fn print(&mut self, value: Value) {
+        let (Ok(printed) | Err(printed)) =
+            print(Ok(EvalResult::Ok(value)), *self.width, &self.skin);
+        self.printed.push_str(&printed)
+    }
+
+    const HELP_AVAIL: bool = false;
+
+    fn help(&mut self, _page: man::Page) {
+        panic!()
     }
 }

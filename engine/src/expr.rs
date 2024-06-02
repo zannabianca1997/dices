@@ -664,9 +664,11 @@ impl Callbacks for ConstCallbacks {
         self.0
     }
 
+    #[cfg(feature = "man")]
     const HELP_AVAIL: bool = false;
 
-    fn help(&mut self, _text: &str) {
+    #[cfg(feature = "man")]
+    fn help(&mut self, _text: man::Page) {
         self.0
     }
 }

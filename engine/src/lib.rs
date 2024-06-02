@@ -12,8 +12,6 @@
 
 use std::{collections::HashMap, rc::Rc};
 
-use either::Either;
-
 pub mod identifier;
 
 pub mod namespace;
@@ -141,13 +139,6 @@ impl<RNG, C> EngineBuilder<RNG, C> {
         EngineBuilder { rng, ..self }
     }
     pub fn callbacks<NewC: Callbacks>(self, callbacks: NewC) -> EngineBuilder<RNG, NewC> {
-        if cfg!(not(feature = "man")) && NewC::HELP_AVAIL {
-            /*
-                user is activating help, but the manual is not compiled!
-                this is not an error, but might confuse the user as he provides
-                an `help` callback, and see `null` in the REPL.
-            */
-        }
         EngineBuilder { callbacks, ..self }
     }
 
@@ -206,22 +197,31 @@ impl<RNG: Rng, C: Callbacks> Engine<RNG, C> {
     #[cfg(feature = "parse")]
     /// Evaluate a REPL line, discarding all values except the last
     pub fn eval_line(&mut self, line: &str) -> Result<EvalResult, ParseEvalError> {
-        let exprs = parse_exprs(line).map_err(Either::Left)?;
+        use either::Either::*;
+        let exprs = parse_exprs(line).map_err(Left)?;
         let Some((last, init)) = exprs.split_last() else {
             return Ok(EvalResult::Ok(Value::Null));
         };
         for expr in init {
-            if let r @ EvalResult::Quitted(_) = self.eval(expr).map_err(Either::Right)? {
+            if let r @ EvalResult::Quitted(_) = self.eval(expr).map_err(Right)? {
                 // fast return if quitted
                 return Ok(r);
             };
         }
-        self.eval(last).map_err(Either::Right)
+        self.eval(last).map_err(Right)
+    }
+
+    pub fn callbacks(&self) -> &C {
+        &self.callbacks
+    }
+
+    pub fn callbacks_mut(&mut self) -> &mut C {
+        &mut self.callbacks
     }
 }
 
 #[cfg(feature = "parse")]
-pub type ParseEvalError = Either<peg::error::ParseError<peg::str::LineCol>, EvalError>;
+pub type ParseEvalError = ::either::Either<peg::error::ParseError<peg::str::LineCol>, EvalError>;
 
 #[derive(Debug, Clone)]
 /// Possible results of an evaluation
@@ -246,6 +246,9 @@ impl EvalResult {
 pub trait Callbacks {
     const PRINT_AVAIL: bool;
     fn print(&mut self, value: Value);
+
+    #[cfg(feature = "man")]
     const HELP_AVAIL: bool;
-    fn help(&mut self, text: &str);
+    #[cfg(feature = "man")]
+    fn help(&mut self, text: man::Page);
 }
