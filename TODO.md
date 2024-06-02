@@ -2,7 +2,7 @@
 - [ ] Loading files from the REPL
 - [ ] Load files from the CLI
 - [ ] Remote server and web interface
-- [ ] Manual examples are rendered by the current engine
+- [x] Manual examples are rendered by the current engine
 - [ ] Seeding the RNG
 
 # Todo
@@ -16,4 +16,4 @@
 - [ ] Scopes
 
 # Bugs
-- [ ] Manual index pages does not handle twice nested lists
+- [x] Manual index pages does not handle twice nested lists
