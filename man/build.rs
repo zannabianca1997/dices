@@ -204,7 +204,7 @@ fn make_index(title: &str, items: &[ManualItem]) -> String {
         })
     } {
         for _ in 0..indent {
-            buf.push_str("  ")
+            buf.push_str(" ")
         }
         buf.push_str("* ");
         match page {
