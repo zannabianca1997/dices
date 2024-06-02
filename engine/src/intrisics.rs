@@ -52,7 +52,10 @@ impl Intrisic {
         match self {
             Intrisic::Quit => true,
             Intrisic::Print => C::PRINT_AVAIL,
-            Intrisic::Help => C::HELP_AVAIL && cfg!(feature = "man"),
+            #[cfg(feature = "man")]
+            Intrisic::Help => C::HELP_AVAIL,
+            #[cfg(not(feature = "man"))]
+            Intrisic::Help => false,
         }
     }
 }
@@ -75,7 +78,7 @@ fn help<R, C: Callbacks>(
                 man::man("index").expect("The index should always be generated")
             });
 
-            callbacks.help(&page.content);
+            callbacks.help(page);
             Ok(Value::Null)
         }
         EvalContext::Const { .. } => Err(EvalInterrupt::CannotEvalInConst("help")),

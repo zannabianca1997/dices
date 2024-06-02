@@ -46,7 +46,7 @@ impl Manual {
                     &quote! {
                         Page {
                             title: #title,
-                            content: #content
+                            content: Cow::Borrowed(#content)
                         }
                     }
                     .to_string(),
@@ -176,7 +176,7 @@ impl Nested {
             &quote! {
                 Page {
                     title: #title,
-                    content: #content
+                    content: Cow::Borrowed(#content)
                 }
             }
             .to_string(),
@@ -312,7 +312,7 @@ impl Page {
             &quote! {
                 Page {
                     title: #title,
-                    content: #content
+                    content: Cow::Borrowed(#content)
                 }
             }
             .to_string(),
