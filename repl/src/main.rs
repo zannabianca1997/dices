@@ -246,7 +246,11 @@ impl Callbacks for REPLCallbacks<'_> {
     const HELP_AVAIL: bool = true;
 
     fn help(&mut self, mut page: man::Page) {
+        // change links to other manual page to code examples
+        page.fix_man_links(|_, page| format!("`help(\"{page}\")`"));
+        // run code examples with the same REPL setup
         page.run_docs(|| REPLDocRunner::new(self.prompt, self.width, self.skin));
+        // print the result to the screen
         self.skin.print_text(&page.content);
         println!();
     }

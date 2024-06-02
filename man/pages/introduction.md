@@ -24,7 +24,7 @@ If you need multiple dice, you can request them:
 >> 4d12 ~ 2d6 // multiple sets of different dices
 [4, 3, 5, 7, 3, 4]
 ```
-There are some basic filters, like keep high values, keep low, etc. (see `help("operators/filters")`)
+There are some basic filters, like keep high values, keep low, etc. (see [filters](man://operators/filters))
 ```dices
 >> 2d20kh1 + 3  // throw 2 d20, keep the highest result, add 3
 23
@@ -44,7 +44,7 @@ and when used within a sum multiple throws are summed together:
 >> +5d20
 47
 ```
-See `help("operators/math")` for more details.
+See [math](man://operators/math) for more details.
 
 You can store values for later:
 ```dices
@@ -62,7 +62,7 @@ And even store throws:
 >> axe_damage()
 19
 ```
-Those parentheses remind you of functions? They should, because they are full-blown *closures*, that you can leverage for parametrized throws (see `help("closures")`).
+Those parentheses remind you of functions? They should, because they are full-blown *closures*, that you can leverage for parametrized throws (see [closures](man://closures)).
 For example:
 ```dices
 >> let throw_with_advantage = |modifier| 2d20kh1 + modifier
@@ -74,10 +74,10 @@ For example:
 ```
 
 ## Where to go from here
-You can see the whole manual using `help("index")`. The manual is not specifically targeted neither to programmers nor tabletop gamers, but to the kind of people that use a computer program to play *DnD*. I tried to make it accessible to people that only want to throw dice, but some arguments need more programming knowledge. 
+You can see the whole manual using [index](man://index). The manual is not specifically targeted neither to programmers nor tabletop gamers, but to the kind of people that use a computer program to play *DnD*. I tried to make it accessible to people that only want to throw dice, but some arguments need more programming knowledge. 
 
 ## License
-This software is distributed under the **MIT** license, if you need to know (see `help("LICENSE")`). Use it at will.
+This software is distributed under the **MIT** license, if you need to know (see [LICENSE](man://LICENSE)). Use it at will.
 
 ## Contacts
 This program was made by *zannabianca1997*, trying to resist the urge to buy a dice set.

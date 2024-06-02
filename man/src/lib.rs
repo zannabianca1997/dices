@@ -5,7 +5,7 @@ use std::{
     fmt::{Display, Write as _},
 };
 
-use lazy_regex::{regex, Lazy, Regex};
+use lazy_regex::{regex, regex_replace_all, Lazy, Regex};
 
 static INDEX: phf::Map<&'static str, Page> = include!(concat!(env!("OUT_DIR"), "/index.rs"));
 
@@ -15,6 +15,23 @@ pub struct Page {
     pub content: Cow<'static, str>,
 }
 impl Page {
+    /// Substitute manual links `[man](man://...)`
+    pub fn fix_man_links<D: AsRef<str>>(&mut self, fixer: impl Fn(&str, &str) -> D) {
+        static LINKS_RE: &Lazy<Regex> = regex!(r"\[([^\]]+)\]\(man://((?:\w+/)*\w+)\)");
+        if LINKS_RE.is_match(&self.content) {
+            self.content = Cow::Owned(
+                LINKS_RE
+                    .replace_all(&self.content, |capture: &regex::Captures| {
+                        fixer(
+                            capture.get(1).unwrap().as_str(),
+                            capture.get(2).unwrap().as_str(),
+                        )
+                    })
+                    .into_owned(),
+            );
+        }
+    }
+
     /// Substitute the code example with the results from the given doc runner
     pub fn run_docs<R: DocRunner>(&mut self, runner: impl Fn() -> R) {
         static DOC_RE: &Lazy<Regex> = regex!(r"^```\s*dices\s*\n(.*(?:\n.*)*?)\n```\s*$"m);

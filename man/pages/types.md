@@ -30,7 +30,7 @@ It's smoothly converted to the integer values `0` and `1`:
 ```
 
 ## Number
-A 64-bits integer signed number. It supports the usual five integer operations: `+`, `-`, `*`, `/` and `%` (see `help("operators/math")`).
+A 64-bits integer signed number. It supports the usual five integer operations: `+`, `-`, `*`, `/` and `%` (see [math](man://operators/math)).
 
 ## List
 Heterogeneous lists. They can be inserted with the usual bracket notation:
@@ -71,7 +71,7 @@ Negation, multiplications, divisions and remainder instead works member by membe
 >> [3,2,1] % 2
 [1, 0, 1]
 ```
-Another important class of operation on lists are filters. See `help("operators/filters")` for more.
+Another important class of operation on lists are filters. See [filters](man://operators/filters) for more.
 
 ## Map
 Maps contains multiple values, giving a unique string name to every one of them. They can be inserted with the `<| .. |>` notation:
@@ -122,4 +122,4 @@ Being closures, functions can capture the surrounding context:
 9
 ```
 A special class of functions are the *intrisics*. One can find the available ones inside the std library, at `std.intrisics`.
-They expose special capabilities of the engine. Examples are `print`, `quit` and `help`. See `help("intrisics")` for the complete list and more informations.
+They expose special capabilities of the engine. Examples are `print`, `quit` and `help`. See [intrisics](man://intrisics) for the complete list and more informations.
