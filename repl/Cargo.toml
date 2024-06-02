@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
-engine = { path = "../engine", features = ["parse", "pretty"] }
+engine = { path = "../engine", features = ["parse", "pretty", "man"] }
 figment = { version = "0.10.19", features = ["env", "toml"] }
 rand = { version = "0.8.5", features = ["small_rng"] }
 rustyline = "14.0.0"

@@ -141,6 +141,13 @@ impl<RNG, C> EngineBuilder<RNG, C> {
         EngineBuilder { rng, ..self }
     }
     pub fn callbacks<NewC: Callbacks>(self, callbacks: NewC) -> EngineBuilder<RNG, NewC> {
+        if cfg!(not(feature = "man")) && NewC::HELP_AVAIL {
+            /*
+                user is activating help, but the manual is not compiled!
+                this is not an error, but might confuse the user as he provides
+                an `help` callback, and see `null` in the REPL.
+            */
+        }
         EngineBuilder { callbacks, ..self }
     }
 
