@@ -1,8 +1,11 @@
 //! Collection of manual pages
 
-use std::{borrow::Cow, fmt::Display};
+use std::{
+    borrow::Cow,
+    fmt::{Display, Write as _},
+};
 
-use lazy_regex::{regex, regex_replace, regex_replace_all, Lazy, Regex};
+use lazy_regex::{regex, Lazy, Regex};
 
 static INDEX: phf::Map<&'static str, Page> = include!(concat!(env!("OUT_DIR"), "/index.rs"));
 
@@ -14,13 +17,27 @@ pub struct Page {
 impl Page {
     /// Substitute the code example with the results from the given doc runner
     pub fn run_docs<R: DocRunner>(&mut self, runner: impl Fn() -> R) {
-        static DOC_RE: &Lazy<Regex> = regex!(r"^```\s*dices\s*\n((?:.*\n)*?)```\s*$"m);
+        static DOC_RE: &Lazy<Regex> = regex!(r"^```\s*dices\s*\n(.*(?:\n.*)*?)\n```\s*$"m);
         if DOC_RE.is_match(&self.content) {
             // replace the docs
             self.content = Cow::Owned(
                 DOC_RE
                     .replace_all(&self.content, |capture: &regex::Captures| {
-                        format!("```dices\n{}\n```", capture.get(1).unwrap().as_str())
+                        let commands = capture
+                            .get(1)
+                            .unwrap()
+                            .as_str()
+                            .lines()
+                            .filter_map(|l| l.strip_prefix(">> "));
+                        let mut runner = runner();
+                        let mut buf = String::new();
+                        writeln!(&mut buf, "```dices,runned").unwrap();
+                        for cmd in commands {
+                            writeln!(&mut buf, "{}{}", runner.prompt(), cmd,).unwrap();
+                            writeln!(&mut buf, "{}", runner.exec(cmd)).unwrap();
+                        }
+                        writeln!(&mut buf, "```").unwrap();
+                        buf
                     })
                     .into_owned(),
             );
