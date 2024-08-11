@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::values::string::ValueString;
 
 use super::Expression;
@@ -16,7 +14,7 @@ use super::Expression;
     Ord,
     Hash,
 )]
-pub struct ExpressionMap(BTreeMap<ValueString, Expression>);
+pub struct ExpressionMap(Box<[(ValueString, Expression)]>);
 
 impl FromIterator<(ValueString, Expression)> for ExpressionMap {
     fn from_iter<T: IntoIterator<Item = (ValueString, Expression)>>(iter: T) -> Self {
