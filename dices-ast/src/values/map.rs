@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use crate::fmt::quoted_if_not_ident;
 
-use super::{string::ValueString, Value};
+use super::{string::ValueString, ToNumberError, Value};
 
 #[derive(
     // display helper
@@ -19,6 +19,18 @@ use super::{string::ValueString, Value};
     Hash,
 )]
 pub struct ValueMap(BTreeMap<ValueString, Value>);
+impl ValueMap {
+    pub fn to_number(self) -> Result<super::number::ValueNumber, super::ToNumberError> {
+        match self.0.into_iter().exactly_one() {
+            Ok((_, value)) => value.to_number(),
+            Err(vals) => Err(ToNumberError::WrongListLength(vals.len())),
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+}
 
 impl Display for ValueMap {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -4,7 +4,7 @@ use std::fmt::Display;
 
 use crate::{expression::Expression, ident::IdentStr};
 
-use super::Value;
+use super::{ToNumberError, Value};
 
 #[derive(
     // display helper
@@ -22,6 +22,13 @@ pub struct ValueClosure {
     pub params: Box<[Box<IdentStr>]>,
     pub captured: Box<[(Box<IdentStr>, Value)]>,
     pub body: Expression,
+}
+impl ValueClosure {
+    pub fn to_number(
+        &self,
+    ) -> Result<crate::values::number::ValueNumber, crate::values::ToNumberError> {
+        Err(ToNumberError::Closure)
+    }
 }
 
 impl Display for ValueClosure {

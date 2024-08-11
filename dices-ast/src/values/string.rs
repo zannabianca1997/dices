@@ -4,6 +4,8 @@ use derive_more::derive::{AsMut, AsRef, Deref, DerefMut, From};
 
 use crate::fmt::quoted;
 
+use super::{number::ValueNumber, ToNumberError};
+
 /// An unicode string
 #[derive(
     // display helper
@@ -24,6 +26,11 @@ use crate::fmt::quoted;
     From,
 )]
 pub struct ValueString(Box<str>);
+impl ValueString {
+    pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
+        self.0.parse().map_err(ToNumberError::InvalidString)
+    }
+}
 
 impl Display for ValueString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
