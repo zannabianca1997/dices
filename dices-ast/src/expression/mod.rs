@@ -9,6 +9,7 @@ pub mod call;
 pub mod closure;
 pub mod list;
 pub mod map;
+pub mod scope;
 pub mod un_ops;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, From)]
@@ -31,4 +32,7 @@ pub enum Expression {
 
     /// Call expression
     Call(call::ExpressionCall),
+
+    /// Scoping expression
+    Scope(scope::ExpressionScope),
 }
