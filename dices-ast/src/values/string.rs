@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use derive_more::derive::{AsMut, AsRef, Deref, DerefMut, From};
+
 use crate::fmt::quoted;
 
 /// An unicode string
@@ -14,8 +16,14 @@ use crate::fmt::quoted;
     PartialOrd,
     Ord,
     Hash,
+    // refs
+    AsRef,
+    Deref,
+    AsMut,
+    DerefMut,
+    From,
 )]
-pub struct ValueString(String);
+pub struct ValueString(Box<str>);
 
 impl Display for ValueString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

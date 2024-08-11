@@ -26,6 +26,13 @@ pub enum Intrisic {
     /// `+`: sum two values, flattening lists,maps, and converting booleans
     #[strum(to_string = "sum")]
     Sum,
+    /// `-`: subtract two values, flattening lists,maps, and converting booleans.
+    ///      the second value is negated
+    #[strum(to_string = "sub")]
+    Sub,
+    /// `-`: unary minus. Negate a value. If applied to a list, distribute over the list elements
+    #[strum(to_string = "sub")]
+    Neg,
     /// `~`: join two list or maps, upgrading scalars to list if joined to a list
     #[strum(to_string = "join")]
     Join,
@@ -54,13 +61,6 @@ pub enum Intrisic {
     /// Call its first parameter with the arguments given by the second, converted to a list
     #[strum(to_string = "call")]
     Call,
-
-    /// Ask the current executor to explain the given topic
-    #[strum(to_string = "help")]
-    Help,
-    /// Send to the current executor a quit signal
-    #[strum(to_string = "quit")]
-    Quit,
 }
 
 impl Display for Intrisic {
@@ -72,6 +72,11 @@ impl Display for Intrisic {
 impl Intrisic {
     /// Build a module containing all the intrisics, to include in the standard library
     pub fn module() -> ValueMap {
-        ValueMap::from_iter(Self::iter().map(|v| (<&'static str>::from(v), v)))
+        ValueMap::from_iter(Self::iter().map(|v| {
+            (
+                <&'static str>::from(v).to_string().into_boxed_str().into(),
+                v.into(),
+            )
+        }))
     }
 }

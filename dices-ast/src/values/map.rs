@@ -4,6 +4,8 @@ use itertools::Itertools;
 
 use crate::fmt::quoted_if_not_ident;
 
+use super::{string::ValueString, Value};
+
 #[derive(
     // display helper
     Debug,
@@ -16,15 +18,15 @@ use crate::fmt::quoted_if_not_ident;
     Ord,
     Hash,
 )]
-pub struct ValueMap(BTreeMap<String, super::Value>);
+pub struct ValueMap(BTreeMap<ValueString, Value>);
 
 impl Display for ValueMap {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        struct KeyValue<'m>((&'m String, &'m super::Value));
+        struct KeyValue<'m>((&'m ValueString, &'m super::Value));
         impl Display for KeyValue<'_> {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let (idx, val) = self.0;
-                quoted_if_not_ident(idx, f)?;
+                quoted_if_not_ident(&idx, f)?;
                 write!(f, ": {val}")
             }
         }
@@ -33,12 +35,8 @@ impl Display for ValueMap {
     }
 }
 
-impl<N: Into<String>, V: Into<super::Value>> FromIterator<(N, V)> for ValueMap {
-    fn from_iter<T: IntoIterator<Item = (N, V)>>(iter: T) -> Self {
-        Self(
-            iter.into_iter()
-                .map(|(n, v)| (n.into(), v.into()))
-                .collect(),
-        )
+impl FromIterator<(ValueString, Value)> for ValueMap {
+    fn from_iter<T: IntoIterator<Item = (ValueString, Value)>>(iter: T) -> Self {
+        Self(FromIterator::from_iter(iter))
     }
 }
