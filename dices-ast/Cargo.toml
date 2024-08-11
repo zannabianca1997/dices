@@ -1,0 +1,10 @@
+[package]
+name = "dices-ast"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+derive_more = { version = "1.0.0", features = ["full"] }
+itertools = "0.13.0"
+lazy-regex = "3.2.0"
+strum = { version = "0.26.3", features = ["derive"] }
