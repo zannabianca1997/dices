@@ -52,6 +52,18 @@ impl Value {
             Value::Closure(v) => v.to_number(),
         }
     }
+
+    pub fn to_list(self) -> Result<list::ValueList, ToListError> {
+        match self {
+            Value::Bool(v) => v.to_list(),
+            Value::Number(v) => v.to_list(),
+            Value::String(v) => v.to_list(),
+            Value::List(v) => v.to_list(),
+            Value::Map(v) => v.to_list(),
+            Value::Intrisic(v) => v.to_list(),
+            Value::Closure(v) => v.to_list(),
+        }
+    }
 }
 
 #[derive(Debug, Display, Error)]
@@ -67,3 +79,6 @@ pub enum ToNumberError {
     #[display("Closures cannot be interpreted as a number")]
     Closure,
 }
+
+#[derive(Debug, Display, Error)]
+pub enum ToListError {}

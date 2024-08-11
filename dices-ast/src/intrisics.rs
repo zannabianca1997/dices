@@ -4,7 +4,9 @@ use std::fmt::Display;
 
 use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 
-use crate::values::{map::ValueMap, ToNumberError};
+use crate::values::{
+    list::ValueList, map::ValueMap, number::ValueNumber, ToListError, ToNumberError,
+};
 
 #[derive(
     // display helper
@@ -80,9 +82,10 @@ impl Intrisic {
         }))
     }
 
-    pub fn to_number(
-        &self,
-    ) -> Result<crate::values::number::ValueNumber, crate::values::ToNumberError> {
+    pub fn to_number(&self) -> Result<ValueNumber, ToNumberError> {
         Err(ToNumberError::Intrisic)
+    }
+    pub fn to_list(self) -> Result<ValueList, ToListError> {
+        Ok(ValueList::from_iter([self.into()]))
     }
 }

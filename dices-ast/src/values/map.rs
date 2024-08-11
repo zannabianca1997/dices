@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use crate::fmt::quoted_if_not_ident;
 
-use super::{string::ValueString, ToNumberError, Value};
+use super::{list::ValueList, string::ValueString, ToNumberError, Value};
 
 #[derive(
     // display helper
@@ -26,8 +26,11 @@ impl ValueMap {
             Err(vals) => Err(ToNumberError::WrongListLength(vals.len())),
         }
     }
+    pub fn to_list(self) -> Result<ValueList, super::ToListError> {
+        Ok(self.0.into_values().collect())
+    }
 
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.0.len()
     }
 }

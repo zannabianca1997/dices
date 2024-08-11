@@ -2,6 +2,8 @@ use derive_more::derive::{
     Add, AddAssign, Display, Div, DivAssign, FromStr, Mul, MulAssign, Neg, Sub, SubAssign,
 };
 
+use super::list::ValueList;
+
 /// A signed integer value
 #[derive(
     // display helper
@@ -36,5 +38,9 @@ impl ValueNumber {
 
     pub fn to_number(self) -> Result<ValueNumber, super::ToNumberError> {
         Ok(self)
+    }
+
+    pub fn to_list(self) -> Result<ValueList, super::ToListError> {
+        Ok(ValueList::from_iter([self.into()]))
     }
 }

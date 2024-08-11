@@ -4,7 +4,7 @@ use derive_more::derive::{AsMut, AsRef, Deref, DerefMut, From};
 
 use crate::fmt::quoted;
 
-use super::{number::ValueNumber, ToNumberError};
+use super::{list::ValueList, number::ValueNumber, ToNumberError};
 
 /// An unicode string
 #[derive(
@@ -29,6 +29,9 @@ pub struct ValueString(Box<str>);
 impl ValueString {
     pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
         self.0.parse().map_err(ToNumberError::InvalidString)
+    }
+    pub fn to_list(self) -> Result<ValueList, super::ToListError> {
+        Ok(ValueList::from_iter([self.into()]))
     }
 }
 

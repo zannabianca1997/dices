@@ -2,9 +2,9 @@
 
 use std::fmt::Display;
 
-use crate::{expression::Expression, ident::IdentStr};
+use crate::{expression::Expression, ident::IdentStr, values::number::ValueNumber};
 
-use super::{ToNumberError, Value};
+use super::{list::ValueList, ToNumberError, Value};
 
 #[derive(
     // display helper
@@ -24,10 +24,11 @@ pub struct ValueClosure {
     pub body: Expression,
 }
 impl ValueClosure {
-    pub fn to_number(
-        &self,
-    ) -> Result<crate::values::number::ValueNumber, crate::values::ToNumberError> {
+    pub fn to_number(self) -> Result<ValueNumber, crate::values::ToNumberError> {
         Err(ToNumberError::Closure)
+    }
+    pub fn to_list(self) -> Result<ValueList, super::ToListError> {
+        Ok(ValueList::from_iter([Box::new(self).into()]))
     }
 }
 
