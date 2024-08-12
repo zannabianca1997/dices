@@ -1,7 +1,5 @@
 //! binary operations
 
-use crate::parse::expression;
-
 use super::Expression;
 
 /// An unary operator

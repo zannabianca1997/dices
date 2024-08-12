@@ -2,7 +2,7 @@
 
 use strum::{EnumIter, IntoEnumIterator};
 
-use crate::values::{map::ValueMap, Value, ValueIntrisic};
+use crate::values::{map::ValueMap, ValueIntrisic};
 
 #[derive(
     // display helper
