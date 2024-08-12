@@ -5,6 +5,9 @@ edition = "2021"
 
 [dependencies]
 derive_more = { version = "1.0.0", features = ["full"] }
+either = "1.13.0"
 itertools = "0.13.0"
 lazy-regex = "3.2.0"
+peg = "0.8.4"
+phf = { version = "0.11.2", features = ["macros"] }
 strum = { version = "0.26.3", features = ["derive"] }

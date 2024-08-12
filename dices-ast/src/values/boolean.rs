@@ -1,4 +1,4 @@
-use derive_more::derive::Display;
+use derive_more::derive::{Display, From, Into};
 
 use super::{list::ValueList, number::ValueNumber, ToNumberError};
 
@@ -16,9 +16,15 @@ use super::{list::ValueList, number::ValueNumber, ToNumberError};
     PartialOrd,
     Ord,
     Hash,
+    // conversions
+    From,
+    Into,
 )]
 pub struct ValueBool(bool);
 impl ValueBool {
+    pub const TRUE: Self = ValueBool(true);
+    pub const FALSE: Self = ValueBool(false);
+
     pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
         Ok(match self.0 {
             true => ValueNumber::ONE,

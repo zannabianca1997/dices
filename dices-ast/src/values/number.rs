@@ -1,5 +1,5 @@
 use derive_more::derive::{
-    Add, AddAssign, Display, Div, DivAssign, FromStr, Mul, MulAssign, Neg, Sub, SubAssign,
+    Add, AddAssign, Display, Div, DivAssign, From, Mul, MulAssign, Neg, Sub, SubAssign,
 };
 
 use super::list::ValueList;
@@ -28,7 +28,8 @@ use super::list::ValueList;
     Div,
     DivAssign,
     Neg,
-    FromStr,
+    // conversion
+    From,
 )]
 pub struct ValueNumber(i64);
 

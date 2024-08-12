@@ -5,11 +5,19 @@ use std::num::ParseIntError;
 use derive_more::derive::{Display, Error, From};
 
 use crate::intrisics::Intrisic;
+pub use boolean::ValueBool;
+pub use closure::ValueClosure;
+pub use list::ValueList;
+pub use map::ValueMap;
+pub use null::ValueNull;
+pub use number::ValueNumber;
+pub use string::ValueString;
 
-pub mod bl;
+pub mod boolean;
 pub mod closure;
 pub mod list;
 pub mod map;
+pub mod null;
 pub mod number;
 pub mod string;
 
@@ -29,19 +37,20 @@ pub mod string;
     From,
 )]
 pub enum Value {
-    Bool(bl::ValueBool),
-    Number(number::ValueNumber),
-    String(string::ValueString),
+    Null(ValueNull),
+    Bool(ValueBool),
+    Number(ValueNumber),
+    String(ValueString),
 
-    List(list::ValueList),
-    Map(map::ValueMap),
+    List(ValueList),
+    Map(ValueMap),
 
     Intrisic(Intrisic),
-    Closure(Box<closure::ValueClosure>),
+    Closure(Box<ValueClosure>),
 }
 
 impl Value {
-    pub fn to_number(self) -> Result<number::ValueNumber, ToNumberError> {
+    pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
         match self {
             Value::Bool(v) => v.to_number(),
             Value::Number(v) => v.to_number(),
@@ -50,10 +59,11 @@ impl Value {
             Value::Map(v) => v.to_number(),
             Value::Intrisic(v) => v.to_number(),
             Value::Closure(v) => v.to_number(),
+            Value::Null(v) => v.to_number(),
         }
     }
 
-    pub fn to_list(self) -> Result<list::ValueList, ToListError> {
+    pub fn to_list(self) -> Result<ValueList, ToListError> {
         match self {
             Value::Bool(v) => v.to_list(),
             Value::Number(v) => v.to_list(),
@@ -62,6 +72,7 @@ impl Value {
             Value::Map(v) => v.to_list(),
             Value::Intrisic(v) => v.to_list(),
             Value::Closure(v) => v.to_list(),
+            Value::Null(v) => v.to_list(),
         }
     }
 }
@@ -78,6 +89,7 @@ pub enum ToNumberError {
     Intrisic,
     #[display("Closures cannot be interpreted as a number")]
     Closure,
+    InvalidNull,
 }
 
 #[derive(Debug, Display, Error)]

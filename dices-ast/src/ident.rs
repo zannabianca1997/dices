@@ -2,8 +2,14 @@
 
 use derive_more::derive::{AsRef, Deref, Display};
 use lazy_regex::{regex, Lazy, Regex};
+use phf::phf_set;
 
-pub static IDENT_RE: &Lazy<Regex> = regex!(r"^(?:[a-zA-Z]|_+[a-zA-Z0-9])[_a-zA-Z0-9]*$");
+static IDENT_RE: &Lazy<Regex> = regex!(r"^(?:[a-zA-Z]|_+[a-zA-Z0-9])[_a-zA-Z0-9]*$");
+static KEYWORDS: phf::Set<&'static str> = phf_set!("d");
+
+pub fn is_valid_ident(s: &str) -> bool {
+    IDENT_RE.is_match(s) && !KEYWORDS.contains(s)
+}
 
 /// A string that is guarantee to be a valid identifier (`r"(?:[a-zA-Z]|_+[a-zA-Z0-9])[_a-zA-Z0-9]*"`)
 #[derive(Debug, Display, AsRef, Deref, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -14,7 +20,7 @@ impl IdentStr {
     /// Check if the string is a valid identifier, then convert the reference to
     /// a reference to this type.
     pub fn new(s: &str) -> Option<&Self> {
-        if !IDENT_RE.is_match(s) {
+        if !is_valid_ident(s) {
             return None;
         }
         Some(unsafe {
@@ -26,7 +32,7 @@ impl IdentStr {
     /// Convert to this type with no checks
     ///
     /// ## SAFETY
-    /// The user must check that `s` is a match for [`IDENT_RE`]
+    /// The user must check that `s` is a match for [`is_valid_ident`]
     pub unsafe fn new_unchecked(s: &str) -> &Self {
         &*(s as *const str as *const Self)
     }
@@ -34,7 +40,7 @@ impl IdentStr {
     /// Check if the boxed string is a valid identifier, then convert the reference to
     /// a reference to this type.
     pub fn new_boxed(s: Box<str>) -> Result<Box<Self>, Box<str>> {
-        if !IDENT_RE.is_match(&s) {
+        if !is_valid_ident(&*s) {
             return Err(s);
         }
         Ok(unsafe {
@@ -46,7 +52,7 @@ impl IdentStr {
     /// Convert to this type with no checks
     ///
     /// ## SAFETY
-    /// The user must check that `s` is a match for [`IDENT_RE`]
+    /// The user must check that `s` is a match for [`is_valid_ident`]
     pub unsafe fn new_boxed_unchecked(s: Box<str>) -> Box<Self> {
         Box::from_raw(Box::into_raw(s) as _)
     }
