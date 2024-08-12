@@ -3,7 +3,7 @@
 use super::Expression;
 
 /// An unary operator
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BinOp {
     /// `+`: Sum lists and maps, recursive
     Add,
@@ -29,6 +29,23 @@ pub enum BinOp {
     RemoveLow,
 }
 
+impl BinOp {
+    /// Return the evaluation order.
+    /// Return `None` if the operator has a custom way of evaluate the operands
+    #[inline(always)]
+    pub const fn eval_order(&self) -> Option<EvalOrder> {
+        match self {
+            BinOp::Add | BinOp::Sub | BinOp::Join | BinOp::Mult | BinOp::Rem | BinOp::Div => {
+                Some(EvalOrder::AB)
+            }
+            BinOp::Repeat => None,
+            BinOp::KeepHigh | BinOp::KeepLow | BinOp::RemoveHigh | BinOp::RemoveLow => {
+                Some(EvalOrder::BA)
+            }
+        }
+    }
+}
+
 /// An expression made with an unary operator
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ExpressionBinOp {
@@ -43,4 +60,12 @@ impl ExpressionBinOp {
             expressions: Box::new([a, b]),
         }
     }
+}
+/// Order of evaluation of the operands
+#[derive(Debug, Clone, Copy)]
+pub enum EvalOrder {
+    /// first LHS, then RHS
+    AB,
+    /// first RHS, then LHS
+    BA,
 }

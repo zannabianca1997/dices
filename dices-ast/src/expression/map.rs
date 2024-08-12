@@ -15,6 +15,11 @@ use super::Expression;
     Hash,
 )]
 pub struct ExpressionMap(Box<[(ValueString, Expression)]>);
+impl ExpressionMap {
+    pub fn iter(&self) -> impl Iterator<Item = (&ValueString, &Expression)> {
+        self.0.iter().map(|(a, b)| (a, b))
+    }
+}
 
 impl FromIterator<(ValueString, Expression)> for ExpressionMap {
     fn from_iter<T: IntoIterator<Item = (ValueString, Expression)>>(iter: T) -> Self {

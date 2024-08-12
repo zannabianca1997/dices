@@ -93,6 +93,7 @@ pub enum ToNumberError {
     Intrisic,
     #[display("Closures cannot be interpreted as a number")]
     Closure,
+    #[display("`null` cannot be interpreted as a number")]
     InvalidNull,
 }
 

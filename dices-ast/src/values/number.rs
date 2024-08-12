@@ -1,5 +1,5 @@
 use derive_more::derive::{
-    Add, AddAssign, Display, Div, DivAssign, From, Mul, MulAssign, Neg, Sub, SubAssign,
+    Add, AddAssign, Display, Div, DivAssign, From, Into, Mul, MulAssign, Neg, Sub, SubAssign,
 };
 
 use super::list::ValueList;
@@ -30,6 +30,7 @@ use super::list::ValueList;
     Neg,
     // conversion
     From,
+    Into,
 )]
 #[cfg_attr(test, derive(arbitrary::Arbitrary))]
 pub struct ValueNumber(i64);
