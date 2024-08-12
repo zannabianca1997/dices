@@ -8,7 +8,18 @@ use peg::{error::ParseError, str::LineCol};
 use crate::{ident::IdentStr, values::*};
 
 peg::parser! {
-    grammar value_parser() for str {
+    /**
+        # Serialized values
+
+        Here is a smaller grammar for serialized values,
+        not expressions. It will produce all values except
+        closures and intrisics.
+
+        It is thought to roundtrip on that subset of values
+        with the implementation of [`Display`].
+    */
+    pub grammar values() for str {
+
         /// A `dices` serialized value
         pub rule value() -> Value
             = v: null()    { v.into() }
@@ -101,7 +112,7 @@ peg::parser! {
                 k: ident_or_quoted_string() _ [':'] _ v:value() {
                     (ValueString::from(k.into_owned().into_boxed_str()), v)
                 }
-            ) ** [','] _ ([','] _)? "|>" { kvs.into_iter().collect() }
+            ) ** (_ [','] _) _ ([','] _)? "|>" { kvs.into_iter().collect() }
 
         /// An identifier
         rule ident() -> &'input IdentStr
@@ -132,48 +143,137 @@ impl FromStr for ValueNull {
     type Err = ParseError<LineCol>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        value_parser::null(s)
+        values::null(s)
     }
 }
 impl FromStr for ValueBool {
     type Err = ParseError<LineCol>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        value_parser::boolean(s)
+        values::boolean(s)
     }
 }
 impl FromStr for ValueNumber {
     type Err = ParseError<LineCol>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        value_parser::number(s)
+        values::number(s)
     }
 }
 impl FromStr for ValueString {
     type Err = ParseError<LineCol>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        value_parser::string(s)
+        values::string(s)
     }
 }
 impl FromStr for ValueList {
     type Err = ParseError<LineCol>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        value_parser::list(s)
+        values::list(s)
     }
 }
 impl FromStr for ValueMap {
     type Err = ParseError<LineCol>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        value_parser::map(s)
+        values::map(s)
     }
 }
 impl FromStr for Value {
     type Err = ParseError<LineCol>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        value_parser::value(s)
+        values::value(s)
     }
+}
+
+peg::parser! {
+    /**
+        # `dices` expressions
+
+        This is the full grammar for a `dices` expression.
+    */
+    pub grammar expression() for str {
+
+        // --- SCALARS ---
+
+        /// A null value
+        rule null() -> ValueNull
+        = "null"  { ValueNull }
+
+        /// A boolean value
+        rule boolean() -> ValueBool
+            = "true"  { ValueBool::TRUE  }
+            / "false" { ValueBool::FALSE }
+
+        /// An unsigned number
+        rule number() -> ValueNumber
+            = n:$(['0'..='9']+) {? n.parse::<i64>().map(Into::into).or(Err("number")) }
+
+        /// A quoted string value
+        rule string() -> ValueString
+            = s:quoted_string() { ValueString::from(s.into_owned().into_boxed_str()) }
+
+        // --- STRING QUOTING AND ESCAPING ---
+
+        /// The inner part of a string literal
+        rule escaped_string_inner() -> std::borrow::Cow<'input,str>
+            = parts: (
+                lit: $( [^ '"' | '\\']+ ) { Left(lit) }
+                / "\\" escape:(
+                        "n" {'\n'}
+                        / "r" {'\r'}
+                        / "t" {'\t'}
+                        / "0" {'\0'}
+                        / "\\" {'\\'}
+                        / "\'" {'\''}
+                        / "\"" {'"'}
+                        / hex:(
+                        "x" hex: $(['0'..='7']['a'..='f'|'A'..='F'|'0'..='9']) {hex}
+                        / "u{" hex: $(['a'..='f'|'A'..='F'|'0'..='9']*<1,6>) "}" {hex}) {?
+                                char::from_u32(u32::from_str_radix(hex, 16).unwrap())
+                                .ok_or("unicode codepoint")
+                        }
+                        / expected!("escape code")
+
+                ) {Right(escape)}
+                )*  {
+                    if let [Left(part)] = &*parts {
+                        Cow::Borrowed(*part)
+                    } else {
+                        // some escapes remains. We need to build a string
+                        let mut buf = std::string::String::with_capacity(
+                            parts.iter().map(|p| match p {
+                                Left(s) => s.len(),
+                                Right(c) => c.len_utf8(),
+                            }).sum()
+                        );
+                        for p in parts {
+                            match p {
+                                Left(s) => buf.push_str(s),
+                                Right(ch) => buf.push(ch),
+                            }
+                        }
+                        Cow::Owned(buf)
+                    }
+                }
+
+        /// A string literal
+        rule quoted_string() -> std::borrow::Cow<'input,str>
+            = ['"'] s:escaped_string_inner() ['"'] { s }
+
+
+        /// Parse whitespace and comments, discarding them
+        rule _ -> ()
+            = quiet!{
+                (
+                    [' ' | '\t' | '\r' | '\n']       // Whitespace
+                    / "//" [^'\n']* (['\n'] / ![_])  // C-style line comment
+                    / "/*" (!"*/" [_])* "*/"         // C-style block comment
+                )* { () }
+            }
+    }
+
 }
