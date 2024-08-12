@@ -136,3 +136,44 @@ pub enum ToNumberError {
 
 #[derive(Debug, Display, Error)]
 pub enum ToListError {}
+
+#[cfg(test)]
+impl<'a> arbitrary::Arbitrary<'a> for Value {
+    fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
+        Ok(match u.choose_index(6)? {
+            0 => ValueNull::arbitrary(u)?.into(),
+            1 => ValueBool::arbitrary(u)?.into(),
+            2 => ValueNumber::arbitrary(u)?.into(),
+            3 => ValueString::arbitrary(u)?.into(),
+            4 => ValueList::arbitrary(u)?.into(),
+            5 => ValueMap::arbitrary(u)?.into(),
+            _ => unreachable!(),
+        })
+    }
+    fn arbitrary_take_rest(mut u: arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
+        Ok(match u.choose_index(6)? {
+            0 => ValueNull::arbitrary_take_rest(u)?.into(),
+            1 => ValueBool::arbitrary_take_rest(u)?.into(),
+            2 => ValueNumber::arbitrary_take_rest(u)?.into(),
+            3 => ValueString::arbitrary_take_rest(u)?.into(),
+            4 => ValueList::arbitrary_take_rest(u)?.into(),
+            5 => ValueMap::arbitrary_take_rest(u)?.into(),
+            _ => unreachable!(),
+        })
+    }
+
+    fn size_hint(depth: usize) -> (usize, Option<usize>) {
+        use arbitrary::size_hint;
+
+        size_hint::or_all(&[
+            ValueNull::size_hint(depth),
+            ValueBool::size_hint(depth),
+            ValueNumber::size_hint(depth),
+            ValueString::size_hint(depth),
+            // those two variants might be recursive, and need to be guarded
+            size_hint::recursion_guard(depth, |depth| {
+                size_hint::or_all(&[ValueList::size_hint(depth), ValueMap::size_hint(depth)])
+            }),
+        ])
+    }
+}

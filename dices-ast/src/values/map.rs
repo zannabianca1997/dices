@@ -18,6 +18,7 @@ use super::{list::ValueList, string::ValueString, ToNumberError, Value};
     Ord,
     Hash,
 )]
+#[cfg_attr(test, derive(arbitrary::Arbitrary))]
 pub struct ValueMap(BTreeMap<ValueString, Value>);
 impl ValueMap {
     pub fn to_number(self) -> Result<super::number::ValueNumber, super::ToNumberError> {

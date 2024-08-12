@@ -16,6 +16,7 @@ use super::{ToNumberError, ValueList};
     Ord,
     Hash,
 )]
+#[cfg_attr(test, derive(arbitrary::Arbitrary))]
 pub struct ValueNull;
 impl ValueNull {
     pub fn to_number(self) -> Result<super::ValueNumber, super::ToNumberError> {

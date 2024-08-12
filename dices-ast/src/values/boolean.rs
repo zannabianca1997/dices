@@ -20,6 +20,7 @@ use super::{list::ValueList, number::ValueNumber, ToNumberError};
     From,
     Into,
 )]
+#[cfg_attr(test, derive(arbitrary::Arbitrary))]
 pub struct ValueBool(bool);
 impl ValueBool {
     pub const TRUE: Self = ValueBool(true);

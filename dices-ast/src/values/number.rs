@@ -31,6 +31,7 @@ use super::list::ValueList;
     // conversion
     From,
 )]
+#[cfg_attr(test, derive(arbitrary::Arbitrary))]
 pub struct ValueNumber(i64);
 
 impl ValueNumber {

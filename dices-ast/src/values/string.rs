@@ -27,6 +27,7 @@ use super::{list::ValueList, number::ValueNumber, ToNumberError};
     From,
     Into,
 )]
+#[cfg_attr(test, derive(arbitrary::Arbitrary))]
 pub struct ValueString(Box<str>);
 impl ValueString {
     pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
