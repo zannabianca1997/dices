@@ -1,0 +1,10 @@
+[package]
+name = "dices-engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+derive_more = { version = "1.0.0", features = ["full"] }
+dices-ast = { path = "../dices-ast" }
+nonempty = "0.10.0"
+rand = "0.8.5"
