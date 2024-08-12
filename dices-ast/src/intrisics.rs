@@ -1,12 +1,8 @@
 //! List of the language intrisics
 
-use std::fmt::Display;
-
 use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 
-use crate::values::{
-    list::ValueList, map::ValueMap, number::ValueNumber, ToListError, ToNumberError,
-};
+use crate::values::{map::ValueMap, ValueIntrisic};
 
 #[derive(
     // display helper
@@ -65,27 +61,14 @@ pub enum Intrisic {
     Call,
 }
 
-impl Display for Intrisic {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<intrisic {}>", <&'static str>::from(self))
-    }
-}
-
 impl Intrisic {
     /// Build a module containing all the intrisics, to include in the standard library
     pub fn module() -> ValueMap {
         ValueMap::from_iter(Self::iter().map(|v| {
             (
                 <&'static str>::from(v).to_string().into_boxed_str().into(),
-                v.into(),
+                ValueIntrisic::from(v).into(),
             )
         }))
-    }
-
-    pub fn to_number(&self) -> Result<ValueNumber, ToNumberError> {
-        Err(ToNumberError::Intrisic)
-    }
-    pub fn to_list(self) -> Result<ValueList, ToListError> {
-        Ok(ValueList::from_iter([self.into()]))
     }
 }
