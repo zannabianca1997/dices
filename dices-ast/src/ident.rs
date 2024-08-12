@@ -58,6 +58,16 @@ impl IdentStr {
     }
 }
 
+impl ToOwned for IdentStr {
+    type Owned = Box<IdentStr>;
+
+    fn to_owned(&self) -> Self::Owned {
+        let s: &str = self;
+        let s: Box<str> = s.into();
+        unsafe { IdentStr::new_boxed_unchecked(s) }
+    }
+}
+
 impl Clone for Box<IdentStr> {
     fn clone(&self) -> Self {
         let s: &str = self;

@@ -19,3 +19,12 @@ pub struct ExpressionClosure {
     pub params: Box<[Box<IdentStr>]>,
     pub body: Box<Expression>,
 }
+
+impl ExpressionClosure {
+    pub fn new(params: Box<[Box<IdentStr>]>, body: Expression) -> Self {
+        Self {
+            params,
+            body: Box::new(body),
+        }
+    }
+}

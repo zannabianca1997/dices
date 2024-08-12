@@ -1,8 +1,15 @@
 //! Type containing a `dices` expression
-
 use derive_more::derive::From;
 
 use crate::values::Value;
+
+pub use bin_ops::ExpressionBinOp;
+pub use call::ExpressionCall;
+pub use closure::ExpressionClosure;
+pub use list::ExpressionList;
+pub use map::ExpressionMap;
+pub use scope::ExpressionScope;
+pub use un_ops::ExpressionUnOp;
 
 pub mod bin_ops;
 pub mod call;
@@ -18,21 +25,21 @@ pub enum Expression {
     Const(Value),
 
     /// List literal
-    List(list::ExpressionList),
+    List(ExpressionList),
     /// Map literal
-    Map(map::ExpressionMap),
+    Map(ExpressionMap),
 
     /// Closure literal
-    Closure(closure::ExpressionClosure),
+    Closure(ExpressionClosure),
 
     /// Expression with a single operatorand
-    UnOp(un_ops::ExpressionUnOp),
+    UnOp(ExpressionUnOp),
     /// Expression with two operatorands
-    BinOp(bin_ops::ExpressionBinOp),
+    BinOp(ExpressionBinOp),
 
     /// Call expression
-    Call(call::ExpressionCall),
+    Call(ExpressionCall),
 
     /// Scoping expression
-    Scope(scope::ExpressionScope),
+    Scope(ExpressionScope),
 }

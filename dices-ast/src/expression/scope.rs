@@ -7,3 +7,12 @@ pub struct ExpressionScope {
     /// The last expression, and the one returned
     pub last: Box<Expression>,
 }
+
+impl ExpressionScope {
+    pub fn new(exprs: Box<[Expression]>, last: Expression) -> Self {
+        Self {
+            exprs,
+            last: Box::new(last),
+        }
+    }
+}

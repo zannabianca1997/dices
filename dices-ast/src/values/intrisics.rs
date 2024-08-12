@@ -25,7 +25,7 @@ pub struct ValueIntrisic(Intrisic);
 
 impl Display for ValueIntrisic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<intrisic {}>", <&'static str>::from(self.0))
+        write!(f, "<intrisic {}>", self.0.name())
     }
 }
 

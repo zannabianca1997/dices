@@ -19,3 +19,12 @@ pub struct ExpressionUnOp {
     pub op: UnOp,
     pub expression: Box<Expression>,
 }
+
+impl ExpressionUnOp {
+    pub fn new(op: UnOp, expression: Expression) -> Self {
+        Self {
+            op,
+            expression: Box::new(expression),
+        }
+    }
+}

@@ -5,7 +5,14 @@ use std::{borrow::Cow, str::FromStr};
 use either::Either::{Left, Right};
 use peg::{error::ParseError, str::LineCol};
 
-use crate::{ident::IdentStr, values::*};
+use crate::{
+    expression::{
+        bin_ops::BinOp, un_ops::UnOp, Expression, ExpressionBinOp, ExpressionCall,
+        ExpressionClosure, ExpressionList, ExpressionMap, ExpressionScope, ExpressionUnOp,
+    },
+    ident::IdentStr,
+    values::*,
+};
 
 peg::parser! {
     /**
@@ -197,6 +204,78 @@ peg::parser! {
     */
     pub grammar expression() for str {
 
+        rule expr() -> Expression
+            = precedence!{
+                // receiver:receiver() _ "=" _ value:@ { Set { receiver, value: Box::new(value) }}
+                // --
+                "|" _ p:( ident()  ** ( _ "," _ ) ) _ "|" _ body:@ {
+                    ExpressionClosure::new(p.into_iter().map(|p| p.to_owned()).collect(), body).into()
+                }
+                --
+                a:(@) _ "+" _ b:@ { ExpressionBinOp::new(BinOp::Add, a,b).into() }
+                a:(@) _ "-" _ b:@ { ExpressionBinOp::new(BinOp::Sub, a,b).into() }
+                --
+                a:(@) _ "~" _ b:@ { ExpressionBinOp::new(BinOp::Join, a,b).into() }
+                --
+                a:(@) _ "*" _ b:@ { ExpressionBinOp::new(BinOp::Mult, a,b).into() }
+                a:(@) _ "/" _ b:@ { ExpressionBinOp::new(BinOp::Div, a,b).into() }
+                a:(@) _ "%" _ b:@ { ExpressionBinOp::new(BinOp::Rem, a,b).into() }
+                --
+                a:(@) _ "^" _ b:@  { ExpressionBinOp::new(BinOp::Repeat, a,b).into() }
+                a:(@) _ "kh" _ b:@ { ExpressionBinOp::new(BinOp::KeepHigh, a,b).into() }
+                a:(@) _ "kl" _ b:@ { ExpressionBinOp::new(BinOp::KeepLow, a,b).into() }
+                a:(@) _ "rh" _ b:@ { ExpressionBinOp::new(BinOp::RemoveHigh, a,b).into() }
+                a:(@) _ "rl" _ b:@ { ExpressionBinOp::new(BinOp::RemoveLow, a,b).into() }
+                 --
+                "+" _ a:@ { ExpressionUnOp::new(UnOp::Plus, a).into() }
+                "-" _ a:@ { ExpressionUnOp::new(UnOp::Neg, a).into() }
+                --
+                "d" _ f:@ { ExpressionUnOp::new(UnOp::Dice, f).into() }
+                n:@ _ "d" _ f:(@) { ExpressionBinOp::new(BinOp::Repeat, ExpressionUnOp::new(UnOp::Dice, f).into(), n).into() }
+                --
+                f:@ _ "(" _ p:(expr() ** (_ "," _)) _ ")" {
+                    ExpressionCall::new(f,p.into_boxed_slice()).into()
+                }
+              /*  value:@ _ "[" _ member:expr() _ "]" {
+                    Expr::MemberAccess { value: Box::new(value), member: Box::new(member) }
+                }
+                value:@ _ "." _ member:(
+                    i:ident()      { String((&**i).into()) }
+                    / s: str_lit() { String(s.into()) }
+                    / n: number()  { Number(n) }
+                ) {
+                    Expr::MemberAccess { value: Box::new(value), member: Box::new(member) }
+                }
+                */
+                --
+                v:null()      { Expression::Const(v.into()) }
+                v:boolean()   { Expression::Const(v.into()) }
+                v:number()    { Expression::Const(v.into()) }
+                v:string()    { Expression::Const(v.into()) }
+                // i:ident()   { Reference(i.into()) }
+
+                "[" _ l:(expr() ** (_ "," _)) _ "]" {
+                    ExpressionList::from_iter(l).into()
+                }
+
+                "<|" _
+                    elems:(
+                        (
+                            k:ident_or_quoted_string() _ ":" _ v:expr() {
+                                (ValueString::from(k.into_owned().into_boxed_str()),v)
+                            }
+                        ) ** (_ "," _)
+                    )
+                _ "|>" {
+                    ExpressionMap::from_iter(elems).into()
+                }
+
+                "(" _ e:expr() _ ")" { e }
+
+                "{" inner:scope_inner() "}" { inner.into() }
+            }
+            / expected!("expression")
+
         // --- SCALARS ---
 
         /// A null value
@@ -263,6 +342,24 @@ peg::parser! {
         /// A string literal
         rule quoted_string() -> std::borrow::Cow<'input,str>
             = ['"'] s:escaped_string_inner() ['"'] { s }
+
+
+        /// An identifier
+        rule ident() -> &'input IdentStr
+            = i:$(
+                (['a'..='z'|'A'..='Z'] / ['_']+ ['0'..='9'|'a'..='z'|'A'..='Z'])
+                ['0'..='9'|'a'..='z'|'A'..='Z'|'_']*
+            ) {? IdentStr::new(i).ok_or("identifier") }
+
+
+        /// Either a identifier or a wuoted string literal
+        rule ident_or_quoted_string() -> std::borrow::Cow<'input,str>
+            = i: ident()         { Cow::Borrowed(&**i) }
+            / s: quoted_string() { s }
+
+        // --- Inner of a scope `{}`. Also the content of a file
+        pub rule scope_inner() -> ExpressionScope
+            = _ exprs: ( e:expr() _ [';'] {e} ) ** _ last:(_ e:expr() {e})? _ { ExpressionScope::new(exprs.into(), last.unwrap_or(Value::Null(ValueNull).into())).into() }
 
 
         /// Parse whitespace and comments, discarding them
