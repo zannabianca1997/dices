@@ -220,24 +220,60 @@ pub(super) fn mult<R>(
     }
 }
 
-fn div<R>(_context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {
-    let [a, b] = ops_to_i64(BinOp::Div, [a, b])?;
-    Ok(Value::Number(
-        i64::checked_div(a, b).ok_or(SolveError::Overflow)?.into(),
-    ))
-}
-
 fn sub<R>(context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {
     // delegate to add and unary `-`
     let b = neg(context, b)?;
     add(context, a, b)
 }
 
-fn rem<R>(_context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {
-    let [a, b] = ops_to_i64(BinOp::Rem, [a, b])?;
-    Ok(Value::Number(
-        i64::checked_rem(a, b).ok_or(SolveError::Overflow)?.into(),
-    ))
+fn div<R>(context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {
+    match a {
+        Value::List(mut l) => {
+            for el in l.iter_mut() {
+                let a = mem::replace(el, ValueNull.into());
+                *el = div(context, a, b.clone())?;
+            }
+            Ok(l.into())
+        }
+        Value::Map(mut m) => {
+            for (_, el) in m.iter_mut() {
+                let a = mem::replace(el, ValueNull.into());
+                *el = div(context, a, b.clone())?;
+            }
+            Ok(m.into())
+        }
+        _ => {
+            let [a, b] = ops_to_i64(BinOp::Div, [a, b])?;
+            Ok(Value::Number(
+                i64::checked_div(a, b).ok_or(SolveError::Overflow)?.into(),
+            ))
+        }
+    }
+}
+
+fn rem<R>(context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {
+    match a {
+        Value::List(mut l) => {
+            for el in l.iter_mut() {
+                let a = mem::replace(el, ValueNull.into());
+                *el = rem(context, a, b.clone())?;
+            }
+            Ok(l.into())
+        }
+        Value::Map(mut m) => {
+            for (_, el) in m.iter_mut() {
+                let a = mem::replace(el, ValueNull.into());
+                *el = rem(context, a, b.clone())?;
+            }
+            Ok(m.into())
+        }
+        _ => {
+            let [a, b] = ops_to_i64(BinOp::Rem, [a, b])?;
+            Ok(Value::Number(
+                i64::checked_rem(a, b).ok_or(SolveError::Overflow)?.into(),
+            ))
+        }
+    }
 }
 
 fn join<R>(_context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {
