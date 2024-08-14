@@ -1,11 +1,12 @@
 use itertools::Itertools;
+use un_ops::neg;
 
 use super::*;
 
 impl Solvable for ExpressionBinOp {
     type Error = SolveError;
 
-    fn solve<R>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
         let ExpressionBinOp {
             op,
             expressions: box [a, b],
@@ -44,7 +45,7 @@ impl Solvable for ExpressionBinOp {
     }
 }
 
-fn repeats<R>(
+fn repeats<R: Rng>(
     context: &mut crate::Context<R>,
     a: &Expression,
     n: &Expression,
@@ -73,14 +74,22 @@ fn ops_to_i64(op: BinOp, [a, b]: [Value; 2]) -> Result<[i64; 2], SolveError> {
     ])
 }
 
-fn add<R>(_context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {
+pub(super) fn add<R>(
+    _context: &mut crate::Context<R>,
+    a: Value,
+    b: Value,
+) -> Result<Value, SolveError> {
     let [a, b] = ops_to_i64(BinOp::Add, [a, b])?;
     Ok(Value::Number(
         i64::checked_add(a, b).ok_or(SolveError::Overflow)?.into(),
     ))
 }
 
-fn mult<R>(_context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {
+pub(super) fn mult<R>(
+    _context: &mut crate::Context<R>,
+    a: Value,
+    b: Value,
+) -> Result<Value, SolveError> {
     let [a, b] = ops_to_i64(BinOp::Mult, [a, b])?;
     Ok(Value::Number(
         i64::checked_mul(a, b).ok_or(SolveError::Overflow)?.into(),
@@ -94,11 +103,10 @@ fn div<R>(_context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value,
     ))
 }
 
-fn sub<R>(_context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {
-    let [a, b] = ops_to_i64(BinOp::Sub, [a, b])?;
-    Ok(Value::Number(
-        i64::checked_sub(a, b).ok_or(SolveError::Overflow)?.into(),
-    ))
+fn sub<R>(context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {
+    // delegate to add and unary `-`
+    let b = neg(context, b)?;
+    add(context, a, b)
 }
 
 fn rem<R>(_context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {

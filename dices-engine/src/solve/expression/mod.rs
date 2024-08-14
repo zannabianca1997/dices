@@ -11,6 +11,7 @@ use dices_ast::{
     },
     values::{ToListError, ToNumberError, Value},
 };
+use rand::Rng;
 
 use crate::Solvable;
 
@@ -58,6 +59,16 @@ pub enum SolveError {
         #[error(source)]
         source: TryFromIntError,
     },
+    #[display("The number of dice faces must be a number")]
+    FacesAreNotANumber {
+        #[error(source)]
+        source: ToNumberError,
+    },
+    #[display("The number of dice faces must be positive")]
+    FacesMustBePositive {
+        #[error(source)]
+        source: TryFromIntError,
+    },
 }
 impl From<!> for SolveError {
     fn from(value: !) -> Self {
@@ -68,7 +79,7 @@ impl From<!> for SolveError {
 impl Solvable for Expression {
     type Error = SolveError;
 
-    fn solve<R>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
         Ok(match self {
             Expression::Const(e) => e.solve(context)?,
             Expression::List(e) => e.solve(context)?,
@@ -85,7 +96,7 @@ impl Solvable for Expression {
 impl Solvable for ExpressionList {
     type Error = SolveError;
 
-    fn solve<R>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
         Ok(Value::List(
             self.iter().map(|i| i.solve(context)).try_collect()?,
         ))
@@ -95,7 +106,7 @@ impl Solvable for ExpressionList {
 impl Solvable for ExpressionMap {
     type Error = SolveError;
 
-    fn solve<R>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
         Ok(Value::Map(
             self.iter()
                 .map(|(k, v)| v.solve(context).map(|v| (k.clone(), v)))
@@ -110,7 +121,7 @@ mod un_ops;
 impl Solvable for ExpressionClosure {
     type Error = SolveError;
 
-    fn solve<R>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
         todo!()
     }
 }
@@ -118,7 +129,7 @@ impl Solvable for ExpressionClosure {
 impl Solvable for ExpressionCall {
     type Error = SolveError;
 
-    fn solve<R>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
         todo!()
     }
 }
@@ -126,7 +137,7 @@ impl Solvable for ExpressionCall {
 impl Solvable for ExpressionScope {
     type Error = SolveError;
 
-    fn solve<R>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
         context.scoped(|context| {
             for expr in &*self.exprs {
                 expr.solve(context)?;
