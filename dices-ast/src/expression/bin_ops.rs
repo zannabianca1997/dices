@@ -1,9 +1,11 @@
 //! binary operations
 
+use derive_more::derive::Display;
+
 use super::Expression;
 
 /// An unary operator
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Display, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BinOp {
     /// `+`: Sum lists and maps, recursive
     Add,

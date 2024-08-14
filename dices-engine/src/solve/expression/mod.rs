@@ -1,13 +1,15 @@
 //! Implementations of Solvable on all types of expressions
 
-use derive_more::derive::{Display, Error, From};
+use std::num::TryFromIntError;
+
+use derive_more::derive::{Display, Error};
 use dices_ast::{
     expression::{
         bin_ops::{BinOp, EvalOrder},
         Expression, ExpressionBinOp, ExpressionCall, ExpressionClosure, ExpressionList,
         ExpressionMap, ExpressionScope, ExpressionUnOp,
     },
-    values::{ToNumberError, Value},
+    values::{ToListError, ToNumberError, Value},
 };
 
 use crate::Solvable;
@@ -17,7 +19,45 @@ pub enum SolveError {
     #[display("The number of repeats must be a number")]
     RepeatTimesNotANumber(#[error(source)] ToNumberError),
     #[display("The number of repeats must be positive")]
-    NegativeRepeats(#[error(source)] std::num::TryFromIntError),
+    NegativeRepeats(#[error(source)] TryFromIntError),
+    #[display("The operator {} needs a number at is right", op)]
+    RHSIsNotANumber {
+        op: BinOp,
+        #[error(source)]
+        source: ToNumberError,
+    },
+    #[display("The operator {} needs a number at is left", op)]
+    LHSIsNotANumber {
+        op: BinOp,
+        #[error(source)]
+        source: ToNumberError,
+    },
+    #[display("The operator {} needs a list at is right", op)]
+    RHSIsNotAList {
+        op: BinOp,
+        #[error(source)]
+        source: ToListError,
+    },
+    #[display("The operator {} needs a list at is left", op)]
+    LHSIsNotAList {
+        op: BinOp,
+        #[error(source)]
+        source: ToListError,
+    },
+    #[display("Integer overflow")]
+    Overflow,
+    #[display("The filter operator {} needs a list of number at his left", op)]
+    FilterNeedNumber {
+        op: BinOp,
+        #[error(source)]
+        source: ToNumberError,
+    },
+    #[display("The filter operator {} needs a positive number at his right", op)]
+    FilterNeedPositive {
+        op: BinOp,
+        #[error(source)]
+        source: TryFromIntError,
+    },
 }
 impl From<!> for SolveError {
     fn from(value: !) -> Self {
@@ -64,55 +104,8 @@ impl Solvable for ExpressionMap {
     }
 }
 
-impl Solvable for ExpressionBinOp {
-    type Error = SolveError;
-
-    fn solve<R>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
-        let ExpressionBinOp {
-            op,
-            expressions: box [a, b],
-        } = self;
-        let [a, b] = match op.eval_order() {
-            Some(EvalOrder::AB) => {
-                let a = a.solve(context)?;
-                let b = b.solve(context)?;
-                [a, b]
-            }
-            Some(EvalOrder::BA) => {
-                let b = b.solve(context)?;
-                let a = a.solve(context)?;
-                [a, b]
-            }
-            None => {
-                let BinOp::Repeat = op else {
-                    unreachable!("The only special order should be `Repeat`")
-                };
-
-                // finding out the number of repeats
-                let repeats: i64 = b
-                    .solve(context)?
-                    .to_number()
-                    .map_err(SolveError::RepeatTimesNotANumber)?
-                    .into();
-                let repeats: u64 = repeats
-                    .try_into()
-                    .map_err(|err| SolveError::NegativeRepeats(err))?;
-
-                return Ok(Value::List(
-                    (0..repeats).map(|_| a.solve(context)).try_collect()?,
-                ));
-            }
-        };
-        todo!()
-    }
-}
-impl Solvable for ExpressionUnOp {
-    type Error = SolveError;
-
-    fn solve<R>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
-        todo!()
-    }
-}
+mod bin_ops;
+mod un_ops;
 
 impl Solvable for ExpressionClosure {
     type Error = SolveError;
