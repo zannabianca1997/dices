@@ -13,9 +13,9 @@ use dices_ast::{
 };
 use rand::Rng;
 
-use crate::Solvable;
+use crate::solve::Solvable;
 
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Display, Error, Clone)]
 pub enum SolveError {
     #[display("The number of repeats must be a number")]
     RepeatTimesNotANumber(#[error(source)] ToNumberError),
@@ -145,11 +145,17 @@ impl Solvable for ExpressionScope {
     type Error = SolveError;
 
     fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
-        context.scoped(|context| {
-            for expr in &*self.exprs {
-                expr.solve(context)?;
-            }
-            self.last.solve(context)
-        })
+        context.scoped(|context| solve_unscoped(self, context))
     }
+}
+
+/// Solve the inner part of a scoped expression, without actually scoping
+pub fn solve_unscoped<R: Rng>(
+    scope: &ExpressionScope,
+    context: &mut crate::Context<R>,
+) -> Result<Value, SolveError> {
+    for expr in &*scope.exprs {
+        expr.solve(context)?;
+    }
+    scope.last.solve(context)
 }

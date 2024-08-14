@@ -8,7 +8,7 @@ use super::*;
 impl Solvable for ExpressionUnOp {
     type Error = SolveError;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, SolveError> {
         let ExpressionUnOp {
             op,
             expression: box a,

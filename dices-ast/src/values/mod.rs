@@ -81,7 +81,7 @@ impl Value {
     }
 }
 
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Display, Error, Clone)]
 pub enum ToNumberError {
     #[display("The string cannot be converted in a number")]
     InvalidString(#[error(source)] ParseIntError),
@@ -97,7 +97,7 @@ pub enum ToNumberError {
     InvalidNull,
 }
 
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Display, Error, Clone)]
 pub enum ToListError {}
 
 #[cfg(test)]

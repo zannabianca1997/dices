@@ -375,6 +375,8 @@ peg::parser! {
 
 }
 
-pub fn parse_file(src: &str) -> Result<ExpressionScope, ParseError<LineCol>> {
+pub type Error = ParseError<LineCol>;
+
+pub fn parse_file(src: &str) -> Result<ExpressionScope, Error> {
     expression::scope_inner(src)
 }

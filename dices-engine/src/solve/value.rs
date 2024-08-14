@@ -5,7 +5,7 @@ use dices_ast::values::*;
 macro_rules! trivial_impl {
         ( $( $type:ty ),* ) => {
             $(
-                impl crate::Solvable for $type {
+                impl crate::solve::Solvable for $type {
                     type Error = !;
 
                     fn solve<R>(
@@ -30,7 +30,7 @@ trivial_impl!(
     ValueNull
 );
 
-impl crate::Solvable for ValueClosure {
+impl crate::solve::Solvable for ValueClosure {
     type Error = !;
 
     fn solve<R>(&self, _context: &mut crate::Context<R>) -> Result<Value, Self::Error> {

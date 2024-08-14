@@ -9,7 +9,7 @@ use super::*;
 impl Solvable for ExpressionBinOp {
     type Error = SolveError;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, SolveError> {
         let ExpressionBinOp {
             op,
             expressions: box [a, b],
