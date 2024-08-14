@@ -112,7 +112,7 @@ pub(super) fn mult<R>(
         ) => {
             let [a, b] = ops_to_i64(BinOp::Add, [a, b])?;
             Ok(Value::Number(
-                i64::checked_add(a, b).ok_or(SolveError::Overflow)?.into(),
+                i64::checked_mul(a, b).ok_or(SolveError::Overflow)?.into(),
             ))
         }
         // scalar and not
