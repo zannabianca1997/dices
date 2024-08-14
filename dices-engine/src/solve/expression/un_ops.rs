@@ -1,6 +1,6 @@
 use bin_ops::{add, mult};
 use dices_ast::expression::un_ops::UnOp;
-use itertools::concat;
+use itertools::Itertools;
 use rand::Rng;
 
 use super::*;
@@ -22,9 +22,32 @@ impl Solvable for ExpressionUnOp {
     }
 }
 
-fn plus<R>(context: &mut crate::Context<R>, a: Value) -> Result<Value, SolveError> {
-    // delegating to the binary plus
-    add(context, Value::Number(0.into()), a)
+pub(crate) fn plus<R>(context: &mut crate::Context<R>, a: Value) -> Result<Value, SolveError> {
+    Ok(match a {
+        // scalars will be converted to numbers
+        Value::Null(_)
+        | Value::Bool(_)
+        | Value::Number(_)
+        | Value::String(_)
+        | Value::Intrisic(_)
+        | Value::Closure(_) => a
+            .to_number()
+            .map_err(|source| SolveError::CannotMakeANumber { source })?
+            .into(),
+        // List and maps are summed recursively
+        Value::List(l) => l
+            .into_iter()
+            .map(Ok)
+            .tree_reduce(|a, b| add(context, a?, b?))
+            .transpose()?
+            .unwrap_or(Value::Number(0.into())),
+        Value::Map(m) => m
+            .into_iter()
+            .map(|(_, v)| Ok(v))
+            .tree_reduce(|a, b| add(context, a?, b?))
+            .transpose()?
+            .unwrap_or(Value::Number(0.into())),
+    })
 }
 
 pub(super) fn neg<R>(context: &mut crate::Context<R>, a: Value) -> Result<Value, SolveError> {

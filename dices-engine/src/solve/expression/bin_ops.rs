@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use un_ops::neg;
+use un_ops::{neg, plus};
 
 use super::*;
 
@@ -75,11 +75,12 @@ fn ops_to_i64(op: BinOp, [a, b]: [Value; 2]) -> Result<[i64; 2], SolveError> {
 }
 
 pub(super) fn add<R>(
-    _context: &mut crate::Context<R>,
+    context: &mut crate::Context<R>,
     a: Value,
     b: Value,
 ) -> Result<Value, SolveError> {
-    let [a, b] = ops_to_i64(BinOp::Add, [a, b])?;
+    let a = plus(context, a)?.to_number().unwrap().into();
+    let b = plus(context, b)?.to_number().unwrap().into();
     Ok(Value::Number(
         i64::checked_add(a, b).ok_or(SolveError::Overflow)?.into(),
     ))

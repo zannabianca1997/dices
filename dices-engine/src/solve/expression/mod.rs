@@ -69,6 +69,11 @@ pub enum SolveError {
         #[error(source)]
         source: TryFromIntError,
     },
+    #[display("Cannot convert into a number")]
+    CannotMakeANumber {
+        #[error(source)]
+        source: ToNumberError,
+    },
 }
 impl From<!> for SolveError {
     fn from(value: !) -> Self {

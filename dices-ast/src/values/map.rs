@@ -56,3 +56,12 @@ impl FromIterator<(ValueString, Value)> for ValueMap {
         Self(FromIterator::from_iter(iter))
     }
 }
+impl IntoIterator for ValueMap {
+    type Item = (ValueString, Value);
+
+    type IntoIter = <BTreeMap<ValueString, Value> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
