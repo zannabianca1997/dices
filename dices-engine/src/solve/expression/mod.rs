@@ -9,6 +9,7 @@ use dices_ast::{
         Expression, ExpressionBinOp, ExpressionCall, ExpressionClosure, ExpressionList,
         ExpressionMap, ExpressionScope, ExpressionUnOp,
     },
+    ident::IdentStr,
     values::{ToListError, ToNumberError, Value},
 };
 use rand::Rng;
@@ -76,6 +77,8 @@ pub enum SolveError {
     },
     #[display("`*` operator need at least one scalar")]
     MultNeedAScalar,
+    #[display("Undefined variable {}", 0)]
+    InvalidReference(#[error(not(source))] Box<IdentStr>),
 }
 impl From<!> for SolveError {
     fn from(value: !) -> Self {
@@ -123,15 +126,8 @@ impl Solvable for ExpressionMap {
 }
 
 mod bin_ops;
+mod closures;
 mod un_ops;
-
-impl Solvable for ExpressionClosure {
-    type Error = SolveError;
-
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
-        todo!()
-    }
-}
 
 impl Solvable for ExpressionCall {
     type Error = SolveError;

@@ -1,6 +1,6 @@
 //! Value enclosing an expression
 
-use std::fmt::Display;
+use std::{collections::BTreeMap, fmt::Display};
 
 use crate::{expression::Expression, ident::IdentStr, values::number::ValueNumber};
 
@@ -20,7 +20,7 @@ use super::{list::ValueList, ToNumberError, Value};
 )]
 pub struct ValueClosure {
     pub params: Box<[Box<IdentStr>]>,
-    pub captured: Box<[(Box<IdentStr>, Value)]>,
+    pub captures: BTreeMap<Box<IdentStr>, Value>,
     pub body: Expression,
 }
 impl ValueClosure {
@@ -40,8 +40,8 @@ impl Display for ValueClosure {
         } else {
             write!(f, " with {} parameters", self.params.len())?
         };
-        if !self.captured.is_empty() {
-            write!(f, " (captured {} values)", self.captured.len())?
+        if !self.captures.is_empty() {
+            write!(f, " (captured {} values)", self.captures.len())?
         };
         write!(f, ">")?;
         Ok(())
