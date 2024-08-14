@@ -74,6 +74,8 @@ pub enum SolveError {
         #[error(source)]
         source: ToNumberError,
     },
+    #[display("`*` operator need at least one scalar")]
+    MultNeedAScalar,
 }
 impl From<!> for SolveError {
     fn from(value: !) -> Self {

@@ -52,7 +52,7 @@ pub(crate) fn plus<R>(context: &mut crate::Context<R>, a: Value) -> Result<Value
 
 pub(super) fn neg<R>(context: &mut crate::Context<R>, a: Value) -> Result<Value, SolveError> {
     // delegating to the mult op
-    mult(context, a, Value::Number((-1).into()))
+    mult(context, Value::Number((-1).into()), a)
 }
 
 fn dice<R: Rng>(context: &mut crate::Context<R>, a: Value) -> Result<Value, SolveError> {

@@ -33,6 +33,13 @@ impl ValueList {
     pub fn len(&self) -> usize {
         self.0.len()
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Value> {
+        self.0.iter()
+    }
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Value> {
+        self.0.iter_mut()
+    }
 }
 
 impl Display for ValueList {

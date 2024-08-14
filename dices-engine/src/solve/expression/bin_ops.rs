@@ -1,3 +1,6 @@
+use std::mem;
+
+use dices_ast::values::ValueNull;
 use itertools::Itertools;
 use un_ops::{neg, plus};
 
@@ -91,10 +94,130 @@ pub(super) fn mult<R>(
     a: Value,
     b: Value,
 ) -> Result<Value, SolveError> {
-    let [a, b] = ops_to_i64(BinOp::Mult, [a, b])?;
-    Ok(Value::Number(
-        i64::checked_mul(a, b).ok_or(SolveError::Overflow)?.into(),
-    ))
+    match (a, b) {
+        // scalar and scalar
+        (
+            a @ (Value::Null(_)
+            | Value::Bool(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Intrisic(_)
+            | Value::Closure(_)),
+            b @ (Value::Null(_)
+            | Value::Bool(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Intrisic(_)
+            | Value::Closure(_)),
+        ) => {
+            let [a, b] = ops_to_i64(BinOp::Add, [a, b])?;
+            Ok(Value::Number(
+                i64::checked_add(a, b).ok_or(SolveError::Overflow)?.into(),
+            ))
+        }
+        // scalar and not
+        (
+            s @ (Value::Null(_)
+            | Value::Bool(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Intrisic(_)
+            | Value::Closure(_)),
+            Value::List(mut l),
+        ) => {
+            let s: Value = s
+                .to_number()
+                .map_err(|source| SolveError::LHSIsNotANumber {
+                    op: BinOp::Mult,
+                    source,
+                })?
+                .into();
+
+            for el in l.iter_mut() {
+                let v = mem::replace(el, ValueNull.into());
+                *el = mult(_context, s.clone(), v)?;
+            }
+
+            Ok(l.into())
+        }
+        (
+            Value::List(mut l),
+            s @ (Value::Null(_)
+            | Value::Bool(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Intrisic(_)
+            | Value::Closure(_)),
+        ) => {
+            let s: Value = s
+                .to_number()
+                .map_err(|source| SolveError::RHSIsNotANumber {
+                    op: BinOp::Mult,
+                    source,
+                })?
+                .into();
+
+            for el in l.iter_mut() {
+                let v = mem::replace(el, ValueNull.into());
+                *el = mult(_context, v, s.clone())?;
+            }
+
+            Ok(l.into())
+        }
+        (
+            s @ (Value::Null(_)
+            | Value::Bool(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Intrisic(_)
+            | Value::Closure(_)),
+            Value::Map(mut m),
+        ) => {
+            let s: Value = s
+                .to_number()
+                .map_err(|source| SolveError::LHSIsNotANumber {
+                    op: BinOp::Mult,
+                    source,
+                })?
+                .into();
+
+            for (_, el) in m.iter_mut() {
+                let v = mem::replace(el, ValueNull.into());
+                *el = mult(_context, s.clone(), v)?;
+            }
+
+            Ok(m.into())
+        }
+        (
+            Value::Map(mut m),
+            s @ (Value::Null(_)
+            | Value::Bool(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Intrisic(_)
+            | Value::Closure(_)),
+        ) => {
+            let s: Value = s
+                .to_number()
+                .map_err(|source| SolveError::RHSIsNotANumber {
+                    op: BinOp::Mult,
+                    source,
+                })?
+                .into();
+
+            for (_, el) in m.iter_mut() {
+                let v = mem::replace(el, ValueNull.into());
+                *el = mult(_context, v, s.clone())?;
+            }
+
+            Ok(m.into())
+        }
+
+        // double not scalar
+        (Value::List(_) | Value::Map(_), Value::List(_) | Value::Map(_)) => {
+            Err(SolveError::MultNeedAScalar)
+        }
+    }
 }
 
 fn div<R>(_context: &mut crate::Context<R>, a: Value, b: Value) -> Result<Value, SolveError> {
