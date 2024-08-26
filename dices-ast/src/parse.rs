@@ -8,7 +8,8 @@ use peg::{error::ParseError, str::LineCol};
 use crate::{
     expression::{
         bin_ops::BinOp, un_ops::UnOp, Expression, ExpressionBinOp, ExpressionCall,
-        ExpressionClosure, ExpressionList, ExpressionMap, ExpressionScope, ExpressionUnOp,
+        ExpressionClosure, ExpressionList, ExpressionMap, ExpressionRef, ExpressionScope,
+        ExpressionSet, ExpressionUnOp, Receiver,
     },
     ident::IdentStr,
     values::*,
@@ -101,13 +102,13 @@ peg::parser! {
 
         /// A string literal
         rule quoted_string() -> std::borrow::Cow<'input,str>
-            = ['"'] s:escaped_string_inner() ['"'] { s }
+            = "\"" s:escaped_string_inner() "\"" { s }
 
         // --- LISTS ---
 
         /// A list of values
         pub rule list() -> ValueList
-            = ['['] _ items:(value() ** (_ [','] _)) _ ([','] _)? [']'] {
+            = "[" _ items:(value() ** (_ "," _)) _ ("," _)? "]" {
                 ValueList::from_iter(items)
             }
 
@@ -116,10 +117,10 @@ peg::parser! {
         /// A map of strings to values
         pub rule map() -> ValueMap
             = "<|" _ kvs: (
-                k: ident_or_quoted_string() _ [':'] _ v:value() {
+                k: ident_or_quoted_string() _ ":" _ v:value() {
                     (ValueString::from(k.into_owned().into_boxed_str()), v)
                 }
-            ) ** (_ [','] _) _ ([','] _)? "|>" { kvs.into_iter().collect() }
+            ) ** (_ "," _) _ ("," _)? "|>" { kvs.into_iter().collect() }
 
         /// An identifier
         rule ident() -> &'input IdentStr
@@ -206,8 +207,8 @@ peg::parser! {
 
         rule expr() -> Expression
             = precedence!{
-                // receiver:receiver() _ "=" _ value:@ { Set { receiver, value: Box::new(value) }}
-                // --
+                receiver:receiver() _ "=" _ value:@ { ExpressionSet{ receiver, value: Box::new(value) }.into()}
+                --
                 "|" _ p:( ident()  ** ( _ "," _ ) ) _ "|" _ body:@ {
                     ExpressionClosure::new(p.into_iter().map(|p| p.to_owned()).collect(), body).into()
                 }
@@ -222,16 +223,16 @@ peg::parser! {
                 a:(@) _ "%" _ b:@ { ExpressionBinOp::new(BinOp::Rem, a,b).into() }
                 --
                 a:(@) _ "^" _ b:@  { ExpressionBinOp::new(BinOp::Repeat, a,b).into() }
-                a:(@) _ "kh" _ b:@ { ExpressionBinOp::new(BinOp::KeepHigh, a,b).into() }
-                a:(@) _ "kl" _ b:@ { ExpressionBinOp::new(BinOp::KeepLow, a,b).into() }
-                a:(@) _ "rh" _ b:@ { ExpressionBinOp::new(BinOp::RemoveHigh, a,b).into() }
-                a:(@) _ "rl" _ b:@ { ExpressionBinOp::new(BinOp::RemoveLow, a,b).into() }
+                a:(@) _ !ident() "kh" _ b:@ { ExpressionBinOp::new(BinOp::KeepHigh, a,b).into() }
+                a:(@) _ !ident() "kl" _ b:@ { ExpressionBinOp::new(BinOp::KeepLow, a,b).into() }
+                a:(@) _ !ident() "rh" _ b:@ { ExpressionBinOp::new(BinOp::RemoveHigh, a,b).into() }
+                a:(@) _ !ident() "rl" _ b:@ { ExpressionBinOp::new(BinOp::RemoveLow, a,b).into() }
                  --
                 "+" _ a:@ { ExpressionUnOp::new(UnOp::Plus, a).into() }
                 "-" _ a:@ { ExpressionUnOp::new(UnOp::Neg, a).into() }
                 --
-                "d" _ f:@ { ExpressionUnOp::new(UnOp::Dice, f).into() }
-                n:@ _ "d" _ f:(@) { ExpressionBinOp::new(BinOp::Repeat, ExpressionUnOp::new(UnOp::Dice, f).into(), n).into() }
+                !ident() "d" _ f:@ { ExpressionUnOp::new(UnOp::Dice, f).into() }
+                n:@ _ !ident() "d" _ f:(@) { ExpressionBinOp::new(BinOp::Repeat, ExpressionUnOp::new(UnOp::Dice, f).into(), n).into() }
                 --
                 f:@ _ "(" _ p:(expr() ** (_ "," _)) _ ")" {
                     ExpressionCall::new(f,p.into_boxed_slice()).into()
@@ -252,7 +253,8 @@ peg::parser! {
                 v:boolean()   { Expression::Const(v.into()) }
                 v:number()    { Expression::Const(v.into()) }
                 v:string()    { Expression::Const(v.into()) }
-                // i:ident()   { Reference(i.into()) }
+
+                name:ident()     { ExpressionRef { name:name.to_owned() }.into() }
 
                 "[" _ l:(expr() ** (_ "," _)) _ "]" {
                     ExpressionList::from_iter(l).into()
@@ -275,6 +277,12 @@ peg::parser! {
                 "{" inner:scope_inner() "}" { inner.into() }
             }
             / expected!("expression")
+
+        // -- LHS
+        rule receiver() -> Receiver
+         = "_"               { Receiver::Ignore }
+         / "let" _ i:ident() { Receiver::Let(i.to_owned()) }
+         / i:ident()         { Receiver::Set(i.to_owned()) }
 
         // --- SCALARS ---
 
@@ -341,7 +349,7 @@ peg::parser! {
 
         /// A string literal
         rule quoted_string() -> std::borrow::Cow<'input,str>
-            = ['"'] s:escaped_string_inner() ['"'] { s }
+            = "\"" s:escaped_string_inner() "\"" { s }
 
 
         /// An identifier
@@ -359,7 +367,7 @@ peg::parser! {
 
         // --- Inner of a scope `{}`. Also the content of a file
         pub rule scope_inner() -> ExpressionScope
-            = _ exprs: ( e:expr() _ [';'] {e} ) ** _ last:(_ e:expr() {e})? _ { ExpressionScope::new(exprs.into(), last.unwrap_or(Value::Null(ValueNull).into())).into() }
+            = _ exprs: ( e:expr() _ ";" {e} ) ** _ last:(_ e:expr() {e})? _ { ExpressionScope::new(exprs.into(), last.unwrap_or(Value::Null(ValueNull).into())).into() }
 
 
         /// Parse whitespace and comments, discarding them

@@ -6,8 +6,9 @@ use derive_more::derive::{Display, Error, From};
 use dices_ast::{
     expression::{
         bin_ops::{BinOp, EvalOrder},
+        set::Receiver,
         Expression, ExpressionBinOp, ExpressionCall, ExpressionClosure, ExpressionList,
-        ExpressionMap, ExpressionScope, ExpressionUnOp,
+        ExpressionMap, ExpressionRef, ExpressionScope, ExpressionSet, ExpressionUnOp,
     },
     ident::IdentStr,
     values::{ToListError, ToNumberError, Value, ValueClosure},
@@ -77,9 +78,9 @@ pub enum SolveError {
     },
     #[display("`*` operator need at least one scalar")]
     MultNeedAScalar,
-    #[display("Undefined variable {}", 0)]
+    #[display("Undefined variable {_0}")]
     InvalidReference(#[error(not(source))] Box<IdentStr>),
-    #[display("{} is not callable", 0)]
+    #[display("{_0} is not callable")]
     NotCallable(#[error(not(source))] Value),
     #[display("Error during intrisic call")]
     IntrisicError(intrisics::IntrisicError),
@@ -105,6 +106,8 @@ impl Solvable for Expression {
             Expression::BinOp(e) => e.solve(context)?,
             Expression::Call(e) => e.solve(context)?,
             Expression::Scope(e) => e.solve(context)?,
+            Expression::Set(e) => e.solve(context)?,
+            Expression::Ref(e) => e.solve(context)?,
         })
     }
 }
@@ -138,10 +141,7 @@ mod intrisics {
     //! Intrisic operations
 
     use derive_more::derive::{Display, Error};
-    use dices_ast::{
-        intrisics::Intrisic,
-        values::{Value, ValueIntrisic},
-    };
+    use dices_ast::values::{Value, ValueIntrisic};
     use rand::Rng;
 
     #[derive(Debug, Display, Error, Clone)]
@@ -217,4 +217,36 @@ pub fn solve_unscoped<R: Rng>(
         expr.solve(context)?;
     }
     scope.last.solve(context)
+}
+
+impl Solvable for ExpressionSet {
+    type Error = SolveError;
+
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+        let value = self.value.solve(context)?;
+
+        match &self.receiver {
+            Receiver::Ignore => (),
+            Receiver::Set(box v) => {
+                *context
+                    .vars_mut()
+                    .get_mut(v)
+                    .ok_or_else(|| SolveError::InvalidReference(v.to_owned()))? = value.clone();
+            }
+            Receiver::Let(box v) => context.vars_mut().let_(v.to_owned(), value.clone()),
+        }
+
+        Ok(value)
+    }
+}
+impl Solvable for ExpressionRef {
+    type Error = SolveError;
+
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+        context
+            .vars()
+            .get(&self.name)
+            .cloned() // todo: is this clone lightweight?
+            .ok_or_else(|| SolveError::InvalidReference(self.name.to_owned()))
+    }
 }

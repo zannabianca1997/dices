@@ -5,7 +5,7 @@ use lazy_regex::{regex, Lazy, Regex};
 use phf::phf_set;
 
 static IDENT_RE: &Lazy<Regex> = regex!(r"^(?:[a-zA-Z]|_+[a-zA-Z0-9])[_a-zA-Z0-9]*$");
-static KEYWORDS: phf::Set<&'static str> = phf_set!("d", "kh", "kl", "rh", "rl");
+static KEYWORDS: phf::Set<&'static str> = phf_set!("d", "kh", "kl", "rh", "rl", "let");
 
 pub fn is_valid_ident(s: &str) -> bool {
     IDENT_RE.is_match(s) && !KEYWORDS.contains(s)

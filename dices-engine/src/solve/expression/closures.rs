@@ -6,6 +6,7 @@ use rand::Rng;
 use dices_ast::{
     expression::{
         bin_ops::{BinOp, EvalOrder},
+        set::Receiver,
         un_ops::UnOp,
         Expression, ExpressionClosure,
     },
@@ -131,6 +132,15 @@ impl<'e> VarUse<'e> {
                 .tree_reduce(VarUse::concat)
                 .unwrap_or_else(VarUse::none)
                 .scoped(),
+            Expression::Set(s) => {
+                Self::concat(
+                    // first, the value is calculated
+                    Self::of(&s.value),
+                    // then, the receiver act
+                    Self::receiving(&s.receiver),
+                )
+            }
+            Expression::Ref(s) => Self::reads(&s.name),
         }
     }
 
@@ -206,6 +216,15 @@ impl<'e> VarUse<'e> {
             // the lets are created in the scope, and do not escape
             lets: HashSet::new(),
             ..self
+        }
+    }
+
+    /// Calculate the variable use of a receiver
+    fn receiving(receiver: &'e Receiver) -> Self {
+        match receiver {
+            Receiver::Ignore => Self::none(),
+            Receiver::Set(box var) => Self::sets(var),
+            Receiver::Let(box var) => Self::lets(var),
         }
     }
 }
