@@ -124,14 +124,13 @@ impl<'e> VarUse<'e> {
                 .tree_reduce(VarUse::concat)
                 .unwrap_or_else(VarUse::none),
             // instruction in order, scoped
-            Expression::Scope(s) => s
-                .exprs
-                .iter()
-                .chain(once(&*s.last))
-                .map(VarUse::of)
-                .tree_reduce(VarUse::concat)
-                .unwrap_or_else(VarUse::none)
-                .scoped(),
+            Expression::Scope(s) => {
+                s.0.iter()
+                    .map(VarUse::of)
+                    .tree_reduce(VarUse::concat)
+                    .unwrap_or_else(|| unreachable!("The scope should be non empty"))
+                    .scoped()
+            }
             Expression::Set(s) => {
                 Self::concat(
                     // first, the value is calculated

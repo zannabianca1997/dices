@@ -1,18 +1,13 @@
+use derive_more::derive::{From, Into};
+use nunny::NonEmpty;
+
 use super::Expression;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExpressionScope {
-    /// All the inner expressions except the last
-    pub exprs: Box<[Expression]>,
-    /// The last expression, and the one returned
-    pub last: Box<Expression>,
-}
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, From, Into)]
+pub struct ExpressionScope(pub Box<NonEmpty<[Expression]>>);
 
 impl ExpressionScope {
-    pub fn new(exprs: Box<[Expression]>, last: Expression) -> Self {
-        Self {
-            exprs,
-            last: Box::new(last),
-        }
+    pub fn new(exprs: Box<NonEmpty<[Expression]>>) -> Self {
+        Self(exprs)
     }
 }

@@ -77,6 +77,7 @@ dependencies = [
  "either",
  "itertools",
  "lazy-regex",
+ "nunny",
  "peg",
  "phf",
  "strum",
@@ -88,6 +89,7 @@ version = "0.1.0"
 dependencies = [
  "derive_more",
  "dices-ast",
+ "either",
  "itertools",
  "nunny",
  "rand",

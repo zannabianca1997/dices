@@ -9,3 +9,4 @@ dices-ast = { path = "../dices-ast" }
 itertools = "0.13.0"
 nunny = "0.2.1"
 rand = { version = "0.8.5", features = ["small_rng"] }
+either = "1.13.0"

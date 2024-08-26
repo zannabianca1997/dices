@@ -13,6 +13,7 @@ use dices_ast::{
     ident::IdentStr,
     values::{ToListError, ToNumberError, Value, ValueClosure},
 };
+use nunny::NonEmpty;
 use rand::Rng;
 
 use crate::solve::Solvable;
@@ -136,25 +137,8 @@ impl Solvable for ExpressionMap {
 
 mod bin_ops;
 mod closures;
+mod intrisics;
 mod un_ops;
-mod intrisics {
-    //! Intrisic operations
-
-    use derive_more::derive::{Display, Error};
-    use dices_ast::values::{Value, ValueIntrisic};
-    use rand::Rng;
-
-    #[derive(Debug, Display, Error, Clone)]
-    pub enum IntrisicError {}
-
-    pub(super) fn call<R: Rng>(
-        intrisic: ValueIntrisic,
-        context: &mut crate::Context<R>,
-        params: Box<[Value]>,
-    ) -> Result<Value, IntrisicError> {
-        todo!()
-    }
-}
 
 impl Solvable for ExpressionCall {
     type Error = SolveError;
@@ -204,19 +188,20 @@ impl Solvable for ExpressionScope {
     type Error = SolveError;
 
     fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
-        context.scoped(|context| solve_unscoped(self, context))
+        context.scoped(|context| solve_multiple(&self.0, context))
     }
 }
 
-/// Solve the inner part of a scoped expression, without actually scoping
-pub fn solve_unscoped<R: Rng>(
-    scope: &ExpressionScope,
+/// Solve multiple expressions, discarding the result of all but the last
+pub fn solve_multiple<R: Rng>(
+    scope: &NonEmpty<[Expression]>,
     context: &mut crate::Context<R>,
 ) -> Result<Value, SolveError> {
-    for expr in &*scope.exprs {
+    let (last, leading) = scope.split_last();
+    for expr in leading {
         expr.solve(context)?;
     }
-    scope.last.solve(context)
+    last.solve(context)
 }
 
 impl Solvable for ExpressionSet {

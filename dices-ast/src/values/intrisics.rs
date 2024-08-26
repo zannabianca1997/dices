@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use derive_more::derive::From;
+use derive_more::derive::{From, Into};
 
 use crate::intrisics::Intrisic;
 
@@ -20,6 +20,7 @@ use super::{ToListError, ToNumberError, ValueList, ValueNumber};
     Hash,
     // conversion
     From,
+    Into,
 )]
 pub struct ValueIntrisic(Intrisic);
 

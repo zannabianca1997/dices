@@ -3,6 +3,7 @@
 use std::{borrow::Cow, str::FromStr};
 
 use either::Either::{Left, Right};
+use nunny::NonEmpty;
 use peg::{error::ParseError, str::LineCol};
 
 use crate::{
@@ -274,7 +275,7 @@ peg::parser! {
 
                 "(" _ e:expr() _ ")" { e }
 
-                "{" inner:scope_inner() "}" { inner.into() }
+                "{" inner:scope_inner() "}" { Expression::Scope(inner.into()) }
             }
             / expected!("expression")
 
@@ -366,8 +367,12 @@ peg::parser! {
             / s: quoted_string() { s }
 
         // --- Inner of a scope `{}`. Also the content of a file
-        pub rule scope_inner() -> ExpressionScope
-            = _ exprs: ( e:expr() _ ";" {e} ) ** _ last:(_ e:expr() {e})? _ { ExpressionScope::new(exprs.into(), last.unwrap_or(Value::Null(ValueNull).into())).into() }
+        pub rule scope_inner() -> Box<NonEmpty<[Expression]>>
+            = _ exprs: ( e:expr() {e} / { Value::Null(ValueNull).into() } ) ** (_ ";" _) _ {
+                exprs.into_boxed_slice()
+                    .try_into()
+                    .unwrap_or_else(|_| nunny::vec![Value::Null(ValueNull).into()].into())
+            }
 
 
         /// Parse whitespace and comments, discarding them
@@ -385,6 +390,6 @@ peg::parser! {
 
 pub type Error = ParseError<LineCol>;
 
-pub fn parse_file(src: &str) -> Result<ExpressionScope, Error> {
+pub fn parse_file(src: &str) -> Result<Box<NonEmpty<[Expression]>>, Error> {
     expression::scope_inner(src)
 }
