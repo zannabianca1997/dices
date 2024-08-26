@@ -9,8 +9,8 @@ use peg::{error::ParseError, str::LineCol};
 use crate::{
     expression::{
         bin_ops::BinOp, un_ops::UnOp, Expression, ExpressionBinOp, ExpressionCall,
-        ExpressionClosure, ExpressionList, ExpressionMap, ExpressionRef, ExpressionScope,
-        ExpressionSet, ExpressionUnOp, Receiver,
+        ExpressionClosure, ExpressionList, ExpressionMap, ExpressionRef, ExpressionSet,
+        ExpressionUnOp, Receiver,
     },
     ident::IdentStr,
     values::*,

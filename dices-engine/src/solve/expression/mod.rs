@@ -2,13 +2,13 @@
 
 use std::num::TryFromIntError;
 
-use derive_more::derive::{Display, Error, From};
+use derive_more::derive::{Display, Error};
 use dices_ast::{
     expression::{
         bin_ops::{BinOp, EvalOrder},
         set::Receiver,
-        Expression, ExpressionBinOp, ExpressionCall, ExpressionClosure, ExpressionList,
-        ExpressionMap, ExpressionRef, ExpressionScope, ExpressionSet, ExpressionUnOp,
+        Expression, ExpressionBinOp, ExpressionCall, ExpressionList, ExpressionMap, ExpressionRef,
+        ExpressionScope, ExpressionSet, ExpressionUnOp,
     },
     ident::IdentStr,
     values::{ToListError, ToNumberError, Value, ValueClosure},

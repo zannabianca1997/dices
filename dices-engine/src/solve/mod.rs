@@ -1,7 +1,7 @@
 use either::Either::{self, Left, Right};
 use expression::solve_multiple;
 use nunny::NonEmpty;
-use rand::{Rng, RngCore, SeedableRng};
+use rand::{Rng, SeedableRng};
 
 use dices_ast::{expression::Expression, parse::parse_file, values::Value};
 
