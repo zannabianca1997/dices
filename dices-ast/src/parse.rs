@@ -224,16 +224,16 @@ peg::parser! {
                 a:(@) _ "%" _ b:@ { ExpressionBinOp::new(BinOp::Rem, a,b).into() }
                 --
                 a:(@) _ "^" _ b:@  { ExpressionBinOp::new(BinOp::Repeat, a,b).into() }
-                a:(@) _ !ident() "kh" _ b:@ { ExpressionBinOp::new(BinOp::KeepHigh, a,b).into() }
-                a:(@) _ !ident() "kl" _ b:@ { ExpressionBinOp::new(BinOp::KeepLow, a,b).into() }
-                a:(@) _ !ident() "rh" _ b:@ { ExpressionBinOp::new(BinOp::RemoveHigh, a,b).into() }
-                a:(@) _ !ident() "rl" _ b:@ { ExpressionBinOp::new(BinOp::RemoveLow, a,b).into() }
+                a:(@) _ "kh" !ident() _ b:@ { ExpressionBinOp::new(BinOp::KeepHigh, a,b).into() }
+                a:(@) _ "kl" !ident() _ b:@ { ExpressionBinOp::new(BinOp::KeepLow, a,b).into() }
+                a:(@) _ "rh" !ident() _ b:@ { ExpressionBinOp::new(BinOp::RemoveHigh, a,b).into() }
+                a:(@) _ "rl" !ident() _ b:@ { ExpressionBinOp::new(BinOp::RemoveLow, a,b).into() }
                  --
                 "+" _ a:@ { ExpressionUnOp::new(UnOp::Plus, a).into() }
                 "-" _ a:@ { ExpressionUnOp::new(UnOp::Neg, a).into() }
                 --
-                !ident() "d" _ f:@ { ExpressionUnOp::new(UnOp::Dice, f).into() }
-                n:@ _ !ident() "d" _ f:(@) { ExpressionBinOp::new(BinOp::Repeat, ExpressionUnOp::new(UnOp::Dice, f).into(), n).into() }
+                "d" !ident() _ f:@ { ExpressionUnOp::new(UnOp::Dice, f).into() }
+                n:@ _ "d" !ident() _ f:(@) { ExpressionBinOp::new(BinOp::Repeat, ExpressionUnOp::new(UnOp::Dice, f).into(), n).into() }
                 --
                 f:@ _ "(" _ p:(expr() ** (_ "," _)) _ ")" {
                     ExpressionCall::new(f,p.into_boxed_slice()).into()
