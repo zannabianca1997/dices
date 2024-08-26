@@ -2,6 +2,7 @@
 
 use std::num::TryFromIntError;
 
+use closures::VarUseCalcError;
 use derive_more::derive::{Display, Error};
 use dices_ast::{
     expression::{
@@ -87,6 +88,8 @@ pub enum SolveError {
     IntrisicError(intrisics::IntrisicError),
     #[display("Closures requires {required} params, {given} were instead provided.")]
     WrongNumberOfParams { required: usize, given: usize },
+    #[display("The closure failed to calculate what variables needed to be captured")]
+    ClosureCannotCalculateCaptures(VarUseCalcError),
 }
 impl From<!> for SolveError {
     fn from(value: !) -> Self {

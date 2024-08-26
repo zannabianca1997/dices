@@ -1,5 +1,6 @@
 use std::{collections::HashSet, iter::once};
 
+use derive_more::derive::{Display, Error};
 use itertools::Itertools;
 use rand::Rng;
 
@@ -24,6 +25,7 @@ impl Solvable for ExpressionClosure {
     fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
         // pull captures from the context
         let captures = captures(self)
+            .map_err(SolveError::ClosureCannotCalculateCaptures)?
             .into_iter()
             .map(|name| {
                 context
@@ -41,6 +43,14 @@ impl Solvable for ExpressionClosure {
     }
 }
 
+#[derive(Debug, Clone, Display, Error)]
+pub enum VarUseCalcError {
+    #[display("The variable(s) `{}` are declared only in some paths", vars.into_iter().format("`, `"))]
+    ConditionalLet { vars: HashSet<Box<IdentStr>> },
+    #[display("Cannot calculate the variables captured in the closure")]
+    CalculateCaptures(Box<VarUseCalcError>),
+}
+
 /// This struct contains the interactions that an expression has with all the variables
 #[derive(Debug, Clone)]
 struct VarUse<'e> {
@@ -54,64 +64,72 @@ struct VarUse<'e> {
 
 impl<'e> VarUse<'e> {
     /// Calculate the use of an expression
-    fn of(expr: &'e Expression) -> Self {
-        match expr {
+    fn of(expr: &'e Expression) -> Result<Self, VarUseCalcError> {
+        fn maybe_concat<'e>(
+            a: Result<VarUse<'e>, VarUseCalcError>,
+            b: Result<VarUse<'e>, VarUseCalcError>,
+        ) -> Result<VarUse<'e>, VarUseCalcError> {
+            match (a, b) {
+                (Ok(a), Ok(b)) => Ok(a.concat(b)),
+                // merge the two problems if compatibles
+                (
+                    Err(VarUseCalcError::ConditionalLet { vars: vars_a }),
+                    Err(VarUseCalcError::ConditionalLet { vars: vars_b }),
+                ) => Err(VarUseCalcError::ConditionalLet {
+                    vars: vars_a.into_iter().chain(vars_b).collect(),
+                }),
+                // return one of the two problems
+                (Err(err), _) | (_, Err(err)) => Err(err),
+            }
+        }
+
+        Ok(match expr {
             // const expression do not interact with the variables
             Expression::Const(_) => Self::none(),
 
             Expression::List(l) => l
                 .iter()
                 .map(VarUse::of)
-                .tree_reduce(VarUse::concat)
+                .tree_reduce(maybe_concat)
+                .transpose()?
                 .unwrap_or_else(VarUse::none),
             Expression::Map(m) => m
                 .iter()
                 .map(|(_, e)| VarUse::of(e))
-                .tree_reduce(VarUse::concat)
+                .tree_reduce(maybe_concat)
+                .transpose()?
                 .unwrap_or_else(VarUse::none),
 
             Expression::Closure(c) => VarUse {
-                reads: captures(c),
+                reads: captures(c)
+                    .map_err(|err| VarUseCalcError::CalculateCaptures(Box::new(err)))?,
                 sets: HashSet::new(),
                 lets: HashSet::new(),
             },
 
             Expression::UnOp(un_op) => match un_op.op {
-                UnOp::Plus | UnOp::Neg | UnOp::Dice => Self::of(&un_op.expression),
+                UnOp::Plus | UnOp::Neg | UnOp::Dice => Self::of(&un_op.expression)?,
             },
             Expression::BinOp(bin_op) => match bin_op.op.eval_order() {
                 Some(EvalOrder::AB) => Self::concat(
-                    Self::of(&bin_op.expressions[0]),
-                    Self::of(&bin_op.expressions[1]),
+                    Self::of(&bin_op.expressions[0])?,
+                    Self::of(&bin_op.expressions[1])?,
                 ),
                 Some(EvalOrder::BA) => Self::concat(
-                    Self::of(&bin_op.expressions[1]),
-                    Self::of(&bin_op.expressions[0]),
+                    Self::of(&bin_op.expressions[1])?,
+                    Self::of(&bin_op.expressions[0])?,
                 ),
                 None => match bin_op.op {
                     BinOp::Repeat => {
-                        unimplemented!("Conditional letting makes erroneous captures");
-                        /*
-                           An example of erroneus code:
-                           ```
-                               || {
-                                   (let x = 3)^0;
-                                   x
-                               }
-                           ```
-                           this should capture x, but fail because it thinks that x is defined in the repeat
-                        */
-
-                        /*
-                            // -- valid code for the n>0 case
-
-                            // concat(a,a) == a, so we can use `of(a^n) == of(n) * of(a)^n == of(n)*of(a)`
-                            // we could in theory eliminate the case `n == 0` but it won't hurt to add a
-                            Self::concat(
-                                Self::of(&bin_op.expressions[1]),
-                                Self::of(&bin_op.expressions[0]),
-                            )
-                        */
+                        let body_vars = Self::of(&bin_op.expressions[0])?;
+                        if body_vars.lets.is_empty() {
+                            let n_vars = Self::of(&bin_op.expressions[1])?;
+                            Self::concat(n_vars, body_vars)
+                        } else {
+                            return Err(VarUseCalcError::ConditionalLet {
+                                vars: body_vars.lets.into_iter().map(ToOwned::to_owned).collect(),
+                            });
+                        }
                     }
                     _ => unreachable!(),
                 },
@@ -121,26 +139,28 @@ impl<'e> VarUse<'e> {
             Expression::Call(c) => once(&*c.called)
                 .chain(c.params.iter())
                 .map(VarUse::of)
-                .tree_reduce(VarUse::concat)
+                .tree_reduce(maybe_concat)
+                .transpose()?
                 .unwrap_or_else(VarUse::none),
             // instruction in order, scoped
             Expression::Scope(s) => {
                 s.0.iter()
                     .map(VarUse::of)
-                    .tree_reduce(VarUse::concat)
+                    .tree_reduce(maybe_concat)
+                    .transpose()?
                     .unwrap_or_else(|| unreachable!("The scope should be non empty"))
                     .scoped()
             }
             Expression::Set(s) => {
                 Self::concat(
                     // first, the value is calculated
-                    Self::of(&s.value),
+                    Self::of(&s.value)?,
                     // then, the receiver act
                     Self::receiving(&s.receiver),
                 )
             }
             Expression::Ref(s) => Self::reads(&s.name),
-        }
+        })
     }
 
     /// Expression that do not interact with the variables
@@ -228,10 +248,10 @@ impl<'e> VarUse<'e> {
     }
 }
 
-fn captures(c: &ExpressionClosure) -> HashSet<&IdentStr> {
-    let VarUse { mut reads, .. } = VarUse::of(&*c.body);
+fn captures(c: &ExpressionClosure) -> Result<HashSet<&IdentStr>, VarUseCalcError> {
+    let VarUse { mut reads, .. } = VarUse::of(&*c.body)?;
     for e in &*c.params {
         reads.remove(&**e);
     }
-    reads
+    Ok(reads)
 }

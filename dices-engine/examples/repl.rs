@@ -29,7 +29,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         match res {
             Ok(Value::Null(ValueNull)) => (),
             Ok(v) => println!("{v}"),
-            Err(err) => eprintln!("{err}"),
+            Err(err) => {
+                eprintln!("Error during evaluation:");
+                eprintln!("  {err}");
+                if let Some(mut src) = err.source() {
+                    eprintln!();
+                    eprintln!("Caused by:");
+                    eprintln!("  - {src}");
+                    while let Some(next_src) = src.source() {
+                        src = next_src;
+                        eprintln!("  - {src}");
+                    }
+                }
+            }
         }
 
         line.clear();
