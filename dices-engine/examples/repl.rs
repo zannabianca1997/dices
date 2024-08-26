@@ -6,12 +6,9 @@ use std::{
 };
 
 use derive_more::derive::{Display, Error, From};
-use dices_ast::{
-    parse::parse_file,
-    values::{Value, ValueNull},
-};
+use dices_ast::values::{Value, ValueNull};
 use dices_engine::solve::Engine;
-use rand::{rngs::SmallRng, SeedableRng};
+use rand::rngs::SmallRng;
 
 #[derive(Debug, Clone, Error, Display, From)]
 enum ReplError {
