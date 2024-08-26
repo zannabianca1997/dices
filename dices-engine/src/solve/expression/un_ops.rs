@@ -64,5 +64,7 @@ fn dice<R: Rng>(context: &mut crate::Context<R>, a: Value) -> Result<Value, Solv
     let f: usize = a
         .try_into()
         .map_err(|source| SolveError::FacesMustBePositive { source })?;
-    Ok(Value::Number((context.rng().gen_range(1..f) as i64).into()))
+    Ok(Value::Number(
+        (context.rng().gen_range(1..=f) as i64).into(),
+    ))
 }
