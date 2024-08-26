@@ -89,12 +89,28 @@ impl<'e> VarUse<'e> {
                 ),
                 None => match bin_op.op {
                     BinOp::Repeat => {
-                        // concat(a,a) == a, so we can use `of(a^n) == of(n) * of(a)^n == of(n)*of(a)`
-                        // we could in theory eliminate the case `n == 0` but it won't hurt to add a
-                        Self::concat(
-                            Self::of(&bin_op.expressions[1]),
-                            Self::of(&bin_op.expressions[0]),
-                        )
+                        unimplemented!("Conditional letting makes erroneous captures");
+                        /*
+                           An example of erroneus code:
+                           ```
+                               || {
+                                   (let x = 3)^0;
+                                   x
+                               }
+                           ```
+                           this should capture x, but fail because it thinks that x is defined in the repeat
+                        */
+
+                        /*
+                            // -- valid code for the n>0 case
+
+                            // concat(a,a) == a, so we can use `of(a^n) == of(n) * of(a)^n == of(n)*of(a)`
+                            // we could in theory eliminate the case `n == 0` but it won't hurt to add a
+                            Self::concat(
+                                Self::of(&bin_op.expressions[1]),
+                                Self::of(&bin_op.expressions[0]),
+                            )
+                        */
                     }
                     _ => unreachable!(),
                 },

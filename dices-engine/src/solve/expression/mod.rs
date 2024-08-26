@@ -2,7 +2,7 @@
 
 use std::num::TryFromIntError;
 
-use derive_more::derive::{Display, Error};
+use derive_more::derive::{Display, Error, From};
 use dices_ast::{
     expression::{
         bin_ops::{BinOp, EvalOrder},
@@ -10,7 +10,7 @@ use dices_ast::{
         ExpressionMap, ExpressionScope, ExpressionUnOp,
     },
     ident::IdentStr,
-    values::{ToListError, ToNumberError, Value},
+    values::{ToListError, ToNumberError, Value, ValueClosure},
 };
 use rand::Rng;
 
@@ -79,6 +79,12 @@ pub enum SolveError {
     MultNeedAScalar,
     #[display("Undefined variable {}", 0)]
     InvalidReference(#[error(not(source))] Box<IdentStr>),
+    #[display("{} is not callable", 0)]
+    NotCallable(#[error(not(source))] Value),
+    #[display("Error during intrisic call")]
+    IntrisicError(intrisics::IntrisicError),
+    #[display("Closures requires {required} params, {given} were instead provided.")]
+    WrongNumberOfParams { required: usize, given: usize },
 }
 impl From<!> for SolveError {
     fn from(value: !) -> Self {
@@ -128,12 +134,69 @@ impl Solvable for ExpressionMap {
 mod bin_ops;
 mod closures;
 mod un_ops;
+mod intrisics {
+    //! Intrisic operations
+
+    use derive_more::derive::{Display, Error};
+    use dices_ast::{
+        intrisics::Intrisic,
+        values::{Value, ValueIntrisic},
+    };
+    use rand::Rng;
+
+    #[derive(Debug, Display, Error, Clone)]
+    pub enum IntrisicError {}
+
+    pub(super) fn call<R: Rng>(
+        intrisic: ValueIntrisic,
+        context: &mut crate::Context<R>,
+        params: Box<[Value]>,
+    ) -> Result<Value, IntrisicError> {
+        todo!()
+    }
+}
 
 impl Solvable for ExpressionCall {
     type Error = SolveError;
 
     fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
-        todo!()
+        let Self {
+            called: box called,
+            params: box params,
+        } = self;
+        let called = called.solve(context)?;
+        let params: Box<_> = params.iter().map(|p| p.solve(context)).try_collect()?;
+
+        match called {
+            Value::Intrisic(intrisic) => {
+                intrisics::call(intrisic, context, params).map_err(SolveError::IntrisicError)
+            }
+            Value::Closure(box ValueClosure {
+                params: params_names,
+                captures,
+                body,
+            }) => {
+                if params.len() != params_names.len() {
+                    return Err(SolveError::WrongNumberOfParams {
+                        required: params_names.len(),
+                        given: params.len(),
+                    });
+                }
+                context.jailed(|context| {
+                    // adding capture vars and params
+                    for (name, value) in captures.into_iter().chain(Iterator::zip(
+                        params_names.into_vec().into_iter(),
+                        params.into_vec(),
+                    )) {
+                        context.vars_mut().let_(name, value)
+                    }
+                    // solving in the jailed context
+                    body.solve(context)
+                })
+            }
+
+            _ => Err(SolveError::NotCallable(called)),
+        }
     }
 }
 
