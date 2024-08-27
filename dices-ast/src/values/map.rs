@@ -41,6 +41,13 @@ impl ValueMap {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ValueString, &mut Value)> {
         self.0.iter_mut()
     }
+
+    pub fn get(&self, key: &str) -> Option<&Value> {
+        self.0.get(key)
+    }
+    pub fn get_mut(&mut self, key: &str) -> Option<&mut Value> {
+        self.0.get_mut(key)
+    }
 }
 
 impl Display for ValueMap {

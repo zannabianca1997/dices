@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{borrow::Borrow, fmt::Display};
 
 use derive_more::derive::{AsMut, AsRef, Deref, DerefMut, From, Into};
 
@@ -38,6 +38,12 @@ impl ValueString {
     }
     pub fn to_list(self) -> Result<ValueList, super::ToListError> {
         Ok(ValueList::from_iter([self.into()]))
+    }
+}
+
+impl Borrow<str> for ValueString {
+    fn borrow(&self) -> &str {
+        &self.0
     }
 }
 

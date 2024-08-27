@@ -3,6 +3,9 @@ name = "dices-ast"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+matcher = []
+
 [dependencies]
 derive_more = { version = "1.0.0", features = ["full"] }
 either = "1.13.0"

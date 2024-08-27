@@ -1,4 +1,7 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    ops::{Deref, DerefMut},
+};
 
 use itertools::Itertools;
 
@@ -39,6 +42,18 @@ impl ValueList {
     }
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Value> {
         self.0.iter_mut()
+    }
+}
+impl Deref for ValueList {
+    type Target = [Value];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for ValueList {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
