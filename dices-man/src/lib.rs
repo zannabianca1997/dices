@@ -53,7 +53,6 @@ pub mod example {
     
     use std::{borrow::Cow, ops::Deref, str::FromStr};
 
-    use anyhow::Context;
     use lazy_regex::{regex_captures, regex_if};
     use nunny::NonEmpty;
     
@@ -94,14 +93,14 @@ pub mod example {
                 (
                     CodeExampleCommand {
                         ignore: false,
-                        command: parse_file(&cmd).context("Cannot parse command").unwrap(),
+                        command: parse_file(&cmd).expect("Cannot parse command"),
                     },
                     &test[full.len()..],
                 )
             }
         )
         .or_else(|| {
-            // try to capture an ignored block
+            // try to capture an ignored command
             regex_if!(
                 r"\A(?<full>[^\S\r\n]*#[^\S\r\n]*>>>(?<start>.*)$(?<cont>(?:(?:\r\n|\n)^[^\S\r\n]*#[^\S\r\n]*\.\.\..*)$)*)"m,
                 test,
@@ -118,7 +117,7 @@ pub mod example {
                     (
                         CodeExampleCommand {
                             ignore: true,
-                            command: parse_file(&cmd).context("Cannot parse command").unwrap(),
+                            command: parse_file(&cmd).expect("Cannot parse command"),
                         },
                         &test[full.len()..],
                     )

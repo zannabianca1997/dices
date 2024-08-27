@@ -127,7 +127,6 @@ dependencies = [
  "phf_codegen",
  "proc-macro2",
  "quote",
- "rand",
  "serde",
  "serde_yaml",
 ]
@@ -140,9 +139,7 @@ dependencies = [
  "dices-ast",
  "dices-engine",
  "dices-man",
- "lazy-regex",
  "markdown",
- "nunny",
  "proc-macro2",
  "quote",
  "rand",
