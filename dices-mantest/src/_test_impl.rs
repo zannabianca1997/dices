@@ -3,7 +3,7 @@ use std::{borrow::Cow, str::FromStr};
 use anyhow::Context;
 use dices_ast::{expression::Expression, matcher::Matcher, parse::parse_file, values::ValueNull};
 use dices_engine::solve::Engine;
-use lazy_regex::{regex_find, regex_if};
+use lazy_regex::{regex_captures, regex_find, regex_if};
 use nunny::NonEmpty;
 use rand::rngs::SmallRng;
 
@@ -33,14 +33,14 @@ impl FromStr for DocTest {
     let mut test = s.trim_start();
 
     while let Some((cmd, rest)) = regex_if!(
-        r"\A(?<full>[^\S\r\n]*>>>(?<start>.*)$(?<cont>(?:(?:\r\n|\n)^[^\S\r\n]*\.\.\..*)$)*)"m,
+        r"\A(?<full>[^\S\r\n]*>>>(?<start>.*)$(?<cont>(?:(?:\r\n|\n)^[^\S\r\n]*\.\.\..*$)*))"m,
         test,
         {
             let cmd = if cont.is_empty() {
                 Cow::Borrowed(start)
             } else {
                 let mut cmd = start.to_owned();
-                for line in cont.lines() {
+                for line in cont.trim_start().lines() {
                     cmd.push_str(line.trim_start().strip_prefix("...").unwrap())
                 }
                 Cow::Owned(cmd)
@@ -80,7 +80,7 @@ impl FromStr for DocTest {
         )
     }) {
         // need now to split the result
-        let res = regex_find!(r"\A((?:.|\n)*?)(?:^[^\S\r\n]*(?:#[^\S\r\n]*)?>>>|\z)",rest).expect("The regex is infallible");
+        let (_,res) = regex_captures!(r"\A((?:.|\n)*?)(?:^[^\S\r\n]*(?:#[^\S\r\n]*)?>>>|\z)"m,rest).expect("The regex is infallible");
         test = &rest[res.len()..];
         // conversting the result
         let res = res.trim();
