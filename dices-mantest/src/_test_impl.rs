@@ -4,7 +4,7 @@ use rand::rngs::SmallRng;
 use dices_engine::solve::Engine;
 
 /// Main testing function
-pub(crate) fn test_inner(test: &str, tags: &[&str]) {
+pub(crate) fn test_inner(test: &str, _tags: &[&str]) {
     // Parse the test
     let test: CodeExample = test.parse().expect("The test should be parseable");
     // Create the engine
