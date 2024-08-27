@@ -118,13 +118,16 @@ name = "dices-man"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "dices-ast",
  "either",
  "lazy-regex",
  "markdown",
+ "nunny",
  "phf",
  "phf_codegen",
  "proc-macro2",
  "quote",
+ "rand",
  "serde",
  "serde_yaml",
 ]

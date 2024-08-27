@@ -4,6 +4,7 @@ use either::Either::{Left, Right};
 use peg::{error::ParseError, str::LineCol};
 use std::{borrow::Cow, collections::BTreeMap, str::FromStr};
 
+#[derive(Debug, Clone)]
 pub enum Matcher {
     Exact(Value),
     List(Box<[Matcher]>),

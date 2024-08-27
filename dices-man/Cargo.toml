@@ -7,6 +7,11 @@ edition = "2021"
 phf = "0.11.2"
 either = "1.13.0"
 markdown = "1.0.0-alpha.20"
+dices-ast = { path = "../dices-ast", features = ["matcher"] }
+nunny = "0.2.1"
+anyhow = "1.0.86"
+lazy-regex = "3.3.0"
+rand = { version = "0.8.5", features = ["small_rng"] }
 
 [build-dependencies]
 phf_codegen = "0.11.2"
