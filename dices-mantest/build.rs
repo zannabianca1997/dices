@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use dices_man::{ManDir, ManItem, ManPage};
 use proc_macro2::{Ident, TokenStream};
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, quote};
 use slug::slugify;
 use std::{collections::BTreeSet, env, fs, path::PathBuf};
 
