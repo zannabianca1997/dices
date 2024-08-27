@@ -1,0 +1,18 @@
+[package]
+name = "dices-man"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+phf = "0.11.2"
+either = "1.13.0"
+markdown = "1.0.0-alpha.20"
+
+[build-dependencies]
+phf_codegen = "0.11.2"
+quote = "1.0.37"
+anyhow = "1.0.86"
+proc-macro2 = "1.0.86"
+serde = { version = "1.0.209", features = ["derive"] }
+lazy-regex = "3.3.0"
+serde_yaml = "0.9.34"
