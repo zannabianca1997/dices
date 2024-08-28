@@ -59,7 +59,7 @@ impl ManTests<'_, '_, ManPage> {
         let mut names = BTreeSet::new();
         let inners = {
             // first, split all the examples
-            let mut nodes = vec![self.item.ast_src()];
+            let mut nodes = vec![self.item.source()];
             let mut examples = vec![];
             while let Some(node) = nodes.pop() {
                 match node {

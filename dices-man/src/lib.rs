@@ -28,7 +28,7 @@ pub mod example;
 
 /// Options to render the examples in the manual pages
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ExamplesRenderOptions {
+pub struct RenderOptions {
     /// The prompt for the command: `>>> `
     prompt: Cow<'static, str>,
     /// The continue prompt for longer command: `... `
@@ -36,7 +36,7 @@ pub struct ExamplesRenderOptions {
     /// The seed for the example rng
     seed: u64,
 }
-impl Default for ExamplesRenderOptions {
+impl Default for RenderOptions {
     fn default() -> Self {
         Self {
             prompt: Cow::Borrowed(">>> "),
@@ -53,7 +53,7 @@ pub struct ManPage {
     /// The content of the page
     pub content: &'static str,
     /// The markdown ast of the page, if parsed
-    ast: OnceLock<(Node, Mutex<HashMap<ExamplesRenderOptions, Node>>)>,
+    ast: OnceLock<(Node, Mutex<HashMap<RenderOptions, Node>>)>,
 }
 impl ManPage {
     const fn new(name: &'static str, content: &'static str) -> Self {
@@ -64,7 +64,7 @@ impl ManPage {
         }
     }
 
-    fn ast_storage(&self) -> &(Node, Mutex<HashMap<ExamplesRenderOptions, Node>>) {
+    fn ast_storage(&self) -> &(Node, Mutex<HashMap<RenderOptions, Node>>) {
         self.ast.get_or_init(|| {
             (
                 to_mdast(&self.content, &ParseOptions::default()).unwrap(),
@@ -74,12 +74,12 @@ impl ManPage {
     }
 
     /// The source ast, with the unrendered examples
-    pub fn ast_src(&self) -> &Node {
+    pub fn source(&self) -> &Node {
         &self.ast_storage().0
     }
 
     /// The ast of the page, once the examples are rendered
-    pub fn ast(&self, options: ExamplesRenderOptions) -> impl Deref<Target = Node> + '_ {
+    pub fn rendered(&self, options: RenderOptions) -> impl Deref<Target = Node> + '_ {
         let (ast, cache) = self.ast_storage();
         // Lock the cache for ourselves
         // If poisoned, clear the cache and unpoison it.
@@ -97,7 +97,7 @@ impl ManPage {
     }
 }
 
-fn render_examples(mut ast: Node, options: &ExamplesRenderOptions) -> Node {
+fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
     let mut nodes = vec![&mut ast];
     while let Some(node) = nodes.pop() {
         let Node::Code(Code {
