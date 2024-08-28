@@ -1,13 +1,13 @@
 //! Stuff to help parsing and making sense of code examples
 
-use std::{borrow::Cow, ops::Deref, str::FromStr};
+use std::{ ops::Deref, str::FromStr};
 
 use lazy_regex::{regex_captures, regex_if};
 use nunny::NonEmpty;
 
 use dices_ast::{expression::Expression, matcher::Matcher, parse::parse_file, values::ValueNull};
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Hash)]
 pub struct CodeExample(Box<[CodeExamplePiece]>);
 
 impl Deref for CodeExample {
@@ -31,18 +31,20 @@ impl FromStr for CodeExample {
         test,
         {
             let cmd = if cont.is_empty() {
-                Cow::Borrowed(start)
+                start.to_owned()
             } else {
                 let mut cmd = start.to_owned();
                 for line in cont.trim_start().lines() {
+                    cmd.push('\n');
                     cmd.push_str(line.trim_start().strip_prefix("...").unwrap())
                 }
-                Cow::Owned(cmd)
+                cmd
             };
             (
                 CodeExampleCommand {
                     ignore: false,
                     command: parse_file(&cmd).expect("Cannot parse command"),
+                    src:cmd
                 },
                 &test[full.len()..],
             )
@@ -55,18 +57,19 @@ impl FromStr for CodeExample {
             test,
             {
                 let cmd = if cont.is_empty() {
-                    Cow::Borrowed(start)
+                    start.to_owned()
                 } else {
                     let mut cmd = start.to_owned();
                     for line in cont.lines() {
                         cmd.push_str(line.trim_start().strip_prefix('#').unwrap().trim_start().strip_prefix("...").unwrap())
                     }
-                    Cow::Owned(cmd)
+                    cmd
                 };
                 (
                     CodeExampleCommand {
                         ignore: true,
                         command: parse_file(&cmd).expect("Cannot parse command"),
+                        src: cmd
                     },
                     &test[full.len()..],
                 )
@@ -105,13 +108,13 @@ impl FromStr for CodeExample {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Hash)]
 pub struct CodeExamplePiece {
    pub cmd: CodeExampleCommand,
    pub res: Option<Matcher>,
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Hash)]
 pub struct CodeExampleCommand {
     /// Do not check the result of this command
     ///
@@ -119,4 +122,6 @@ pub struct CodeExampleCommand {
    pub ignore: bool,
     /// The actual command
    pub command: Box<NonEmpty<[Expression]>>,
+   /// The source code of the command
+   pub src: String
 }

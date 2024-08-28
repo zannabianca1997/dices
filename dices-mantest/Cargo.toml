@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dev-dependencies]
+rand = { version = "0.8.5", features = ["small_rng"] }
 dices-ast = { path = "../dices-ast", features = ["matcher"] }
 dices-engine = { path = "../dices-engine" }
-rand = { version = "0.8.5", features = ["small_rng"] }
 dices-man = { path = "../dices-man" }
 
 

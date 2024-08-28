@@ -1,10 +1,50 @@
 //! This package contains  the manual pages for `dices`
 
 #![feature(never_type)]
+#![feature(box_patterns)]
+#![feature(iter_intersperse)]
+#![feature(mapped_lock_guards)]
 
-use std::sync::OnceLock;
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    error::Error,
+    fmt::Write,
+    hash::{DefaultHasher, Hash, Hasher},
+    mem,
+    ops::Deref,
+    sync::{Mutex, MutexGuard, OnceLock},
+};
 
-use markdown::{mdast::Node, to_mdast, ParseOptions};
+use dices_engine::solve::Engine;
+use example::{CodeExample, CodeExampleCommand, CodeExamplePiece};
+use markdown::{
+    mdast::{Code, Node},
+    to_mdast, ParseOptions,
+};
+use rand::{rngs::SmallRng, SeedableRng};
+
+pub mod example;
+
+/// Options to render the examples in the manual pages
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ExamplesRenderOptions {
+    /// The prompt for the command: `>>> `
+    prompt: Cow<'static, str>,
+    /// The continue prompt for longer command: `... `
+    prompt_cont: Cow<'static, str>,
+    /// The seed for the example rng
+    seed: u64,
+}
+impl Default for ExamplesRenderOptions {
+    fn default() -> Self {
+        Self {
+            prompt: Cow::Borrowed(">>> "),
+            prompt_cont: Cow::Borrowed("... "),
+            seed: 0,
+        }
+    }
+}
 
 /// A page of the manual
 pub struct ManPage {
@@ -13,7 +53,7 @@ pub struct ManPage {
     /// The content of the page
     pub content: &'static str,
     /// The markdown ast of the page, if parsed
-    ast: OnceLock<Node>,
+    ast: OnceLock<(Node, Mutex<HashMap<ExamplesRenderOptions, Node>>)>,
 }
 impl ManPage {
     const fn new(name: &'static str, content: &'static str) -> Self {
@@ -24,10 +64,119 @@ impl ManPage {
         }
     }
 
-    pub fn ast(&self) -> &Node {
-        self.ast
-            .get_or_init(|| to_mdast(&self.content, &ParseOptions::default()).unwrap())
+    fn ast_storage(&self) -> &(Node, Mutex<HashMap<ExamplesRenderOptions, Node>>) {
+        self.ast.get_or_init(|| {
+            (
+                to_mdast(&self.content, &ParseOptions::default()).unwrap(),
+                Mutex::new(HashMap::new()),
+            )
+        })
     }
+
+    /// The source ast, with the unrendered examples
+    pub fn ast_src(&self) -> &Node {
+        &self.ast_storage().0
+    }
+
+    /// The ast of the page, once the examples are rendered
+    pub fn ast(&self, options: ExamplesRenderOptions) -> impl Deref<Target = Node> + '_ {
+        let (ast, cache) = self.ast_storage();
+        // Lock the cache for ourselves
+        // If poisoned, clear the cache and unpoison it.
+        let cache = cache.lock().unwrap_or_else(|mut e| {
+            **e.get_mut() = HashMap::new();
+            cache.clear_poison();
+            e.into_inner()
+        });
+        // Get the cached value or render it
+        MutexGuard::map(cache, |cache| {
+            cache
+                .entry(options)
+                .or_insert_with_key(|options| render_examples(ast.clone(), options))
+        })
+    }
+}
+
+fn render_examples(mut ast: Node, options: &ExamplesRenderOptions) -> Node {
+    let mut nodes = vec![&mut ast];
+    while let Some(node) = nodes.pop() {
+        let Node::Code(Code {
+            value,
+            position: _,
+            lang,
+            meta: _meta,
+        }) = node
+        else {
+            // recover all the childrens
+            nodes.extend(node.children_mut().into_iter().flatten());
+            continue;
+        };
+        if !lang.as_ref().is_some_and(|l| l == "dices") {
+            // do not examine code that is not a `dices` code
+            continue;
+        }
+        // steal the original code
+        let src = mem::take(value);
+        // parse it as an example
+        let code: CodeExample = src.parse().expect(
+            "The examples in the manual should be all well formatted, thanks to `dices-mantest`",
+        );
+        // initialize an engine, deterministic with regard of the seed and the code
+        let mut engine = Engine::new_with_rng(SmallRng::seed_from_u64({
+            let mut hasher = DefaultHasher::new();
+            options.seed.hash(&mut hasher);
+            code.hash(&mut hasher);
+            hasher.finish()
+        }));
+        // run all commands
+        for CodeExamplePiece {
+            cmd:
+                CodeExampleCommand {
+                    ignore,
+                    command: box command,
+                    src,
+                },
+            res: _,
+        } in &*code
+        {
+            let res = engine.eval_multiple(command);
+            if *ignore {
+                // only assert that the result is ok
+                if let Err(err) = res {
+                    panic!("An example failed with {err}")
+                }
+            } else {
+                // print the command
+                value.push_str(&options.prompt);
+                for val in src
+                    .lines()
+                    .intersperse(&format!("\n{}", options.prompt_cont))
+                {
+                    value.push_str(val)
+                }
+                value.push('\n');
+
+                // print the result or the error
+                match res {
+                    Ok(res) => writeln!(value, "{res}").unwrap(),
+                    Err(err) => {
+                        writeln!(value, "Error during evaluation:").unwrap();
+                        writeln!(value, "  {err}").unwrap();
+                        if let Some(mut src) = err.source() {
+                            writeln!(value).unwrap();
+                            writeln!(value, "Caused by:").unwrap();
+                            writeln!(value, "  - {src}").unwrap();
+                            while let Some(next_src) = src.source() {
+                                src = next_src;
+                                writeln!(value, "  - {src}").unwrap();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    ast
 }
 
 /// A subdirectory of the manual
@@ -47,5 +196,3 @@ pub enum ManItem {
 }
 
 pub static MANUAL: ManDir = include!(env!("MANUAL_RS"));
-
-pub mod example;
