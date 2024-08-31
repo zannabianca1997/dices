@@ -41,6 +41,18 @@ impl ValueString {
     }
 }
 
+impl From<&str> for ValueString {
+    fn from(value: &str) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<String> for ValueString {
+    fn from(value: String) -> Self {
+        Self(value.into())
+    }
+}
+
 impl Borrow<str> for ValueString {
     fn borrow(&self) -> &str {
         &self.0
