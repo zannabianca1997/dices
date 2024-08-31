@@ -9,7 +9,7 @@ use std::{
 use chrono::Local;
 use clap::{Parser, ValueEnum};
 use derive_more::derive::{Debug, Display, Error, From};
-use dices_ast::values::Value;
+use dices_ast::values::{Value, ValueNull};
 use rand::{rngs::SmallRng, SeedableRng};
 use reedline::{Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, Reedline, Signal};
 use termimad::{Alignment, MadSkin};
@@ -246,6 +246,10 @@ pub fn detached_repl(
 
 /// Print a value
 fn print_value(_graphic: Graphic, _skin: &MadSkin, value: Value) {
+    if value == Value::Null(ValueNull) {
+        // do not print null values
+        return;
+    }
     println!("{}", value);
 }
 
