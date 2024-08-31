@@ -196,7 +196,7 @@ impl Solvable for ExpressionScope {
 }
 
 /// Solve multiple expressions, discarding the result of all but the last
-pub fn solve_multiple<R: Rng>(
+pub(crate) fn solve_multiple<R: Rng>(
     scope: &NonEmpty<[Expression]>,
     context: &mut crate::Context<R>,
 ) -> Result<Value, SolveError> {

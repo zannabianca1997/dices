@@ -1,12 +1,17 @@
-use std::io;
+#![feature(error_reporter)]
+use std::{
+    error::{Error, Report},
+    ffi::OsString,
+    hash::{DefaultHasher, Hash, Hasher},
+    io,
+};
 
 use chrono::Local;
 use clap::{Parser, ValueEnum};
 use derive_more::derive::{Debug, Display, Error, From};
-use reedline::{
-    DefaultPrompt, Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, Reedline,
-    Signal,
-};
+use dices_ast::values::Value;
+use rand::{rngs::SmallRng, SeedableRng};
+use reedline::{Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, Reedline, Signal};
 use termimad::{Alignment, MadSkin};
 
 #[derive(Debug, Clone, Parser)]
@@ -19,6 +24,10 @@ pub struct ReplCli {
     /// If the terminal is light or dark
     #[clap(long, short)]
     teminal: Option<TerminalLightness>,
+
+    /// The seed to use to initialize the random number generator
+    #[clap(long, short)]
+    seed: Option<OsString>,
 }
 
 #[derive(Debug, Clone, Copy, Display, ValueEnum)]
@@ -157,18 +166,35 @@ pub fn repl(args: ReplCli) -> Result<(), ReplFatalError> {
 }
 
 /// Run the REPL in interactive mode
-pub fn interactive_repl(ReplCli { graphic, teminal }: ReplCli) -> Result<(), ReplFatalError> {
+pub fn interactive_repl(
+    ReplCli {
+        graphic,
+        teminal,
+        seed,
+    }: ReplCli,
+) -> Result<(), ReplFatalError> {
+    // Creating the skin
     let skin = graphic.skin(teminal);
-
+    // Printing the initial banner
     skin.print_text(graphic.banner());
+    // Creating the editor
     let mut line_editor = Reedline::create();
-
+    // Initializing the engine
+    let mut engine: dices_engine::Engine<SmallRng> = if let Some(seed) = seed {
+        let mut hasher = DefaultHasher::new();
+        seed.hash(&mut hasher);
+        dices_engine::Engine::new_with_rng(SmallRng::seed_from_u64(hasher.finish()))
+    } else {
+        dices_engine::Engine::new()
+    };
+    // REPL loop
     loop {
         let sig = line_editor.read_line(&ReplPrompt { graphic })?;
         match sig {
-            Signal::Success(buffer) => {
-                println!("We processed: {}", buffer);
-            }
+            Signal::Success(buffer) => match engine.eval_str(&buffer) {
+                Ok(value) => print_value(graphic, &skin, value),
+                Err(err) => print_err(graphic, &skin, err),
+            },
             Signal::CtrlD => {
                 skin.print_text(graphic.bye());
                 break Ok(());
@@ -178,7 +204,18 @@ pub fn interactive_repl(ReplCli { graphic, teminal }: ReplCli) -> Result<(), Rep
     }
 }
 
+/// Print a value
+fn print_value(_graphic: Graphic, _skin: &MadSkin, value: Value) {
+    println!("{}", value);
+}
+
+/// Print an error
+fn print_err(_graphic: Graphic, _skin: &MadSkin, error: impl Error) {
+    let report = Report::new(error).pretty(true);
+    eprintln!("{report}")
+}
+
 /// Run the REPL in detached mode (input from a stream)
-pub fn detached_repl(ReplCli { graphic, teminal }: ReplCli) -> Result<(), ReplFatalError> {
+pub fn detached_repl(ReplCli { .. }: ReplCli) -> Result<(), ReplFatalError> {
     todo!()
 }

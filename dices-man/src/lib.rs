@@ -17,7 +17,7 @@ use std::{
 };
 
 use dices_ast::values::{Value, ValueNull};
-use dices_engine::solve::Engine;
+use dices_engine::Engine;
 use example::{CodeExample, CodeExampleCommand, CodeExamplePiece};
 use markdown::{
     mdast::{Code, Node},

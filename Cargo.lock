@@ -462,8 +462,11 @@ dependencies = [
  "chrono",
  "clap",
  "derive_more",
+ "dices-ast",
+ "dices-engine",
  "dices-man",
  "mdast2minimad",
+ "rand",
  "reedline",
  "termimad",
 ]

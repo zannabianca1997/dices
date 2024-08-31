@@ -1,7 +1,7 @@
 use dices_man::example::CodeExample;
 use rand::rngs::SmallRng;
 
-use dices_engine::solve::Engine;
+use dices_engine::Engine;
 
 /// Main testing function
 pub(crate) fn test_inner(test: &str, _tags: &[&str]) {
