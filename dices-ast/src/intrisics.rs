@@ -32,6 +32,10 @@ pub enum Intrisic {
     ToNumber,
     /// Try to convert a value to a list
     ToList,
+    /// Convert a value to a string
+    ToString,
+    /// Parse a string into a value
+    Parse,
 
     /// Call its first parameter with the arguments given by the second, converted to a list
     Call,
@@ -56,6 +60,8 @@ impl Intrisic {
             Intrisic::ToNumber => "to_number",
             Intrisic::ToList => "to_list",
             Intrisic::Call => "call",
+            Intrisic::ToString => "to_string",
+            Intrisic::Parse => "parse",
         }
     }
 }

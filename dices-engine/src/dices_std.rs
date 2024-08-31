@@ -32,6 +32,27 @@ macro_rules! std {
 pub fn std() -> ValueMap {
     std!(
             intrisics: Intrisic::all(),
-            prelude: mod {}
+            variadics: mod {
+                call: Intrisic::Call,
+                sum: Intrisic::Sum,
+                join: Intrisic::Join,
+                mult: Intrisic::Mult,
+            },
+            conversions: mod {
+                to_number: Intrisic::ToNumber,
+                to_list: Intrisic::ToList,
+                to_string: Intrisic::ToString,
+                parse: Intrisic::Parse,
+            },
+            prelude: mod {
+                sum: Intrisic::Sum,
+                join: Intrisic::Join,
+                mult: Intrisic::Mult,
+
+                to_number: Intrisic::ToNumber,
+                to_list: Intrisic::ToList,
+                to_string: Intrisic::ToString,
+                parse: Intrisic::Parse,
+            }
     )
 }

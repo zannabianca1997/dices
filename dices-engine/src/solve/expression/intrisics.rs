@@ -1,12 +1,13 @@
 //! Intrisic operations
 
+use std::str::FromStr;
+
 use derive_more::derive::{Display, Error};
 use dices_ast::{
     expression::{bin_ops::BinOp, Expression, ExpressionBinOp, ExpressionCall},
     intrisics::Intrisic,
-    values::{ToListError, Value, ValueIntrisic},
+    values::{ToListError, ToNumberError, Value, ValueIntrisic},
 };
-use itertools::Itertools;
 use rand::Rng;
 
 use crate::solve::Solvable;
@@ -27,6 +28,14 @@ pub enum IntrisicError {
     JoinFailed(Box<SolveError>),
     #[display("The second parameter of `call` must be a list of parameters")]
     CallParamsNotAList(ToListError),
+    #[display("Cannot convert to a number")]
+    ToNumber(ToNumberError),
+    #[display("Cannot convert to a list")]
+    ToList(ToListError),
+    #[display("`parse` must be called on a string, not on {_0}")]
+    CannotParseNonString(#[error(not(source))] Value),
+    #[display("Failed to parse string")]
+    ParseFailed(<Value as FromStr>::Err),
 }
 
 pub(super) fn call<R: Rng>(
@@ -35,6 +44,7 @@ pub(super) fn call<R: Rng>(
     params: Box<[Value]>,
 ) -> Result<Value, IntrisicError> {
     match intrisic.into() {
+        // Variadics
         Intrisic::Call => {
             let [called, params] = match Box::<[_; 2]>::try_from(params) {
                 Ok(box [a, b]) => [a, b],
@@ -82,14 +92,72 @@ pub(super) fn call<R: Rng>(
                     .solve(context)
             })
             .map_err(|err| IntrisicError::MultFailed(Box::new(err))),
-        Intrisic::ToNumber => todo!(),
-        Intrisic::ToList => todo!(),
+
+        // Conversions
+        Intrisic::ToNumber => {
+            let [value] = match Box::<[_; 1]>::try_from(params) {
+                Ok(box [a]) => [a],
+                Err(box ref s) => {
+                    return Err(IntrisicError::WrongParamNum {
+                        called: Intrisic::ToNumber,
+                        given: s.len(),
+                    })
+                }
+            };
+            value
+                .to_number()
+                .map(Into::into)
+                .map_err(IntrisicError::ToNumber)
+        }
+        Intrisic::ToList => {
+            let [value] = match Box::<[_; 1]>::try_from(params) {
+                Ok(box [a]) => [a],
+                Err(box ref s) => {
+                    return Err(IntrisicError::WrongParamNum {
+                        called: Intrisic::ToList,
+                        given: s.len(),
+                    })
+                }
+            };
+            value
+                .to_list()
+                .map(Into::into)
+                .map_err(IntrisicError::ToList)
+        }
+        Intrisic::ToString => {
+            let [value] = match Box::<[_; 1]>::try_from(params) {
+                Ok(box [a]) => [a],
+                Err(box ref s) => {
+                    return Err(IntrisicError::WrongParamNum {
+                        called: Intrisic::ToString,
+                        given: s.len(),
+                    })
+                }
+            };
+            Ok(Value::String(value.to_string().into()))
+        }
+        Intrisic::Parse => {
+            let [value] = match Box::<[_; 1]>::try_from(params) {
+                Ok(box [Value::String(s)]) => [s],
+                Ok(box [a]) => return Err(IntrisicError::CannotParseNonString(a)),
+                Err(box ref s) => {
+                    return Err(IntrisicError::WrongParamNum {
+                        called: Intrisic::Parse,
+                        given: s.len(),
+                    })
+                }
+            };
+            value.parse().map_err(IntrisicError::ParseFailed)
+        }
     }
 }
 
 fn param_num(intr: &Intrisic) -> usize {
     match intr {
         Intrisic::Call => 2,
-        _ => panic!(),
+        Intrisic::ToString | Intrisic::Parse | Intrisic::ToNumber | Intrisic::ToList => 1,
+        Intrisic::Sum | Intrisic::Join | Intrisic::Mult => {
+            panic!("These have no fixed param number")
+        }
     }
 }
