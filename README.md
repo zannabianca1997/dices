@@ -3,13 +3,13 @@ This is a program able to simulate dice throwing. It supports traditional dice n
 
 ## Running
 > [!NOTE]
-> If you know your way around git and the Rust build system, just clone the repository and run `cargo run`.
+> If you know your way around git and the Rust build system, just clone the repository and run `cargo run --releases`.
 
 To compile and run this program, you must first ensure that both [`git`](https://git-scm.com/) and [`cargo`](https://doc.rust-lang.org/cargo/) are present on your system. Then from a console clone the repository and run the project:
 ```sh
 $ git clone https://github.com/zannabianca1997/dices.git
 $ cd dices
-$ cargo run
+$ cargo run --release
 ```
 You should see a lot of text, and then a prompt similar to `>>>`. Type `quit()` or press Ctrl + C to exit.
 
