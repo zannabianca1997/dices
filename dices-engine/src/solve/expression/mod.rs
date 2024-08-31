@@ -8,11 +8,11 @@ use dices_ast::{
     expression::{
         bin_ops::{BinOp, EvalOrder},
         set::Receiver,
-        Expression, ExpressionBinOp, ExpressionCall, ExpressionList, ExpressionMap, ExpressionRef,
-        ExpressionScope, ExpressionSet, ExpressionUnOp,
+        Expression, ExpressionBinOp, ExpressionCall, ExpressionList, ExpressionMap,
+        ExpressionMemberAccess, ExpressionRef, ExpressionScope, ExpressionSet, ExpressionUnOp,
     },
     ident::IdentStr,
-    values::{ToListError, ToNumberError, Value, ValueClosure},
+    values::{ToListError, ToNumberError, Value, ValueClosure, ValueNumber},
 };
 use nunny::NonEmpty;
 use rand::Rng;
@@ -90,6 +90,20 @@ pub enum SolveError {
     WrongNumberOfParams { required: usize, given: usize },
     #[display("The closure failed to calculate what variables needed to be captured")]
     ClosureCannotCalculateCaptures(VarUseCalcError),
+    #[display("{_0} is not indexable")]
+    CannotIndex(#[error(not(source))] Value),
+    #[display("A map can be indexed only by strings, not {_0}")]
+    MapIsIndexedByStrings(#[error(not(source))] Value),
+    #[display("A string can be indexed only by numbers")]
+    StringIsIndexedByNumbers(ToNumberError),
+    #[display("A list can be indexed only by numbers")]
+    ListIsIndexedByNumbers(ToNumberError),
+    #[display("Index {idx} out of range for string of lenght {len}")]
+    StringIndexOutOfRange { idx: ValueNumber, len: usize },
+    #[display("Index {idx} out of range for list of lenght {len}")]
+    ListIndexOutOfRange { idx: ValueNumber, len: usize },
+    #[display("Key not found: \"{_0}\"")]
+    MissingKey(#[error(not(source))] dices_ast::values::ValueString),
 }
 impl From<!> for SolveError {
     fn from(value: !) -> Self {
@@ -112,6 +126,7 @@ impl Solvable for Expression {
             Expression::Scope(e) => e.solve(context)?,
             Expression::Set(e) => e.solve(context)?,
             Expression::Ref(e) => e.solve(context)?,
+            Expression::MemberAccess(e) => e.solve(context)?,
         })
     }
 }
@@ -183,6 +198,71 @@ impl Solvable for ExpressionCall {
             }
 
             _ => Err(SolveError::NotCallable(called)),
+        }
+    }
+}
+
+impl Solvable for ExpressionMemberAccess {
+    type Error = SolveError;
+
+    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+        // first we solve for the accessed value
+        let accessed = self.accessed.solve(context)?;
+        // then for the index
+        let index = self.index.solve(context)?;
+        // finally, try to index
+        match (accessed, index) {
+            (Value::String(s), n) => {
+                let n = n
+                    .to_number()
+                    .map_err(SolveError::StringIsIndexedByNumbers)?;
+                let n = i64::from(n);
+                let ch = if n >= 0 {
+                    usize::try_from(n).ok().and_then(|n| s.chars().nth(n))
+                } else {
+                    n.checked_neg().and_then(|n| {
+                        usize::try_from(n)
+                            .ok()
+                            .and_then(|n| s.chars().nth_back(n - 1))
+                    })
+                };
+                if let Some(ch) = ch {
+                    Ok(Value::String(ch.to_string().into()))
+                } else {
+                    Err(SolveError::StringIndexOutOfRange {
+                        idx: n.into(),
+                        len: s.chars().count(),
+                    })
+                }
+            }
+            (Value::List(l), n) => {
+                let n = n
+                    .to_number()
+                    .map_err(SolveError::StringIsIndexedByNumbers)?;
+                let n = i64::from(n);
+                let ch = if n >= 0 {
+                    usize::try_from(n).ok().and_then(|n| l.get(n))
+                } else {
+                    isize::try_from(n).ok().and_then(|n| {
+                        let n = l.len().checked_add_signed(n)?;
+                        l.get(n)
+                    })
+                };
+                if let Some(ch) = ch {
+                    Ok(ch.clone())
+                } else {
+                    Err(SolveError::StringIndexOutOfRange {
+                        idx: n.into(),
+                        len: l.len(),
+                    })
+                }
+            }
+            (Value::Map(m), Value::String(s)) => {
+                m.get(&s).cloned().ok_or_else(|| SolveError::MissingKey(s))
+            }
+            (Value::Map(_), idx) => Err(SolveError::MapIsIndexedByStrings(idx)),
+
+            (accessed, _) => Err(SolveError::CannotIndex(accessed)),
         }
     }
 }

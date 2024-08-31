@@ -9,8 +9,8 @@ use peg::{error::ParseError, str::LineCol};
 use crate::{
     expression::{
         bin_ops::BinOp, un_ops::UnOp, Expression, ExpressionBinOp, ExpressionCall,
-        ExpressionClosure, ExpressionList, ExpressionMap, ExpressionRef, ExpressionSet,
-        ExpressionUnOp, Receiver,
+        ExpressionClosure, ExpressionList, ExpressionMap, ExpressionMemberAccess, ExpressionRef,
+        ExpressionSet, ExpressionUnOp, Receiver,
     },
     ident::IdentStr,
     values::*,
@@ -239,17 +239,16 @@ peg::parser! {
                 f:@ _ "(" _ p:(expr() ** (_ "," _)) _ ")" {
                     ExpressionCall::new(f,p.into_boxed_slice()).into()
                 }
-              /*  value:@ _ "[" _ member:expr() _ "]" {
-                    Expr::MemberAccess { value: Box::new(value), member: Box::new(member) }
+                accessed:@ _ "[" _ index:expr() _ "]" {
+                    ExpressionMemberAccess { accessed: Box::new(accessed), index: Box::new(index) }.into()
                 }
-                value:@ _ "." _ member:(
-                    i:ident()      { String((&**i).into()) }
-                    / s: str_lit() { String(s.into()) }
-                    / n: number()  { Number(n) }
+                accessed:@ _ "." _ index:(
+                    i:ident()      { Expression::Const(Value::String((&**i).into())) }
+                    / s: string()  { Expression::Const(s.into()) }
+                    / n: number()  { Expression::Const(n.into()) }
                 ) {
-                    Expr::MemberAccess { value: Box::new(value), member: Box::new(member) }
+                    ExpressionMemberAccess { accessed: Box::new(accessed), index: Box::new(index) }.into()
                 }
-                */
                 --
                 v:null()      { Expression::Const(v.into()) }
                 v:boolean()   { Expression::Const(v.into()) }

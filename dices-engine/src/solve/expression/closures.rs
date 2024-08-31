@@ -160,6 +160,9 @@ impl<'e> VarUse<'e> {
                 )
             }
             Expression::Ref(s) => Self::reads(&s.name),
+            Expression::MemberAccess(ma) => {
+                Self::concat(Self::of(&ma.accessed)?, Self::of(&ma.index)?)
+            }
         })
     }
 
