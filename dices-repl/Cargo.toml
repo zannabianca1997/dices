@@ -2,5 +2,14 @@
 name = "dices-repl"
 version = "0.1.0"
 edition = "2021"
+description = "A `REPL` to communicate with a `dices` session"
 
 [dependencies]
+mdast2minimad = { git = "https://github.com/zannabianca1997/mdast2minimad.git" }
+dices-man = { path = "../dices-man" }
+termimad = "0.30.0"
+clap = { version = "4.5.16", features = ["derive"] }
+reedline = "0.34.0"
+derive_more = { version = "1.0.0", features = ["error", "display", "debug"] }
+atty = "0.2.14"
+chrono = "0.4.38"
