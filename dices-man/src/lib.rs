@@ -16,6 +16,7 @@ use std::{
     sync::{Mutex, MutexGuard, OnceLock},
 };
 
+use dices_ast::values::{Value, ValueNull};
 use dices_engine::solve::Engine;
 use example::{CodeExample, CodeExampleCommand, CodeExamplePiece};
 use markdown::{
@@ -39,8 +40,8 @@ pub struct RenderOptions {
 impl Default for RenderOptions {
     fn default() -> Self {
         Self {
-            prompt: Cow::Borrowed(">>> "),
-            prompt_cont: Cow::Borrowed("... "),
+            prompt: Cow::Borrowed(">>>"),
+            prompt_cont: Cow::Borrowed("..."),
             seed: 0,
         }
     }
@@ -158,6 +159,7 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
 
                 // print the result or the error
                 match res {
+                    Ok(Value::Null(ValueNull)) => (),
                     Ok(res) => writeln!(value, "{res}").unwrap(),
                     Err(err) => {
                         writeln!(value, "Error during evaluation:").unwrap();
@@ -174,6 +176,10 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
                     }
                 }
             }
+        }
+        // remove eccessive newlines
+        while value.ends_with(['\n', '\r']) {
+            value.pop();
         }
     }
     ast
