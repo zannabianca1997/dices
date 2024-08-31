@@ -2,10 +2,11 @@
 
 use derive_more::derive::{Display, Error};
 use dices_ast::{
-    expression::{Expression, ExpressionCall},
+    expression::{bin_ops::BinOp, Expression, ExpressionBinOp, ExpressionCall},
     intrisics::Intrisic,
     values::{ToListError, Value, ValueIntrisic},
 };
+use itertools::Itertools;
 use rand::Rng;
 
 use crate::solve::Solvable;
@@ -18,6 +19,12 @@ pub enum IntrisicError {
     WrongParamNum { called: Intrisic, given: usize },
     #[display("Expression called failed to evaluate")]
     CallFailed(Box<SolveError>),
+    #[display("Error during summing")]
+    SumFailed(Box<SolveError>),
+    #[display("Error during multiplying")]
+    MultFailed(Box<SolveError>),
+    #[display("Error during joining")]
+    JoinFailed(Box<SolveError>),
     #[display("The second parameter of `call` must be a list of parameters")]
     CallParamsNotAList(ToListError),
 }
@@ -51,20 +58,32 @@ pub(super) fn call<R: Rng>(
             .solve(context)
             .map_err(|err| IntrisicError::CallFailed(Box::new(err)))
         }
-        Intrisic::Sum => todo!(),
-        Intrisic::Sub => todo!(),
-        Intrisic::Neg => todo!(),
-        Intrisic::Join => todo!(),
-        Intrisic::Mult => todo!(),
-        Intrisic::Rem => todo!(),
-        Intrisic::Div => todo!(),
-        Intrisic::Dice => todo!(),
+        Intrisic::Sum => params
+            .into_vec()
+            .into_iter()
+            .try_fold(Value::Number(0.into()), |acc, expr| {
+                Expression::BinOp(ExpressionBinOp::new(BinOp::Add, acc.into(), expr.into()))
+                    .solve(context)
+            })
+            .map_err(|err| IntrisicError::SumFailed(Box::new(err))),
+        Intrisic::Join => params
+            .into_vec()
+            .into_iter()
+            .try_fold(Value::Number(0.into()), |acc, expr| {
+                Expression::BinOp(ExpressionBinOp::new(BinOp::Join, acc.into(), expr.into()))
+                    .solve(context)
+            })
+            .map_err(|err| IntrisicError::JoinFailed(Box::new(err))),
+        Intrisic::Mult => params
+            .into_vec()
+            .into_iter()
+            .try_fold(Value::Number(0.into()), |acc, expr| {
+                Expression::BinOp(ExpressionBinOp::new(BinOp::Mult, acc.into(), expr.into()))
+                    .solve(context)
+            })
+            .map_err(|err| IntrisicError::MultFailed(Box::new(err))),
         Intrisic::ToNumber => todo!(),
         Intrisic::ToList => todo!(),
-        Intrisic::KeepHigh => todo!(),
-        Intrisic::KeepLow => todo!(),
-        Intrisic::RemoveHigh => todo!(),
-        Intrisic::RemoveLow => todo!(),
     }
 }
 

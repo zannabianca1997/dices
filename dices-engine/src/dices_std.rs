@@ -32,12 +32,6 @@ macro_rules! std {
 pub fn std() -> ValueMap {
     std!(
             intrisics: Intrisic::all(),
-            filters: mod {
-                kh: Intrisic::KeepHigh,
-                kl: Intrisic::KeepLow,
-                rh: Intrisic::RemoveHigh,
-                rl: Intrisic::RemoveLow
-            },
             prelude: mod {}
     )
 }
