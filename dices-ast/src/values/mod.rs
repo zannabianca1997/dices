@@ -13,6 +13,8 @@ pub use null::ValueNull;
 pub use number::ValueNumber;
 pub use string::ValueString;
 
+use crate::intrisics::Intrisic;
+
 pub mod boolean;
 pub mod closure;
 pub mod intrisics;
@@ -138,5 +140,11 @@ impl<'a> arbitrary::Arbitrary<'a> for Value {
                 size_hint::or_all(&[ValueList::size_hint(depth), ValueMap::size_hint(depth)])
             }),
         ])
+    }
+}
+
+impl From<Intrisic> for Value {
+    fn from(value: Intrisic) -> Self {
+        Value::Intrisic(value.into())
     }
 }

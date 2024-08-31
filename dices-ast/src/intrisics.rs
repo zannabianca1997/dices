@@ -60,7 +60,7 @@ pub enum Intrisic {
 
 impl Intrisic {
     /// Build a module containing all the intrisics, to include in the standard library
-    pub fn module() -> ValueMap {
+    pub fn all() -> ValueMap {
         ValueMap::from_iter(Self::iter().map(|v| {
             (
                 v.name().to_string().into_boxed_str().into(),
