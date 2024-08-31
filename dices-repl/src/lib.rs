@@ -3,7 +3,7 @@ use std::{
     error::{Error, Report},
     ffi::OsString,
     hash::{DefaultHasher, Hash, Hasher},
-    io,
+    io::{self, stdin},
 };
 
 use chrono::Local;
@@ -69,6 +69,13 @@ impl Graphic {
                 env!("CARGO_PKG_VERSION"),
                 "*** ~ ⛓️🐉\n\nUse `help()` for the manual, and `quit()` or `Ctrl+D` to exit."
             ),
+        }
+    }
+    fn prompt(&self) -> &str {
+        match self {
+            Graphic::None => "",
+            Graphic::Ascii => ">>> ",
+            Graphic::Fancy => "🎲> ",
         }
     }
     fn bye(&self) -> &str {
@@ -191,7 +198,7 @@ pub fn interactive_repl(
     loop {
         let sig = line_editor.read_line(&ReplPrompt { graphic })?;
         match sig {
-            Signal::Success(buffer) => match engine.eval_str(&buffer) {
+            Signal::Success(line) => match engine.eval_str(&line) {
                 Ok(value) => print_value(graphic, &skin, value),
                 Err(err) => print_err(graphic, &skin, err),
             },
@@ -204,6 +211,39 @@ pub fn interactive_repl(
     }
 }
 
+/// Run the REPL in detached mode (input from a stream)
+pub fn detached_repl(
+    ReplCli {
+        graphic,
+        teminal,
+        seed,
+    }: ReplCli,
+) -> Result<(), ReplFatalError> {
+    // Creating the skin
+    let skin = graphic.skin(teminal);
+    // Printing the initial banner
+    skin.print_text(graphic.banner());
+    // Initializing the engine
+    let mut engine: dices_engine::Engine<SmallRng> = if let Some(seed) = seed {
+        let mut hasher = DefaultHasher::new();
+        seed.hash(&mut hasher);
+        dices_engine::Engine::new_with_rng(SmallRng::seed_from_u64(hasher.finish()))
+    } else {
+        dices_engine::Engine::new()
+    };
+    // REPL loop
+    for line in stdin().lines() {
+        let line = line?;
+        println!("{}{}", graphic.prompt(), line);
+        match engine.eval_str(&line) {
+            Ok(value) => print_value(graphic, &skin, value),
+            Err(err) => print_err(graphic, &skin, err),
+        }
+    }
+    skin.print_text(graphic.bye());
+    Ok(())
+}
+
 /// Print a value
 fn print_value(_graphic: Graphic, _skin: &MadSkin, value: Value) {
     println!("{}", value);
@@ -213,9 +253,4 @@ fn print_value(_graphic: Graphic, _skin: &MadSkin, value: Value) {
 fn print_err(_graphic: Graphic, _skin: &MadSkin, error: impl Error) {
     let report = Report::new(error).pretty(true);
     eprintln!("{report}")
-}
-
-/// Run the REPL in detached mode (input from a stream)
-pub fn detached_repl(ReplCli { .. }: ReplCli) -> Result<(), ReplFatalError> {
-    todo!()
 }
