@@ -1,9 +1,9 @@
 mod roundtrips {
     use super::super::*;
 
-    fn check_roundtrip(value: Value) {
+    fn check_roundtrip(value: Value<!>) {
         let serialized = dbg!(value.to_string());
-        let reparsed: Value = serialized.parse().expect("The value should be parseable");
+        let reparsed: Value<!> = serialized.parse().expect("The value should be parseable");
         assert_eq!(
             value, reparsed,
             "The value parsed is different from the original"

@@ -32,7 +32,6 @@ use super::list::ValueList;
     From,
     Into,
 )]
-#[cfg_attr(test, derive(arbitrary::Arbitrary))]
 pub struct ValueNumber(i64);
 
 impl ValueNumber {
@@ -43,7 +42,9 @@ impl ValueNumber {
         Ok(self)
     }
 
-    pub fn to_list(self) -> Result<ValueList, super::ToListError> {
+    pub fn to_list<InjectedIntrisic>(
+        self,
+    ) -> Result<ValueList<InjectedIntrisic>, super::ToListError> {
         Ok(ValueList::from_iter([self.into()]))
     }
 }

@@ -4,6 +4,9 @@ use std::num::TryFromIntError;
 
 use closures::VarUseCalcError;
 use derive_more::derive::{Display, Error};
+use nunny::NonEmpty;
+use rand::Rng;
+
 use dices_ast::{
     expression::{
         bin_ops::{BinOp, EvalOrder},
@@ -12,15 +15,15 @@ use dices_ast::{
         ExpressionMemberAccess, ExpressionRef, ExpressionScope, ExpressionSet, ExpressionUnOp,
     },
     ident::IdentStr,
+    intrisics::InjectedIntr,
     values::{ToListError, ToNumberError, Value, ValueClosure, ValueNumber},
 };
-use nunny::NonEmpty;
-use rand::Rng;
+pub use intrisics::IntrisicError;
 
 use crate::solve::Solvable;
 
 #[derive(Debug, Display, Error, Clone)]
-pub enum SolveError {
+pub enum SolveError<InjectedIntrisic: InjectedIntr> {
     #[display("The number of repeats must be a number")]
     RepeatTimesNotANumber(#[error(source)] ToNumberError),
     #[display("The number of repeats must be positive")]
@@ -83,17 +86,17 @@ pub enum SolveError {
     #[display("Undefined variable {_0}")]
     InvalidReference(#[error(not(source))] Box<IdentStr>),
     #[display("{_0} is not callable")]
-    NotCallable(#[error(not(source))] Value),
+    NotCallable(#[error(not(source))] Value<InjectedIntrisic>),
     #[display("Error during intrisic call")]
-    IntrisicError(intrisics::IntrisicError),
+    IntrisicError(Box<IntrisicError<InjectedIntrisic>>),
     #[display("Closures requires {required} params, {given} were instead provided.")]
     WrongNumberOfParams { required: usize, given: usize },
     #[display("The closure failed to calculate what variables needed to be captured")]
     ClosureCannotCalculateCaptures(VarUseCalcError),
     #[display("{_0} is not indexable")]
-    CannotIndex(#[error(not(source))] Value),
+    CannotIndex(#[error(not(source))] Value<InjectedIntrisic>),
     #[display("A map can be indexed only by strings, not {_0}")]
-    MapIsIndexedByStrings(#[error(not(source))] Value),
+    MapIsIndexedByStrings(#[error(not(source))] Value<InjectedIntrisic>),
     #[display("A string can be indexed only by numbers")]
     StringIsIndexedByNumbers(ToNumberError),
     #[display("A list can be indexed only by numbers")]
@@ -105,16 +108,22 @@ pub enum SolveError {
     #[display("Key not found: \"{_0}\"")]
     MissingKey(#[error(not(source))] dices_ast::values::ValueString),
 }
-impl From<!> for SolveError {
+impl<InjectedIntrisic: InjectedIntr> From<!> for SolveError<InjectedIntrisic> {
     fn from(value: !) -> Self {
         value
     }
 }
 
-impl Solvable for Expression {
-    type Error = SolveError;
+impl<InjectedIntrisic> Solvable<InjectedIntrisic> for Expression<InjectedIntrisic>
+where
+    InjectedIntrisic: InjectedIntr,
+{
+    type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(
+        &self,
+        context: &mut crate::Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         Ok(match self {
             Expression::Const(e) => e.solve(context)?,
             Expression::List(e) => e.solve(context)?,
@@ -131,20 +140,32 @@ impl Solvable for Expression {
     }
 }
 
-impl Solvable for ExpressionList {
-    type Error = SolveError;
+impl<InjectedIntrisic> Solvable<InjectedIntrisic> for ExpressionList<InjectedIntrisic>
+where
+    InjectedIntrisic: InjectedIntr,
+{
+    type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(
+        &self,
+        context: &mut crate::Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         Ok(Value::List(
             self.iter().map(|i| i.solve(context)).try_collect()?,
         ))
     }
 }
 
-impl Solvable for ExpressionMap {
-    type Error = SolveError;
+impl<InjectedIntrisic> Solvable<InjectedIntrisic> for ExpressionMap<InjectedIntrisic>
+where
+    InjectedIntrisic: InjectedIntr,
+{
+    type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(
+        &self,
+        context: &mut crate::Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         Ok(Value::Map(
             self.iter()
                 .map(|(k, v)| v.solve(context).map(|v| (k.clone(), v)))
@@ -158,10 +179,16 @@ mod closures;
 mod intrisics;
 mod un_ops;
 
-impl Solvable for ExpressionCall {
-    type Error = SolveError;
+impl<InjectedIntrisic> Solvable<InjectedIntrisic> for ExpressionCall<InjectedIntrisic>
+where
+    InjectedIntrisic: InjectedIntr,
+{
+    type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(
+        &self,
+        context: &mut crate::Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         let Self {
             called: box called,
             params: box params,
@@ -170,9 +197,8 @@ impl Solvable for ExpressionCall {
         let params: Box<_> = params.iter().map(|p| p.solve(context)).try_collect()?;
 
         match called {
-            Value::Intrisic(intrisic) => {
-                intrisics::call(intrisic, context, params).map_err(SolveError::IntrisicError)
-            }
+            Value::Intrisic(intrisic) => intrisics::call(intrisic, context, params)
+                .map_err(|err| SolveError::IntrisicError(Box::new(err))),
             Value::Closure(box ValueClosure {
                 params: params_names,
                 captures,
@@ -202,10 +228,16 @@ impl Solvable for ExpressionCall {
     }
 }
 
-impl Solvable for ExpressionMemberAccess {
-    type Error = SolveError;
+impl<InjectedIntrisic> Solvable<InjectedIntrisic> for ExpressionMemberAccess<InjectedIntrisic>
+where
+    InjectedIntrisic: InjectedIntr,
+{
+    type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(
+        &self,
+        context: &mut crate::Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         // first we solve for the accessed value
         let accessed = self.accessed.solve(context)?;
         // then for the index
@@ -267,19 +299,24 @@ impl Solvable for ExpressionMemberAccess {
     }
 }
 
-impl Solvable for ExpressionScope {
-    type Error = SolveError;
+impl<InjectedIntrisic: InjectedIntr> Solvable<InjectedIntrisic>
+    for ExpressionScope<InjectedIntrisic>
+{
+    type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(
+        &self,
+        context: &mut crate::Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         context.scoped(|context| solve_multiple(&self.0, context))
     }
 }
 
 /// Solve multiple expressions, discarding the result of all but the last
-pub(crate) fn solve_multiple<R: Rng>(
-    scope: &NonEmpty<[Expression]>,
-    context: &mut crate::Context<R>,
-) -> Result<Value, SolveError> {
+pub(crate) fn solve_multiple<R: Rng, InjectedIntrisic: InjectedIntr>(
+    scope: &NonEmpty<[Expression<InjectedIntrisic>]>,
+    context: &mut crate::Context<R, InjectedIntrisic>,
+) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
     let (last, leading) = scope.split_last();
     for expr in leading {
         expr.solve(context)?;
@@ -287,10 +324,16 @@ pub(crate) fn solve_multiple<R: Rng>(
     last.solve(context)
 }
 
-impl Solvable for ExpressionSet {
-    type Error = SolveError;
+impl<InjectedIntrisic> Solvable<InjectedIntrisic> for ExpressionSet<InjectedIntrisic>
+where
+    InjectedIntrisic: InjectedIntr,
+{
+    type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(
+        &self,
+        context: &mut crate::Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         let value = self.value.solve(context)?;
 
         match &self.receiver {
@@ -307,10 +350,16 @@ impl Solvable for ExpressionSet {
         Ok(value)
     }
 }
-impl Solvable for ExpressionRef {
-    type Error = SolveError;
+impl<InjectedIntrisic> Solvable<InjectedIntrisic> for ExpressionRef
+where
+    InjectedIntrisic: InjectedIntr,
+{
+    type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(
+        &self,
+        context: &mut crate::Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         context
             .vars()
             .get(&self.name)

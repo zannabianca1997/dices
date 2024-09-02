@@ -4,11 +4,12 @@
 #![feature(box_patterns)]
 #![feature(iter_intersperse)]
 #![feature(mapped_lock_guards)]
+#![feature(error_reporter)]
 
 use std::{
     borrow::Cow,
     collections::HashMap,
-    error::Error,
+    error::{Error, Report},
     fmt::Write,
     hash::{DefaultHasher, Hash, Hasher},
     mem,
@@ -17,7 +18,7 @@ use std::{
 };
 
 use dices_ast::values::{Value, ValueNull};
-use dices_engine::Engine;
+use dices_engine::{Engine, SolveError};
 use example::{CodeExample, CodeExampleCommand, CodeExamplePiece};
 use markdown::{
     mdast::{Code, Node},
@@ -162,17 +163,8 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
                     Ok(Value::Null(ValueNull)) => (),
                     Ok(res) => writeln!(value, "{res}").unwrap(),
                     Err(err) => {
-                        writeln!(value, "Error during evaluation:").unwrap();
-                        writeln!(value, "  {err}").unwrap();
-                        if let Some(mut src) = err.source() {
-                            writeln!(value).unwrap();
-                            writeln!(value, "Caused by:").unwrap();
-                            writeln!(value, "  - {src}").unwrap();
-                            while let Some(next_src) = src.source() {
-                                src = next_src;
-                                writeln!(value, "  - {src}").unwrap();
-                            }
-                        }
+                        let report = Report::new(err).pretty(true);
+                        writeln!(value, "{report}").unwrap()
                     }
                 }
             }

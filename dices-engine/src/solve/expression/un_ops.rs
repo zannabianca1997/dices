@@ -5,10 +5,16 @@ use rand::Rng;
 
 use super::*;
 
-impl Solvable for ExpressionUnOp {
-    type Error = SolveError;
+impl<InjectedIntrisic> Solvable<InjectedIntrisic> for ExpressionUnOp<InjectedIntrisic>
+where
+    InjectedIntrisic: InjectedIntr,
+{
+    type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, SolveError> {
+    fn solve<R: Rng>(
+        &self,
+        context: &mut crate::Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
         let ExpressionUnOp {
             op,
             expression: box a,
@@ -22,7 +28,10 @@ impl Solvable for ExpressionUnOp {
     }
 }
 
-pub(crate) fn plus<R>(context: &mut crate::Context<R>, a: Value) -> Result<Value, SolveError> {
+pub(crate) fn plus<R, InjectedIntrisic: InjectedIntr>(
+    context: &mut crate::Context<R, InjectedIntrisic>,
+    a: Value<InjectedIntrisic>,
+) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
     Ok(match a {
         // scalars will be converted to numbers
         Value::Null(_)
@@ -50,12 +59,21 @@ pub(crate) fn plus<R>(context: &mut crate::Context<R>, a: Value) -> Result<Value
     })
 }
 
-pub(super) fn neg<R>(context: &mut crate::Context<R>, a: Value) -> Result<Value, SolveError> {
+pub(super) fn neg<R, InjectedIntrisic>(
+    context: &mut crate::Context<R, InjectedIntrisic>,
+    a: Value<InjectedIntrisic>,
+) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
+where
+    InjectedIntrisic: InjectedIntr,
+{
     // delegating to the mult op
     mult(context, Value::Number((-1).into()), a)
 }
 
-fn dice<R: Rng>(context: &mut crate::Context<R>, a: Value) -> Result<Value, SolveError> {
+fn dice<R: Rng, InjectedIntrisic: InjectedIntr>(
+    context: &mut crate::Context<R, InjectedIntrisic>,
+    a: Value<InjectedIntrisic>,
+) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
     let a: i64 = a
         .to_number()
         .map_err(|source| SolveError::FacesAreNotANumber { source })?

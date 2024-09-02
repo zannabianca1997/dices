@@ -5,17 +5,17 @@ use std::{collections::BTreeMap, mem};
 use dices_ast::{ident::IdentStr, values::Value};
 use nunny::NonEmpty;
 
-type Scope = BTreeMap<Box<IdentStr>, Value>;
+type Scope<InjectedIntrisic> = BTreeMap<Box<IdentStr>, Value<InjectedIntrisic>>;
 
 #[derive(Debug, Clone)]
-pub struct Context<RNG> {
+pub struct Context<RNG, InjectedIntrisic> {
     /// the stack of variables
-    scopes: NonEmpty<Vec<Scope>>,
+    scopes: NonEmpty<Vec<Scope<InjectedIntrisic>>>,
     /// The random number generator
     rng: RNG,
 }
 
-impl<RNG> Context<RNG> {
+impl<RNG, InjectedIntrisic> Context<RNG, InjectedIntrisic> {
     pub fn new(rng: RNG) -> Self {
         Self {
             scopes: nunny::vec![Scope::new()],
@@ -45,11 +45,11 @@ impl<RNG> Context<RNG> {
     }
 
     /// Obtain a readonly handle to the variables
-    pub fn vars(&self) -> Vars {
+    pub fn vars(&self) -> Vars<InjectedIntrisic> {
         Vars(&self.scopes)
     }
     /// Obtain an handle to the variables
-    pub fn vars_mut(&mut self) -> VarsMut {
+    pub fn vars_mut(&mut self) -> VarsMut<InjectedIntrisic> {
         VarsMut(&mut self.scopes)
     }
 
@@ -60,46 +60,48 @@ impl<RNG> Context<RNG> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Vars<'c>(&'c NonEmpty<[Scope]>);
+pub struct Vars<'c, InjectedIntrisic>(&'c NonEmpty<[Scope<InjectedIntrisic>]>);
 
-impl Vars<'_> {
+impl<InjectedIntrisic> Vars<'_, InjectedIntrisic> {
     /// Find the value of a variable
-    pub fn get(&self, name: &IdentStr) -> Option<&Value> {
+    pub fn get(&self, name: &IdentStr) -> Option<&Value<InjectedIntrisic>> {
         // find the last scope that contains that variable
         self.0.iter().rev().find_map(|s| s.get(name))
     }
 }
-impl<'c> From<VarsMut<'c>> for Vars<'c> {
-    fn from(value: VarsMut<'c>) -> Self {
+impl<'c, InjectedIntrisic> From<VarsMut<'c, InjectedIntrisic>> for Vars<'c, InjectedIntrisic> {
+    fn from(value: VarsMut<'c, InjectedIntrisic>) -> Self {
         Self(&*value.0)
     }
 }
-impl<'c> From<&'c VarsMut<'c>> for Vars<'c> {
-    fn from(value: &'c VarsMut<'c>) -> Self {
+impl<'c, InjectedIntrisic> From<&'c VarsMut<'c, InjectedIntrisic>> for Vars<'c, InjectedIntrisic> {
+    fn from(value: &'c VarsMut<'c, InjectedIntrisic>) -> Self {
         Self(&*value.0)
     }
 }
-impl<'c> From<&'c mut VarsMut<'c>> for Vars<'c> {
-    fn from(value: &'c mut VarsMut<'c>) -> Self {
+impl<'c, InjectedIntrisic> From<&'c mut VarsMut<'c, InjectedIntrisic>>
+    for Vars<'c, InjectedIntrisic>
+{
+    fn from(value: &'c mut VarsMut<'c, InjectedIntrisic>) -> Self {
         Self(&*value.0)
     }
 }
 
 #[derive(Debug)]
-pub struct VarsMut<'c>(&'c mut NonEmpty<[Scope]>);
+pub struct VarsMut<'c, InjectedIntrisic>(&'c mut NonEmpty<[Scope<InjectedIntrisic>]>);
 
-impl VarsMut<'_> {
+impl<InjectedIntrisic> VarsMut<'_, InjectedIntrisic> {
     /// Let a variable be, setting its value if present in the current scope, or creating it
-    pub fn let_(&mut self, name: Box<IdentStr>, value: Value) {
+    pub fn let_(&mut self, name: Box<IdentStr>, value: Value<InjectedIntrisic>) {
         self.0.last_mut().insert(name, value);
     }
     /// Find the value of a variable
-    pub fn get(&self, name: &IdentStr) -> Option<&Value> {
+    pub fn get(&self, name: &IdentStr) -> Option<&Value<InjectedIntrisic>> {
         // find the last scope that contains that variable
         self.0.iter().rev().find_map(|s| s.get(name))
     }
     /// Find the value of a variable, and permit to modify it
-    pub fn get_mut(&mut self, name: &IdentStr) -> Option<&mut Value> {
+    pub fn get_mut(&mut self, name: &IdentStr) -> Option<&mut Value<InjectedIntrisic>> {
         // find the last scope that contains that variable
         self.0.iter_mut().rev().find_map(|s| s.get_mut(name))
     }

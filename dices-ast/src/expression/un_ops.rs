@@ -15,13 +15,13 @@ pub enum UnOp {
 
 /// An expression made with an unary operator
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExpressionUnOp {
+pub struct ExpressionUnOp<InjectedIntrisic> {
     pub op: UnOp,
-    pub expression: Box<Expression>,
+    pub expression: Box<Expression<InjectedIntrisic>>,
 }
 
-impl ExpressionUnOp {
-    pub fn new(op: UnOp, expression: Expression) -> Self {
+impl<InjectedIntrisic> ExpressionUnOp<InjectedIntrisic> {
+    pub fn new(op: UnOp, expression: Expression<InjectedIntrisic>) -> Self {
         Self {
             op,
             expression: Box::new(expression),

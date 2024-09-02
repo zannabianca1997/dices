@@ -1,6 +1,9 @@
 //! This is the standard library of `dices`
 
-use dices_ast::{intrisics::Intrisic, values::ValueMap};
+use dices_ast::{
+    intrisics::{InjectedIntr, Intrisic},
+    values::ValueMap,
+};
 
 macro_rules! map {
     (
@@ -29,7 +32,10 @@ macro_rules! std {
 }
 
 /// Build the default std library
-pub fn std() -> ValueMap {
+pub fn std<II>() -> ValueMap<II>
+where
+    II: InjectedIntr,
+{
     std!(
             intrisics: Intrisic::all(),
             variadics: mod {

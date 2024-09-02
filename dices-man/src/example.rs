@@ -111,7 +111,7 @@ impl FromStr for CodeExample {
 #[derive(Debug,Clone,Hash)]
 pub struct CodeExamplePiece {
    pub cmd: CodeExampleCommand,
-   pub res: Option<Matcher>,
+   pub res: Option<Matcher<!>>,
 }
 
 #[derive(Debug,Clone,Hash)]
@@ -121,7 +121,7 @@ pub struct CodeExampleCommand {
     /// Used to do setup stuff, as it is not printed
    pub ignore: bool,
     /// The actual command
-   pub command: Box<NonEmpty<[Expression]>>,
+   pub command: Box<NonEmpty<[Expression<!>]>>,
    /// The source code of the command
    pub src: String
 }

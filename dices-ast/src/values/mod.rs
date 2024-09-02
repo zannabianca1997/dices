@@ -42,20 +42,20 @@ mod tests;
     // conversion
     From,
 )]
-pub enum Value {
+pub enum Value<InjectedIntrisic> {
     Null(ValueNull),
     Bool(ValueBool),
     Number(ValueNumber),
     String(ValueString),
 
-    List(ValueList),
-    Map(ValueMap),
+    List(ValueList<InjectedIntrisic>),
+    Map(ValueMap<InjectedIntrisic>),
 
-    Intrisic(ValueIntrisic),
-    Closure(Box<ValueClosure>),
+    Intrisic(ValueIntrisic<InjectedIntrisic>),
+    Closure(Box<ValueClosure<InjectedIntrisic>>),
 }
 
-impl Value {
+impl<InjectedIntrisic> Value<InjectedIntrisic> {
     pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
         match self {
             Value::Bool(v) => v.to_number(),
@@ -69,7 +69,7 @@ impl Value {
         }
     }
 
-    pub fn to_list(self) -> Result<ValueList, ToListError> {
+    pub fn to_list(self) -> Result<ValueList<InjectedIntrisic>, ToListError> {
         match self {
             Value::Bool(v) => v.to_list(),
             Value::Number(v) => v.to_list(),
@@ -102,49 +102,8 @@ pub enum ToNumberError {
 #[derive(Debug, Display, Error, Clone)]
 pub enum ToListError {}
 
-#[cfg(test)]
-impl<'a> arbitrary::Arbitrary<'a> for Value {
-    fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
-        Ok(match u.choose_index(6)? {
-            0 => ValueNull::arbitrary(u)?.into(),
-            1 => ValueBool::arbitrary(u)?.into(),
-            2 => ValueNumber::arbitrary(u)?.into(),
-            3 => ValueString::arbitrary(u)?.into(),
-            4 => ValueList::arbitrary(u)?.into(),
-            5 => ValueMap::arbitrary(u)?.into(),
-            _ => unreachable!(),
-        })
-    }
-    fn arbitrary_take_rest(mut u: arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
-        Ok(match u.choose_index(6)? {
-            0 => ValueNull::arbitrary_take_rest(u)?.into(),
-            1 => ValueBool::arbitrary_take_rest(u)?.into(),
-            2 => ValueNumber::arbitrary_take_rest(u)?.into(),
-            3 => ValueString::arbitrary_take_rest(u)?.into(),
-            4 => ValueList::arbitrary_take_rest(u)?.into(),
-            5 => ValueMap::arbitrary_take_rest(u)?.into(),
-            _ => unreachable!(),
-        })
-    }
-
-    fn size_hint(depth: usize) -> (usize, Option<usize>) {
-        use arbitrary::size_hint;
-
-        size_hint::or_all(&[
-            ValueNull::size_hint(depth),
-            ValueBool::size_hint(depth),
-            ValueNumber::size_hint(depth),
-            ValueString::size_hint(depth),
-            // those two variants might be recursive, and need to be guarded
-            size_hint::recursion_guard(depth, |depth| {
-                size_hint::or_all(&[ValueList::size_hint(depth), ValueMap::size_hint(depth)])
-            }),
-        ])
-    }
-}
-
-impl From<Intrisic> for Value {
-    fn from(value: Intrisic) -> Self {
+impl<InjectedIntrisic> From<Intrisic<InjectedIntrisic>> for Value<InjectedIntrisic> {
+    fn from(value: Intrisic<InjectedIntrisic>) -> Self {
         Value::Intrisic(value.into())
     }
 }

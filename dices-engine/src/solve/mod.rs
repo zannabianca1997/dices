@@ -8,10 +8,13 @@ use crate::Context;
 mod expression;
 mod value;
 
-pub use expression::SolveError;
+pub use expression::{IntrisicError, SolveError};
 
-pub(super) trait Solvable {
+pub(super) trait Solvable<InjectedIntrisic> {
     type Error;
 
-    fn solve<R: Rng>(&self, context: &mut Context<R>) -> Result<Value, Self::Error>;
+    fn solve<R: Rng>(
+        &self,
+        context: &mut Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, Self::Error>;
 }

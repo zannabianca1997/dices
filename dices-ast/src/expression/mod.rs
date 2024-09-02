@@ -19,52 +19,41 @@ pub mod call;
 pub mod closure;
 pub mod list;
 pub mod map;
+pub mod member_access;
 pub mod ref_;
 pub mod scope;
 pub mod set;
 pub mod un_ops;
-pub mod member_access {
-    //! Expression to read the members of a composite
-
-    use super::Expression;
-
-    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    /// Access a member of a map or a list
-    pub struct ExpressionMemberAccess {
-        pub accessed: Box<Expression>,
-        pub index: Box<Expression>,
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, From)]
-pub enum Expression {
+pub enum Expression<InjectedIntrisic> {
     /// Expression returning a constant value
-    Const(Value),
+    Const(Value<InjectedIntrisic>),
 
     /// List literal
-    List(ExpressionList),
+    List(ExpressionList<InjectedIntrisic>),
     /// Map literal
-    Map(ExpressionMap),
+    Map(ExpressionMap<InjectedIntrisic>),
 
     /// Closure literal
-    Closure(ExpressionClosure),
+    Closure(ExpressionClosure<InjectedIntrisic>),
 
     /// Expression with a single operatorand
-    UnOp(ExpressionUnOp),
+    UnOp(ExpressionUnOp<InjectedIntrisic>),
     /// Expression with two operatorands
-    BinOp(ExpressionBinOp),
+    BinOp(ExpressionBinOp<InjectedIntrisic>),
 
     /// Call expression
-    Call(ExpressionCall),
+    Call(ExpressionCall<InjectedIntrisic>),
 
     /// Member access
-    MemberAccess(ExpressionMemberAccess),
+    MemberAccess(ExpressionMemberAccess<InjectedIntrisic>),
 
     /// Scoping expression
-    Scope(ExpressionScope),
+    Scope(ExpressionScope<InjectedIntrisic>),
 
     /// Set expression
-    Set(ExpressionSet),
+    Set(ExpressionSet<InjectedIntrisic>),
     /// Ref expression
     Ref(ExpressionRef),
 }
