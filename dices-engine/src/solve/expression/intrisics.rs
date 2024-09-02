@@ -42,6 +42,9 @@ where
     CannotParseNonString(Value<Injected>),
     #[error("Failed to parse string")]
     ParseFailed(#[source] <Value<Injected> as FromStr>::Err),
+
+    #[error(transparent)]
+    Injected(Injected::Error),
 }
 
 pub(super) fn call<R: Rng, Injected>(

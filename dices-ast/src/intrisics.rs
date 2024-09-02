@@ -1,6 +1,6 @@
 //! List of the language intrisics
 
-use std::borrow::Cow;
+use std::{borrow::Cow, error::Error};
 
 use crate::values::{map::ValueMap, ValueIntrisic};
 
@@ -92,6 +92,8 @@ where
 pub trait InjectedIntr: Sized + Clone {
     /// The data used by the injected intrisics
     type Data;
+    /// The error type given by calling this intrisic
+    type Error: Error + Clone;
 
     /// Give a name for this intrisic
     fn name(&self) -> Cow<str>;
@@ -101,6 +103,7 @@ pub trait InjectedIntr: Sized + Clone {
 
 impl InjectedIntr for ! {
     type Data = ();
+    type Error = !;
 
     fn name(&self) -> Cow<str> {
         *self
