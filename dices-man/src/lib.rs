@@ -9,7 +9,7 @@
 use std::{
     borrow::Cow,
     collections::HashMap,
-    error::{Error, Report},
+    error::Report,
     fmt::Write,
     hash::{DefaultHasher, Hash, Hasher},
     mem,
@@ -18,7 +18,7 @@ use std::{
 };
 
 use dices_ast::values::{Value, ValueNull};
-use dices_engine::{Engine, SolveError};
+use dices_engine::Engine;
 use example::{CodeExample, CodeExampleCommand, CodeExamplePiece};
 use markdown::{
     mdast::{Code, Node},
