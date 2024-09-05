@@ -1,11 +1,10 @@
 use std::{
     fmt::Display,
     ops::{Deref, DerefMut},
-    rc::Rc,
 };
 
 use itertools::Itertools;
-use pretty::{DocAllocator, DocBuilder, Pretty};
+use pretty::{DocAllocator, Pretty};
 
 use crate::{fmt::CommaLine, intrisics::InjectedIntr};
 
