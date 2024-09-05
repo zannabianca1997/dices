@@ -93,7 +93,7 @@ pub trait InjectedIntr: Sized + Clone {
     /// The data used by the injected intrisics
     type Data;
     /// The error type given by calling this intrisic
-    type Error: Error + Clone;
+    type Error: Error + Clone + 'static;
 
     /// Give a name for this intrisic
     fn name(&self) -> Cow<str>;

@@ -3,7 +3,7 @@
 use std::num::TryFromIntError;
 
 use closures::VarUseCalcError;
-use derive_more::{Display, Error};
+use derive_more::{Debug, Display, Error};
 use nunny::NonEmpty;
 use rand::Rng;
 
@@ -88,7 +88,7 @@ pub enum SolveError<InjectedIntrisic: InjectedIntr> {
     #[display("{_0} is not callable")]
     NotCallable(#[error(not(source))] Value<InjectedIntrisic>),
     #[display("Error during intrisic call")]
-    IntrisicError(#[error(source)] Box<IntrisicError<InjectedIntrisic>>),
+    IntrisicError(#[error(source)] Box<RecursionGuard<IntrisicError<InjectedIntrisic>>>),
     #[display("Closures requires {required} params, {given} were instead provided.")]
     WrongNumberOfParams { required: usize, given: usize },
     #[display("The closure failed to calculate what variables needed to be captured")]
@@ -113,6 +113,9 @@ impl<InjectedIntrisic: InjectedIntr> From<!> for SolveError<InjectedIntrisic> {
         value
     }
 }
+
+mod recursion_guard;
+pub use recursion_guard::RecursionGuard;
 
 impl<InjectedIntrisic> Solvable<InjectedIntrisic> for Expression<InjectedIntrisic>
 where
@@ -198,7 +201,7 @@ where
 
         match called {
             Value::Intrisic(intrisic) => intrisics::call(intrisic, context, params)
-                .map_err(|err| SolveError::IntrisicError(Box::new(err))),
+                .map_err(|err| SolveError::IntrisicError(Box::new(RecursionGuard::new(err)))),
             Value::Closure(box ValueClosure {
                 params: params_names,
                 captures,
