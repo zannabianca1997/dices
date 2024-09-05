@@ -4,6 +4,7 @@ use std::{
 };
 
 use itertools::Itertools;
+use pretty::{DocAllocator, Pretty};
 
 use crate::intrisics::InjectedIntr;
 
@@ -76,5 +77,26 @@ impl<InjectedIntrisic> IntoIterator for ValueList<InjectedIntrisic> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_vec().into_iter()
+    }
+}
+
+impl<'a, D, A, II> Pretty<'a, D, A> for &'a ValueList<II>
+where
+    A: 'a,
+    D: ?Sized + DocAllocator<'a, A>,
+    II: InjectedIntr,
+{
+    fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
+        let mut inner = allocator.nil();
+        for elem in Itertools::intersperse(self.iter().map(Some), None) {
+            if let Some(elem) = elem {
+                inner = inner.append(elem);
+            } else {
+                inner = inner.append(",").append(allocator.line());
+            }
+        }
+        let inner = inner.enclose(allocator.line_(), allocator.line_()).group();
+
+        inner.nest(4).enclose("[", "]")
     }
 }

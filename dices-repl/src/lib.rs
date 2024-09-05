@@ -5,7 +5,7 @@ use std::{
     error::{Error, Report},
     ffi::OsString,
     hash::{DefaultHasher, Hash, Hasher},
-    io::{self, stdin},
+    io::{self, stdin, stdout},
     rc::Rc,
 };
 
@@ -13,10 +13,11 @@ use chrono::Local;
 use clap::{Parser, ValueEnum};
 use derive_more::derive::{Debug, Display, Error, From};
 use dices_ast::values::{Value, ValueNull};
+use pretty::Pretty;
 use rand::{rngs::SmallRng, SeedableRng};
 use reedline::{Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, Reedline, Signal};
 use repl_intrisics::{Quitted, REPLIntrisics};
-use termimad::{Alignment, MadSkin};
+use termimad::{terminal_size, Alignment, MadSkin};
 
 mod repl_intrisics;
 
@@ -43,7 +44,7 @@ pub enum TerminalLightness {
     #[display("dark")]
     Dark,
 }
-#[derive(Debug, Clone, Copy, Display, ValueEnum)]
+#[derive(Debug, Clone, Copy, Display, ValueEnum, PartialEq, Eq)]
 pub enum Graphic {
     #[display("none")]
     None,
@@ -272,12 +273,20 @@ pub fn detached_repl(
 }
 
 /// Print a value
-fn print_value(_graphic: Graphic, _skin: &MadSkin, value: &Value<REPLIntrisics>) {
+fn print_value(graphic: Graphic, _skin: &MadSkin, value: &Value<REPLIntrisics>) {
     if value == &Value::Null(ValueNull) {
         // do not print null values
         return;
     }
-    println!("{}", value);
+    if graphic == Graphic::None {
+        println!("{}", value);
+        return;
+    }
+    let arena = pretty::Arena::<()>::new();
+    value
+        .pretty(&arena)
+        .render(terminal_size().0 as _, &mut stdout())
+        .expect("Error in formatting the value");
 }
 
 /// Print an error
