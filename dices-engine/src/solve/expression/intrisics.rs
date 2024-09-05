@@ -161,7 +161,9 @@ where
             };
             value.parse().map_err(IntrisicError::ParseFailed)
         }
-        Intrisic::Injected(_) => todo!(),
+        Intrisic::Injected(injected) => injected
+            .call(context.injected_intrisics_data_mut(), params)
+            .map_err(IntrisicError::Injected),
     }
 }
 

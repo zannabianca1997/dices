@@ -1,11 +1,11 @@
 //! Trivial implementations of `Solvable` for Values
 
-use dices_ast::values::*;
+use dices_ast::{intrisics::InjectedIntr, values::*};
 
 macro_rules! trivial_impl {
         ( $( $type:ty ),* ) => {
             $(
-                impl<InjectedIntrisic: Clone> crate::solve::Solvable<InjectedIntrisic> for $type {
+                impl<InjectedIntrisic: InjectedIntr> crate::solve::Solvable<InjectedIntrisic> for $type {
                     type Error = !;
 
                     fn solve<R>(
@@ -30,7 +30,7 @@ trivial_impl!(
     ValueNull
 );
 
-impl<InjectedIntrisic: Clone> crate::solve::Solvable<InjectedIntrisic>
+impl<InjectedIntrisic: InjectedIntr> crate::solve::Solvable<InjectedIntrisic>
     for ValueClosure<InjectedIntrisic>
 {
     type Error = !;

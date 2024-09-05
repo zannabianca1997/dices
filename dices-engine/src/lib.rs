@@ -138,7 +138,7 @@ impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
             injected_intrisics_data,
         } = self;
         // build context
-        let mut context = Context::new(rng);
+        let mut context = Context::new(rng, injected_intrisics_data);
         // adding std and prelude
         if let Some(std_name) = std {
             // generating the std library
@@ -159,16 +159,12 @@ impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
             context.vars_mut().let_(std_name.into_owned(), std.into());
         }
 
-        Engine {
-            context,
-            _injected_intrisics_data: injected_intrisics_data,
-        }
+        Engine { context }
     }
 }
 
 pub struct Engine<RNG, InjectedIntrisic: InjectedIntr> {
     context: Context<RNG, InjectedIntrisic>,
-    _injected_intrisics_data: <InjectedIntrisic as InjectedIntr>::Data,
 }
 
 impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {

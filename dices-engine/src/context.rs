@@ -2,24 +2,29 @@
 
 use std::{collections::BTreeMap, mem};
 
-use dices_ast::{ident::IdentStr, values::Value};
+use dices_ast::{ident::IdentStr, intrisics::InjectedIntr, values::Value};
 use nunny::NonEmpty;
 
 type Scope<InjectedIntrisic> = BTreeMap<Box<IdentStr>, Value<InjectedIntrisic>>;
 
-#[derive(Debug, Clone)]
-pub struct Context<RNG, InjectedIntrisic> {
+pub struct Context<RNG, InjectedIntrisic: InjectedIntr> {
     /// the stack of variables
     scopes: NonEmpty<Vec<Scope<InjectedIntrisic>>>,
     /// The random number generator
     rng: RNG,
+    /// The data for the injected intrisics
+    injected_intrisics_data: <InjectedIntrisic as InjectedIntr>::Data,
 }
 
-impl<RNG, InjectedIntrisic> Context<RNG, InjectedIntrisic> {
-    pub fn new(rng: RNG) -> Self {
+impl<RNG, InjectedIntrisic: InjectedIntr> Context<RNG, InjectedIntrisic> {
+    pub fn new(
+        rng: RNG,
+        injected_intrisics_data: <InjectedIntrisic as InjectedIntr>::Data,
+    ) -> Self {
         Self {
             scopes: nunny::vec![Scope::new()],
             rng,
+            injected_intrisics_data,
         }
     }
 
@@ -56,6 +61,14 @@ impl<RNG, InjectedIntrisic> Context<RNG, InjectedIntrisic> {
     /// Obtain an handle to the rng
     pub fn rng(&mut self) -> &mut RNG {
         &mut self.rng
+    }
+
+    pub fn injected_intrisics_data(&self) -> &<InjectedIntrisic as InjectedIntr>::Data {
+        &self.injected_intrisics_data
+    }
+
+    pub fn injected_intrisics_data_mut(&mut self) -> &mut <InjectedIntrisic as InjectedIntr>::Data {
+        &mut self.injected_intrisics_data
     }
 }
 

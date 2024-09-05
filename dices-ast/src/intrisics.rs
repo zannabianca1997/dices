@@ -7,7 +7,7 @@ use std::{
     hash::Hash,
 };
 
-use crate::values::{map::ValueMap, ValueIntrisic};
+use crate::values::{map::ValueMap, Value, ValueIntrisic};
 
 #[derive(
     // display helper
@@ -100,10 +100,16 @@ pub trait InjectedIntr: Sized + Clone {
     /// The error type given by calling this intrisic
     type Error: Error + Clone + 'static;
 
+    /// Iter all possible intrisics that must be injected
+    fn iter() -> impl IntoIterator<Item = Self>;
     /// Give a name for this intrisic
     fn name(&self) -> Cow<str>;
-    /// Iter all possible identifiers
-    fn iter() -> impl IntoIterator<Item = Self>;
+    /// Call this intrisic
+    fn call(
+        &self,
+        data: &mut Self::Data,
+        params: Box<[Value<Self>]>,
+    ) -> Result<Value<Self>, Self::Error>;
 }
 
 /// No injected intrisics
@@ -146,11 +152,15 @@ impl InjectedIntr for NoInjectedIntrisics {
     type Data = ();
     type Error = !;
 
+    fn iter() -> impl IntoIterator<Item = Self> {
+        []
+    }
+
     fn name(&self) -> Cow<str> {
         self.0
     }
 
-    fn iter() -> impl IntoIterator<Item = Self> {
-        []
+    fn call(&self, _: &mut Self::Data, _: Box<[Value<Self>]>) -> Result<Value<Self>, Self::Error> {
+        self.0
     }
 }

@@ -1,7 +1,7 @@
 pub(crate) use expression::solve_multiple;
 use rand::Rng;
 
-use dices_ast::values::Value;
+use dices_ast::{intrisics::InjectedIntr, values::Value};
 
 use crate::Context;
 
@@ -10,7 +10,7 @@ mod value;
 
 pub use expression::{IntrisicError, SolveError};
 
-pub(super) trait Solvable<InjectedIntrisic> {
+pub(super) trait Solvable<InjectedIntrisic: InjectedIntr> {
     type Error;
 
     fn solve<R: Rng>(
