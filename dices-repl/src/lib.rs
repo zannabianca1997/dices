@@ -4,6 +4,7 @@ use std::{
     ffi::OsString,
     hash::{DefaultHasher, Hash, Hasher},
     io::{self, stdin},
+    rc::Rc,
 };
 
 use chrono::Local;
@@ -12,7 +13,74 @@ use derive_more::derive::{Debug, Display, Error, From};
 use dices_ast::values::{Value, ValueNull};
 use rand::{rngs::SmallRng, SeedableRng};
 use reedline::{Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, Reedline, Signal};
+use repl_intrisics::REPLIntrisics;
 use termimad::{Alignment, MadSkin};
+
+mod repl_intrisics {
+    //! Intrisics for the REPL
+
+    use std::rc::Rc;
+
+    use derive_more::derive::{Display, Error};
+    use dices_ast::{
+        intrisics::InjectedIntr,
+        values::{Value, ValueNull},
+    };
+    use termimad::MadSkin;
+
+    use crate::{print_value, Graphic};
+
+    pub struct Data {
+        // stuff needed to visualize the elements
+        graphic: Rc<Graphic>,
+        skin: Rc<MadSkin>,
+    }
+
+    impl Data {
+        pub fn new(graphic: Rc<Graphic>, skin: Rc<MadSkin>) -> Self {
+            Self { graphic, skin }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub enum REPLIntrisics {
+        /// Print a value
+        Print,
+    }
+    #[derive(Debug, Clone, Display, Error)]
+    pub enum REPLIntrisicsError {}
+
+    impl InjectedIntr for REPLIntrisics {
+        type Data = Data;
+
+        type Error = REPLIntrisicsError;
+
+        fn iter() -> impl IntoIterator<Item = Self> {
+            [Self::Print]
+        }
+
+        fn name(&self) -> std::borrow::Cow<str> {
+            match self {
+                REPLIntrisics::Print => "print".into(),
+            }
+        }
+
+        fn call(
+            &self,
+            data: &mut Self::Data,
+            params: Box<[Value<Self>]>,
+        ) -> Result<Value<Self>, Self::Error> {
+            match self {
+                REPLIntrisics::Print => {
+                    for value in params.iter() {
+                        print_value(*data.graphic, &data.skin, value)
+                    }
+                    Ok(Value::Null(ValueNull))
+                }
+            }
+        }
+    }
+}
 
 #[derive(Debug, Clone, Parser)]
 #[command(name="dices", version, about, long_about = None)]
@@ -180,27 +248,33 @@ pub fn interactive_repl(
         seed,
     }: ReplCli,
 ) -> Result<(), ReplFatalError> {
+    // Boxing the graphic
+    let graphic = Rc::new(graphic);
     // Creating the skin
-    let skin = graphic.skin(teminal);
+    let skin = Rc::new(graphic.skin(teminal));
     // Printing the initial banner
     skin.print_text(graphic.banner());
     // Creating the editor
     let mut line_editor = Reedline::create();
     // Initializing the engine
-    let mut engine: dices_engine::Engine<SmallRng, _> = if let Some(seed) = seed {
+    let engine_builder = dices_engine::EngineBuilder::new()
+        .inject_intrisics_with_data(repl_intrisics::Data::new(graphic.clone(), skin.clone()));
+    let engine_builder = if let Some(seed) = seed {
         let mut hasher = DefaultHasher::new();
         seed.hash(&mut hasher);
-        dices_engine::Engine::new_with_rng(SmallRng::seed_from_u64(hasher.finish()))
+
+        engine_builder.with_rng(SmallRng::seed_from_u64(hasher.finish()))
     } else {
-        dices_engine::Engine::new()
+        engine_builder.with_rng_from_entropy()
     };
+    let mut engine: dices_engine::Engine<SmallRng, REPLIntrisics> = engine_builder.build();
     // REPL loop
     loop {
-        let sig = line_editor.read_line(&ReplPrompt { graphic })?;
+        let sig = line_editor.read_line(&ReplPrompt { graphic: *graphic })?;
         match sig {
             Signal::Success(line) => match engine.eval_str(&line) {
-                Ok(value) => print_value(graphic, &skin, value),
-                Err(err) => print_err(graphic, &skin, err),
+                Ok(value) => print_value(*graphic, &skin, &value),
+                Err(err) => print_err(*graphic, &skin, err),
             },
             Signal::CtrlD => {
                 skin.print_text(graphic.bye());
@@ -219,25 +293,31 @@ pub fn detached_repl(
         seed,
     }: ReplCli,
 ) -> Result<(), ReplFatalError> {
+    // Boxing the graphic
+    let graphic = Rc::new(graphic);
     // Creating the skin
-    let skin = graphic.skin(teminal);
+    let skin = Rc::new(graphic.skin(teminal));
     // Printing the initial banner
     skin.print_text(graphic.banner());
     // Initializing the engine
-    let mut engine: dices_engine::Engine<SmallRng, _> = if let Some(seed) = seed {
+    let engine_builder = dices_engine::EngineBuilder::new()
+        .inject_intrisics_with_data(repl_intrisics::Data::new(graphic.clone(), skin.clone()));
+    let engine_builder = if let Some(seed) = seed {
         let mut hasher = DefaultHasher::new();
         seed.hash(&mut hasher);
-        dices_engine::Engine::new_with_rng(SmallRng::seed_from_u64(hasher.finish()))
+
+        engine_builder.with_rng(SmallRng::seed_from_u64(hasher.finish()))
     } else {
-        dices_engine::Engine::new()
+        engine_builder.with_rng_from_entropy()
     };
+    let mut engine: dices_engine::Engine<SmallRng, REPLIntrisics> = engine_builder.build();
     // REPL loop
     for line in stdin().lines() {
         let line = line?;
         println!("{}{}", graphic.prompt(), line);
         match engine.eval_str(&line) {
-            Ok(value) => print_value(graphic, &skin, value),
-            Err(err) => print_err(graphic, &skin, err),
+            Ok(value) => print_value(*graphic, &skin, &value),
+            Err(err) => print_err(*graphic, &skin, err),
         }
     }
     skin.print_text(graphic.bye());
@@ -245,8 +325,8 @@ pub fn detached_repl(
 }
 
 /// Print a value
-fn print_value(_graphic: Graphic, _skin: &MadSkin, value: Value) {
-    if value == Value::Null(ValueNull) {
+fn print_value(_graphic: Graphic, _skin: &MadSkin, value: &Value<REPLIntrisics>) {
+    if value == &Value::Null(ValueNull) {
         // do not print null values
         return;
     }

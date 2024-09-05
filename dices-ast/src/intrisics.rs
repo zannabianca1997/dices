@@ -105,7 +105,7 @@ pub trait InjectedIntr: Sized + Clone {
     /// Give a name for this intrisic
     fn name(&self) -> Cow<str>;
     /// Call this intrisic
-    fn call(
+    fn call<'d>(
         &self,
         data: &mut Self::Data,
         params: Box<[Value<Self>]>,
@@ -160,7 +160,11 @@ impl InjectedIntr for NoInjectedIntrisics {
         self.0
     }
 
-    fn call(&self, _: &mut Self::Data, _: Box<[Value<Self>]>) -> Result<Value<Self>, Self::Error> {
+    fn call<'d>(
+        &self,
+        _: &mut Self::Data,
+        _: Box<[Value<Self>]>,
+    ) -> Result<Value<Self>, Self::Error> {
         self.0
     }
 }
