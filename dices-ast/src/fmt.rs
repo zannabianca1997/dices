@@ -2,6 +2,8 @@
 
 use std::fmt::{Formatter, Write};
 
+use pretty::{DocAllocator, DocBuilder, Pretty};
+
 use crate::ident::IdentStr;
 
 /// Format a string escaping special chars
@@ -47,5 +49,17 @@ pub fn quoted_if_not_ident(s: &str, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{ident}")
     } else {
         quoted(s, f)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct CommaLine;
+impl<'a, D, A> Pretty<'a, D, A> for CommaLine
+where
+    A: 'a,
+    D: ?Sized + DocAllocator<'a, A>,
+{
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, A> {
+        allocator.text(",").append(allocator.line())
     }
 }

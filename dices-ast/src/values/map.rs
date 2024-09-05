@@ -3,7 +3,10 @@ use std::{collections::BTreeMap, fmt::Display};
 use itertools::Itertools;
 use pretty::{DocAllocator, Pretty};
 
-use crate::{fmt::quoted_if_not_ident, intrisics::InjectedIntr};
+use crate::{
+    fmt::{quoted_if_not_ident, CommaLine},
+    intrisics::InjectedIntr,
+};
 
 use super::{list::ValueList, string::ValueString, ToNumberError, Value};
 
@@ -90,27 +93,27 @@ where
     II: InjectedIntr,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
-        let mut inner = allocator.nil();
-        for elem in Itertools::intersperse(self.iter().map(Some), None) {
-            if let Some((key, value)) = elem {
-                struct QuoteIfNotIdent<'a>(&'a str);
-                impl Display for QuoteIfNotIdent<'_> {
-                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        quoted_if_not_ident(self.0, f)
+        allocator
+            .intersperse(
+                self.iter().map(|(key, value)| {
+                    struct QuoteIfNotIdent<'a>(&'a str);
+                    impl Display for QuoteIfNotIdent<'_> {
+                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                            quoted_if_not_ident(self.0, f)
+                        }
                     }
-                }
-                inner = inner
-                    .append(QuoteIfNotIdent(&key).to_string())
-                    .append(":")
-                    .append(allocator.space())
-                    .append(value)
-            } else {
-                inner = inner.append(",").append(allocator.line());
-            }
-        }
-        let inner = inner.enclose(allocator.line_(), allocator.line_()).group();
-
-        inner.nest(4).enclose("<|", "|>")
+                    allocator
+                        .text(QuoteIfNotIdent(&key).to_string())
+                        .append(":")
+                        .append(allocator.space())
+                        .append(value)
+                }),
+                CommaLine,
+            )
+            .enclose(allocator.line_(), allocator.line_())
+            .group()
+            .nest(4)
+            .enclose("<|", "|>")
     }
 }
 

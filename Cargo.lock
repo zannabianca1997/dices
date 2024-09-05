@@ -417,6 +417,7 @@ dependencies = [
  "nunny",
  "phf",
  "phf_codegen",
+ "pretty",
  "proc-macro2",
  "quote",
  "rand",

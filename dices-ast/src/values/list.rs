@@ -1,12 +1,13 @@
 use std::{
     fmt::Display,
     ops::{Deref, DerefMut},
+    rc::Rc,
 };
 
 use itertools::Itertools;
-use pretty::{DocAllocator, Pretty};
+use pretty::{DocAllocator, DocBuilder, Pretty};
 
-use crate::intrisics::InjectedIntr;
+use crate::{fmt::CommaLine, intrisics::InjectedIntr};
 
 use super::{number::ValueNumber, ToNumberError, Value};
 
@@ -87,16 +88,11 @@ where
     II: InjectedIntr,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
-        let mut inner = allocator.nil();
-        for elem in Itertools::intersperse(self.iter().map(Some), None) {
-            if let Some(elem) = elem {
-                inner = inner.append(elem);
-            } else {
-                inner = inner.append(",").append(allocator.line());
-            }
-        }
-        let inner = inner.enclose(allocator.line_(), allocator.line_()).group();
-
-        inner.nest(4).enclose("[", "]")
+        allocator
+            .intersperse(self.iter(), CommaLine)
+            .enclose(allocator.line_(), allocator.line_())
+            .group()
+            .nest(4)
+            .enclose("[", "]")
     }
 }
