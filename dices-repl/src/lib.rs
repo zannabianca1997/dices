@@ -16,71 +16,7 @@ use reedline::{Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, 
 use repl_intrisics::REPLIntrisics;
 use termimad::{Alignment, MadSkin};
 
-mod repl_intrisics {
-    //! Intrisics for the REPL
-
-    use std::rc::Rc;
-
-    use derive_more::derive::{Display, Error};
-    use dices_ast::{
-        intrisics::InjectedIntr,
-        values::{Value, ValueNull},
-    };
-    use termimad::MadSkin;
-
-    use crate::{print_value, Graphic};
-
-    pub struct Data {
-        // stuff needed to visualize the elements
-        graphic: Rc<Graphic>,
-        skin: Rc<MadSkin>,
-    }
-
-    impl Data {
-        pub fn new(graphic: Rc<Graphic>, skin: Rc<MadSkin>) -> Self {
-            Self { graphic, skin }
-        }
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub enum REPLIntrisics {
-        /// Print a value
-        Print,
-    }
-    #[derive(Debug, Clone, Display, Error)]
-    pub enum REPLIntrisicsError {}
-
-    impl InjectedIntr for REPLIntrisics {
-        type Data = Data;
-
-        type Error = REPLIntrisicsError;
-
-        fn iter() -> impl IntoIterator<Item = Self> {
-            [Self::Print]
-        }
-
-        fn name(&self) -> std::borrow::Cow<str> {
-            match self {
-                REPLIntrisics::Print => "print".into(),
-            }
-        }
-
-        fn call(
-            &self,
-            data: &mut Self::Data,
-            params: Box<[Value<Self>]>,
-        ) -> Result<Value<Self>, Self::Error> {
-            match self {
-                REPLIntrisics::Print => {
-                    for value in params.iter() {
-                        print_value(*data.graphic, &data.skin, value)
-                    }
-                    Ok(Value::Null(ValueNull))
-                }
-            }
-        }
-    }
-}
+mod repl_intrisics;
 
 #[derive(Debug, Clone, Parser)]
 #[command(name="dices", version, about, long_about = None)]
@@ -277,12 +213,16 @@ pub fn interactive_repl(
                 Err(err) => print_err(*graphic, &skin, err),
             },
             Signal::CtrlD => {
-                skin.print_text(graphic.bye());
-                break Ok(());
+                break;
             }
-            Signal::CtrlC => break Err(ReplFatalError::Interrupted),
+            Signal::CtrlC => return Err(ReplFatalError::Interrupted),
+        }
+        if engine.injected_intrisics_data().quitted() {
+            break;
         }
     }
+    skin.print_text(graphic.bye());
+    Ok(())
 }
 
 /// Run the REPL in detached mode (input from a stream)

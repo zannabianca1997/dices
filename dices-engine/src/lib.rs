@@ -234,4 +234,12 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
         let exprs = parse_file(cmd).map_err(Left)?;
         self.eval_multiple(&exprs).map_err(Right)
     }
+
+    pub fn injected_intrisics_data(&self) -> &<InjectedIntrisic as InjectedIntr>::Data {
+        self.context.injected_intrisics_data()
+    }
+
+    pub fn injected_intrisics_data_mut(&mut self) -> &mut <InjectedIntrisic as InjectedIntr>::Data {
+        self.context.injected_intrisics_data_mut()
+    }
 }
