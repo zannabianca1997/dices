@@ -1,17 +1,17 @@
 //! Trivial implementations of `Solvable` for Values
 
-use dices_ast::values::*;
+use dices_ast::{intrisics::InjectedIntr, values::*};
 
 macro_rules! trivial_impl {
         ( $( $type:ty ),* ) => {
             $(
-                impl crate::solve::Solvable for $type {
+                impl<InjectedIntrisic: InjectedIntr> crate::solve::Solvable<InjectedIntrisic> for $type {
                     type Error = !;
 
                     fn solve<R>(
                         &self,
-                        _context: &mut crate::Context<R>,
-                    ) -> Result<Value, Self::Error> {
+                        _context: &mut crate::Context<R, InjectedIntrisic>,
+                    ) -> Result<Value<InjectedIntrisic>, Self::Error> {
                         Ok(self.clone().into())
                     }
                 }
@@ -20,20 +20,25 @@ macro_rules! trivial_impl {
     }
 
 trivial_impl!(
-    Value,
+    Value<InjectedIntrisic>,
     ValueBool,
-    ValueIntrisic,
-    ValueList,
-    ValueMap,
+    ValueIntrisic<InjectedIntrisic>,
+    ValueList<InjectedIntrisic>,
+    ValueMap<InjectedIntrisic>,
     ValueNumber,
     ValueString,
     ValueNull
 );
 
-impl crate::solve::Solvable for ValueClosure {
+impl<InjectedIntrisic: InjectedIntr> crate::solve::Solvable<InjectedIntrisic>
+    for ValueClosure<InjectedIntrisic>
+{
     type Error = !;
 
-    fn solve<R>(&self, _context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R>(
+        &self,
+        _context: &mut crate::Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         Ok(Box::new(self.clone()).into())
     }
 }

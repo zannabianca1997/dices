@@ -27,7 +27,6 @@ use super::{list::ValueList, number::ValueNumber, ToNumberError};
     From,
     Into,
 )]
-#[cfg_attr(test, derive(arbitrary::Arbitrary))]
 pub struct ValueString(Box<str>);
 impl ValueString {
     pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
@@ -36,7 +35,9 @@ impl ValueString {
             .map(Into::into)
             .map_err(ToNumberError::InvalidString)
     }
-    pub fn to_list(self) -> Result<ValueList, super::ToListError> {
+    pub fn to_list<InjectedIntrisic>(
+        self,
+    ) -> Result<ValueList<InjectedIntrisic>, super::ToListError> {
         Ok(ValueList::from_iter([self.into()]))
     }
 }

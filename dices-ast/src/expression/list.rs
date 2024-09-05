@@ -12,15 +12,17 @@ use super::Expression;
     Ord,
     Hash,
 )]
-pub struct ExpressionList(Box<[Expression]>);
-impl ExpressionList {
-    pub fn iter(&self) -> impl Iterator<Item = &Expression> {
+pub struct ExpressionList<InjectedIntrisic>(Box<[Expression<InjectedIntrisic>]>);
+impl<InjectedIntrisic> ExpressionList<InjectedIntrisic> {
+    pub fn iter(&self) -> impl Iterator<Item = &Expression<InjectedIntrisic>> {
         self.0.iter()
     }
 }
 
-impl FromIterator<Expression> for ExpressionList {
-    fn from_iter<T: IntoIterator<Item = Expression>>(iter: T) -> Self {
+impl<InjectedIntrisic> FromIterator<Expression<InjectedIntrisic>>
+    for ExpressionList<InjectedIntrisic>
+{
+    fn from_iter<T: IntoIterator<Item = Expression<InjectedIntrisic>>>(iter: T) -> Self {
         Self(FromIterator::from_iter(iter))
     }
 }

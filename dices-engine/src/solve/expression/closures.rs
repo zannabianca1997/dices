@@ -12,6 +12,7 @@ use dices_ast::{
         Expression, ExpressionClosure,
     },
     ident::IdentStr,
+    intrisics::InjectedIntr,
     values::{Value, ValueClosure},
 };
 
@@ -19,10 +20,16 @@ use crate::solve::Solvable;
 
 use super::SolveError;
 
-impl Solvable for ExpressionClosure {
-    type Error = SolveError;
+impl<InjectedIntrisic> Solvable<InjectedIntrisic> for ExpressionClosure<InjectedIntrisic>
+where
+    InjectedIntrisic: InjectedIntr,
+{
+    type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(&self, context: &mut crate::Context<R>) -> Result<Value, Self::Error> {
+    fn solve<R: Rng>(
+        &self,
+        context: &mut crate::Context<R, InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         // pull captures from the context
         let captures = captures(self)
             .map_err(SolveError::ClosureCannotCalculateCaptures)?
@@ -64,7 +71,9 @@ struct VarUse<'e> {
 
 impl<'e> VarUse<'e> {
     /// Calculate the use of an expression
-    fn of(expr: &'e Expression) -> Result<Self, VarUseCalcError> {
+    fn of<InjectedIntrisic>(
+        expr: &'e Expression<InjectedIntrisic>,
+    ) -> Result<Self, VarUseCalcError> {
         fn maybe_concat<'e>(
             a: Result<VarUse<'e>, VarUseCalcError>,
             b: Result<VarUse<'e>, VarUseCalcError>,
@@ -251,7 +260,9 @@ impl<'e> VarUse<'e> {
     }
 }
 
-fn captures(c: &ExpressionClosure) -> Result<HashSet<&IdentStr>, VarUseCalcError> {
+fn captures<InjectedIntrisic>(
+    c: &ExpressionClosure<InjectedIntrisic>,
+) -> Result<HashSet<&IdentStr>, VarUseCalcError> {
     let VarUse { mut reads, .. } = VarUse::of(&*c.body)?;
     for e in &*c.params {
         reads.remove(&**e);

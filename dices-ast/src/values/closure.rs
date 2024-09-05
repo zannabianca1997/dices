@@ -18,21 +18,21 @@ use super::{list::ValueList, ToNumberError, Value};
     Ord,
     Hash,
 )]
-pub struct ValueClosure {
+pub struct ValueClosure<InjectedIntrisic> {
     pub params: Box<[Box<IdentStr>]>,
-    pub captures: BTreeMap<Box<IdentStr>, Value>,
-    pub body: Expression,
+    pub captures: BTreeMap<Box<IdentStr>, Value<InjectedIntrisic>>,
+    pub body: Expression<InjectedIntrisic>,
 }
-impl ValueClosure {
+impl<InjectedIntrisic> ValueClosure<InjectedIntrisic> {
     pub fn to_number(self) -> Result<ValueNumber, crate::values::ToNumberError> {
         Err(ToNumberError::Closure)
     }
-    pub fn to_list(self) -> Result<ValueList, super::ToListError> {
+    pub fn to_list(self) -> Result<ValueList<InjectedIntrisic>, super::ToListError> {
         Ok(ValueList::from_iter([Box::new(self).into()]))
     }
 }
 
-impl Display for ValueClosure {
+impl<InjectedIntrisic> Display for ValueClosure<InjectedIntrisic> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<closure")?;
         if self.params.is_empty() {

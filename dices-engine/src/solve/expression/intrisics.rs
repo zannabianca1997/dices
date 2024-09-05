@@ -2,10 +2,10 @@
 
 use std::str::FromStr;
 
-use derive_more::derive::{Display, Error};
+use derive_more::{Display, Error};
 use dices_ast::{
     expression::{bin_ops::BinOp, Expression, ExpressionBinOp, ExpressionCall},
-    intrisics::Intrisic,
+    intrisics::{InjectedIntr, Intrisic},
     values::{ToListError, ToNumberError, Value, ValueIntrisic},
 };
 use rand::Rng;
@@ -15,34 +15,46 @@ use crate::solve::Solvable;
 use super::SolveError;
 
 #[derive(Debug, Display, Error, Clone)]
-pub enum IntrisicError {
+pub enum IntrisicError<Injected>
+where
+    Injected: InjectedIntr,
+{
     #[display("Wrong number of params given to the intrisic {}: expected {}, given {given}", called.name(), param_num(called))]
-    WrongParamNum { called: Intrisic, given: usize },
+    WrongParamNum {
+        called: Intrisic<Injected>,
+        given: usize,
+    },
     #[display("Expression called failed to evaluate")]
-    CallFailed(Box<SolveError>),
+    CallFailed(#[error(source)] SolveError<Injected>),
     #[display("Error during summing")]
-    SumFailed(Box<SolveError>),
+    SumFailed(#[error(source)] SolveError<Injected>),
     #[display("Error during multiplying")]
-    MultFailed(Box<SolveError>),
+    MultFailed(#[error(source)] SolveError<Injected>),
     #[display("Error during joining")]
-    JoinFailed(Box<SolveError>),
+    JoinFailed(#[error(source)] SolveError<Injected>),
     #[display("The second parameter of `call` must be a list of parameters")]
-    CallParamsNotAList(ToListError),
+    CallParamsNotAList(#[error(source)] ToListError),
     #[display("Cannot convert to a number")]
-    ToNumber(ToNumberError),
+    ToNumber(#[error(source)] ToNumberError),
     #[display("Cannot convert to a list")]
-    ToList(ToListError),
+    ToList(#[error(source)] ToListError),
     #[display("`parse` must be called on a string, not on {_0}")]
-    CannotParseNonString(#[error(not(source))] Value),
+    CannotParseNonString(#[error(not(source))] Value<Injected>),
     #[display("Failed to parse string")]
-    ParseFailed(<Value as FromStr>::Err),
+    ParseFailed(#[error(source)] <Value<Injected> as FromStr>::Err),
+
+    #[display("{_0}")]
+    Injected(#[error(source)] Injected::Error),
 }
 
-pub(super) fn call<R: Rng>(
-    intrisic: ValueIntrisic,
-    context: &mut crate::Context<R>,
-    params: Box<[Value]>,
-) -> Result<Value, IntrisicError> {
+pub(super) fn call<R: Rng, Injected>(
+    intrisic: ValueIntrisic<Injected>,
+    context: &mut crate::Context<R, Injected>,
+    params: Box<[Value<Injected>]>,
+) -> Result<Value<Injected>, IntrisicError<Injected>>
+where
+    Injected: InjectedIntr,
+{
     match intrisic.into() {
         // Variadics
         Intrisic::Call => {
@@ -66,7 +78,7 @@ pub(super) fn call<R: Rng>(
                     .collect(),
             }
             .solve(context)
-            .map_err(|err| IntrisicError::CallFailed(Box::new(err)))
+            .map_err(IntrisicError::CallFailed)
         }
         Intrisic::Sum => params
             .into_vec()
@@ -75,7 +87,7 @@ pub(super) fn call<R: Rng>(
                 Expression::BinOp(ExpressionBinOp::new(BinOp::Add, acc.into(), expr.into()))
                     .solve(context)
             })
-            .map_err(|err| IntrisicError::SumFailed(Box::new(err))),
+            .map_err(IntrisicError::SumFailed),
         Intrisic::Join => params
             .into_vec()
             .into_iter()
@@ -83,7 +95,7 @@ pub(super) fn call<R: Rng>(
                 Expression::BinOp(ExpressionBinOp::new(BinOp::Join, acc.into(), expr.into()))
                     .solve(context)
             })
-            .map_err(|err| IntrisicError::JoinFailed(Box::new(err))),
+            .map_err(IntrisicError::JoinFailed),
         Intrisic::Mult => params
             .into_vec()
             .into_iter()
@@ -91,7 +103,7 @@ pub(super) fn call<R: Rng>(
                 Expression::BinOp(ExpressionBinOp::new(BinOp::Mult, acc.into(), expr.into()))
                     .solve(context)
             })
-            .map_err(|err| IntrisicError::MultFailed(Box::new(err))),
+            .map_err(IntrisicError::MultFailed),
 
         // Conversions
         Intrisic::ToNumber => {
@@ -149,14 +161,17 @@ pub(super) fn call<R: Rng>(
             };
             value.parse().map_err(IntrisicError::ParseFailed)
         }
+        Intrisic::Injected(injected) => injected
+            .call(context.injected_intrisics_data_mut(), params)
+            .map_err(IntrisicError::Injected),
     }
 }
 
-fn param_num(intr: &Intrisic) -> usize {
+fn param_num<Injected>(intr: &Intrisic<Injected>) -> usize {
     match intr {
         Intrisic::Call => 2,
         Intrisic::ToString | Intrisic::Parse | Intrisic::ToNumber | Intrisic::ToList => 1,
-        Intrisic::Sum | Intrisic::Join | Intrisic::Mult => {
+        Intrisic::Sum | Intrisic::Join | Intrisic::Mult | Intrisic::Injected(_) => {
             panic!("These have no fixed param number")
         }
     }

@@ -1,15 +1,18 @@
 use super::Expression;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExpressionCall {
+pub struct ExpressionCall<InjectedIntrisic> {
     /// the called expression
-    pub called: Box<Expression>,
+    pub called: Box<Expression<InjectedIntrisic>>,
     /// the params of the call
-    pub params: Box<[Expression]>,
+    pub params: Box<[Expression<InjectedIntrisic>]>,
 }
 
-impl ExpressionCall {
-    pub fn new(called: Expression, params: Box<[Expression]>) -> Self {
+impl<InjectedIntrisic> ExpressionCall<InjectedIntrisic> {
+    pub fn new(
+        called: Expression<InjectedIntrisic>,
+        params: Box<[Expression<InjectedIntrisic>]>,
+    ) -> Self {
         Self {
             called: Box::new(called),
             params,

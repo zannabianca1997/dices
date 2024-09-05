@@ -15,13 +15,13 @@ use crate::ident::IdentStr;
     Ord,
     Hash,
 )]
-pub struct ExpressionClosure {
+pub struct ExpressionClosure<InjectedIntrisic> {
     pub params: Box<[Box<IdentStr>]>,
-    pub body: Box<Expression>,
+    pub body: Box<Expression<InjectedIntrisic>>,
 }
 
-impl ExpressionClosure {
-    pub fn new(params: Box<[Box<IdentStr>]>, body: Expression) -> Self {
+impl<InjectedIntrisic> ExpressionClosure<InjectedIntrisic> {
+    pub fn new(params: Box<[Box<IdentStr>]>, body: Expression<InjectedIntrisic>) -> Self {
         Self {
             params,
             body: Box::new(body),

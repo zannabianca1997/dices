@@ -30,7 +30,7 @@ peg::parser! {
     pub grammar values() for str {
 
         /// A `dices` serialized value
-        pub rule value() -> Value
+        pub rule value<InjectedIntrisic>() -> Value<InjectedIntrisic>
             = v: null()    { v.into() }
             / v: boolean() { v.into() }
             / v: number()  { v.into() }
@@ -108,7 +108,7 @@ peg::parser! {
         // --- LISTS ---
 
         /// A list of values
-        pub rule list() -> ValueList
+        pub rule list<InjectedIntrisic>() -> ValueList<InjectedIntrisic>
             = "[" _ items:(value() ** (_ "," _)) _ ("," _)? "]" {
                 ValueList::from_iter(items)
             }
@@ -116,7 +116,7 @@ peg::parser! {
         // --- MAPS ---
 
         /// A map of strings to values
-        pub rule map() -> ValueMap
+        pub rule map<InjectedIntrisic>() -> ValueMap<InjectedIntrisic>
             = "<|" _ kvs: (
                 k: ident_or_quoted_string() _ ":" _ v:value() {
                     (ValueString::from(k.into_owned().into_boxed_str()), v)
@@ -177,21 +177,21 @@ impl FromStr for ValueString {
         values::string(s)
     }
 }
-impl FromStr for ValueList {
+impl<InjectedIntrisic> FromStr for ValueList<InjectedIntrisic> {
     type Err = ParseError<LineCol>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         values::list(s)
     }
 }
-impl FromStr for ValueMap {
+impl<InjectedIntrisic> FromStr for ValueMap<InjectedIntrisic> {
     type Err = ParseError<LineCol>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         values::map(s)
     }
 }
-impl FromStr for Value {
+impl<InjectedIntrisic> FromStr for Value<InjectedIntrisic> {
     type Err = ParseError<LineCol>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -207,7 +207,7 @@ peg::parser! {
     */
     pub grammar expression() for str {
 
-        rule expr() -> Expression
+        rule expr<InjectedIntrisic>() -> Expression<InjectedIntrisic>
             = precedence!{
                 receiver:receiver() _ "=" _ value:@ { ExpressionSet{ receiver, value: Box::new(value) }.into()}
                 --
@@ -367,7 +367,7 @@ peg::parser! {
             / s: quoted_string() { s }
 
         // --- Inner of a scope `{}`. Also the content of a file
-        pub rule scope_inner() -> Box<NonEmpty<[Expression]>>
+        pub rule scope_inner<InjectedIntrisic>() -> Box<NonEmpty<[Expression<InjectedIntrisic>]>>
             = _ exprs: ( e:expr() {e} / { Value::Null(ValueNull).into() } ) ** (_ ";" _) _ {
                 exprs.into_boxed_slice()
                     .try_into()
@@ -390,6 +390,8 @@ peg::parser! {
 
 pub type Error = ParseError<LineCol>;
 
-pub fn parse_file(src: &str) -> Result<Box<NonEmpty<[Expression]>>, Error> {
+pub fn parse_file<InjectedIntrisic>(
+    src: &str,
+) -> Result<Box<NonEmpty<[Expression<InjectedIntrisic>]>>, Error> {
     expression::scope_inner(src)
 }

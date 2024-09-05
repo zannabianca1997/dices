@@ -8,7 +8,7 @@ pub(crate) fn test_inner(test: &str, _tags: &[&str]) {
     // Parse the test
     let test: CodeExample = test.parse().expect("The test should be parseable");
     // Create the engine
-    let mut engine: Engine<SmallRng> = Engine::new();
+    let mut engine: Engine<SmallRng, _> = Engine::new();
     // run the test
     for (n, piece) in test.iter().enumerate() {
         let res = engine

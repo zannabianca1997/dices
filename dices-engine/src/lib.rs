@@ -10,45 +10,75 @@ use either::Either::{self, Left, Right};
 use nunny::NonEmpty;
 use rand::{Rng, SeedableRng};
 
-use dices_ast::{expression::Expression, ident::IdentStr, parse::parse_file, values::Value};
+use dices_ast::{
+    expression::Expression,
+    ident::IdentStr,
+    intrisics::{InjectedIntr, NoInjectedIntrisics},
+    parse::parse_file,
+    values::Value,
+};
 
 use solve::{solve_multiple, Solvable};
 
 pub use context::Context;
-pub use solve::SolveError;
+pub use solve::{IntrisicError, SolveError};
 
 mod context;
 mod dices_std;
 mod solve;
 
-pub struct EngineBuilder<RNG = ()> {
+pub struct EngineBuilder<RNG = (), InjectedIntrisic: InjectedIntr = NoInjectedIntrisics> {
     rng: RNG,
     std: Option<Cow<'static, IdentStr>>,
     prelude: bool,
+    injected_intrisics_data: <InjectedIntrisic as InjectedIntr>::Data,
 }
-impl EngineBuilder<()> {
+impl EngineBuilder<(), NoInjectedIntrisics> {
     /// Start building a new engine
     pub fn new() -> Self {
         Self {
             rng: (),
             std: Some(Cow::Borrowed(IdentStr::new("std").unwrap())),
             prelude: true,
+            injected_intrisics_data: (),
         }
     }
 }
-impl<RNG> EngineBuilder<RNG> {
+impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
     /// Add an RNG
-    pub fn with_rng<NewRNG>(self, rng: NewRNG) -> EngineBuilder<NewRNG> {
+    pub fn with_rng<NewRNG>(self, rng: NewRNG) -> EngineBuilder<NewRNG, InjectedIntrisic> {
         EngineBuilder { rng, ..self }
     }
 
     /// Add an RNG, seeding it from entropy
-    pub fn with_rng_from_entropy<NewRNG>(self) -> EngineBuilder<NewRNG>
+    pub fn with_rng_from_entropy<NewRNG>(self) -> EngineBuilder<NewRNG, InjectedIntrisic>
     where
         NewRNG: SeedableRng,
     {
         EngineBuilder {
             rng: NewRNG::from_entropy(),
+            ..self
+        }
+    }
+
+    /// Inject the intrisics
+    pub fn inject_intrisics<NewInjected: InjectedIntr>(self) -> EngineBuilder<RNG, NewInjected>
+    where
+        NewInjected::Data: Default,
+    {
+        EngineBuilder {
+            injected_intrisics_data: Default::default(),
+            ..self
+        }
+    }
+
+    /// Inject the intrisics with data
+    pub fn inject_intrisics_with_data<NewInjected: InjectedIntr>(
+        self,
+        data: NewInjected::Data,
+    ) -> EngineBuilder<RNG, NewInjected> {
+        EngineBuilder {
+            injected_intrisics_data: data,
             ..self
         }
     }
@@ -96,10 +126,19 @@ impl<RNG> EngineBuilder<RNG> {
         }
     }
 
-    pub fn build(self) -> Engine<RNG> {
-        let Self { rng, std, prelude } = self;
+    /// Build the engine
+    pub fn build(self) -> Engine<RNG, InjectedIntrisic>
+    where
+        InjectedIntrisic: Clone,
+    {
+        let Self {
+            rng,
+            std,
+            prelude,
+            injected_intrisics_data,
+        } = self;
         // build context
-        let mut context = Context::new(rng);
+        let mut context = Context::new(rng, injected_intrisics_data);
         // adding std and prelude
         if let Some(std_name) = std {
             // generating the std library
@@ -124,38 +163,58 @@ impl<RNG> EngineBuilder<RNG> {
     }
 }
 
-pub struct Engine<RNG> {
-    context: Context<RNG>,
+pub struct Engine<RNG, InjectedIntrisic: InjectedIntr> {
+    context: Context<RNG, InjectedIntrisic>,
 }
 
-impl<RNG> Engine<RNG> {
+impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
     /// Initialize a new engine
     ///
     /// This will use the entropy to initialize the rng
     pub fn new() -> Self
     where
         RNG: SeedableRng,
+        InjectedIntrisic: Clone,
+        InjectedIntrisic::Data: Default,
     {
-        EngineBuilder::new().with_rng_from_entropy().build()
+        EngineBuilder::new()
+            .inject_intrisics()
+            .with_rng_from_entropy()
+            .build()
     }
 
     /// Initialize a new engine
-    pub fn new_with_rng(rng: RNG) -> Self {
-        EngineBuilder::new().with_rng(rng).build()
+    pub fn new_with_rng(rng: RNG) -> Self
+    where
+        InjectedIntrisic: Clone,
+        InjectedIntrisic::Data: Default,
+    {
+        EngineBuilder::new()
+            .inject_intrisics()
+            .with_rng(rng)
+            .build()
     }
 
     /// Evaluate the result of an expression
-    pub fn eval(&mut self, expr: &Expression) -> Result<Value, SolveError>
+    pub fn eval(
+        &mut self,
+        expr: &Expression<InjectedIntrisic>,
+    ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
     where
         RNG: Rng,
+        InjectedIntrisic: Clone,
     {
         expr.solve(&mut self.context)
     }
 
     /// Evaluate the result of multiple expressions, returning the last one
-    pub fn eval_multiple(&mut self, exprs: &NonEmpty<[Expression]>) -> Result<Value, SolveError>
+    pub fn eval_multiple(
+        &mut self,
+        exprs: &NonEmpty<[Expression<InjectedIntrisic>]>,
+    ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
     where
         RNG: Rng,
+        InjectedIntrisic: Clone,
     {
         solve_multiple(exprs, &mut self.context)
     }
@@ -164,11 +223,23 @@ impl<RNG> Engine<RNG> {
     pub fn eval_str(
         &mut self,
         cmd: &str,
-    ) -> Result<Value, Either<dices_ast::parse::Error, SolveError>>
+    ) -> Result<
+        Value<InjectedIntrisic>,
+        Either<dices_ast::parse::Error, SolveError<InjectedIntrisic>>,
+    >
     where
         RNG: Rng,
+        InjectedIntrisic: Clone,
     {
         let exprs = parse_file(cmd).map_err(Left)?;
         self.eval_multiple(&exprs).map_err(Right)
+    }
+
+    pub fn injected_intrisics_data(&self) -> &<InjectedIntrisic as InjectedIntr>::Data {
+        self.context.injected_intrisics_data()
+    }
+
+    pub fn injected_intrisics_data_mut(&mut self) -> &mut <InjectedIntrisic as InjectedIntr>::Data {
+        self.context.injected_intrisics_data_mut()
     }
 }

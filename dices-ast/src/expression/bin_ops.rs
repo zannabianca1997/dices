@@ -50,13 +50,17 @@ impl BinOp {
 
 /// An expression made with an unary operator
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExpressionBinOp {
+pub struct ExpressionBinOp<InjectedIntrisic> {
     pub op: BinOp,
-    pub expressions: Box<[Expression; 2]>,
+    pub expressions: Box<[Expression<InjectedIntrisic>; 2]>,
 }
 
-impl ExpressionBinOp {
-    pub fn new(op: BinOp, a: Expression, b: Expression) -> Self {
+impl<InjectedIntrisic> ExpressionBinOp<InjectedIntrisic> {
+    pub fn new(
+        op: BinOp,
+        a: Expression<InjectedIntrisic>,
+        b: Expression<InjectedIntrisic>,
+    ) -> Self {
         Self {
             op,
             expressions: Box::new([a, b]),

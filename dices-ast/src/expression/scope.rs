@@ -4,10 +4,10 @@ use nunny::NonEmpty;
 use super::Expression;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, From, Into)]
-pub struct ExpressionScope(pub Box<NonEmpty<[Expression]>>);
+pub struct ExpressionScope<InjectedIntrisic>(pub Box<NonEmpty<[Expression<InjectedIntrisic>]>>);
 
-impl ExpressionScope {
-    pub fn new(exprs: Box<NonEmpty<[Expression]>>) -> Self {
+impl<InjectedIntrisic> ExpressionScope<InjectedIntrisic> {
+    pub fn new(exprs: Box<NonEmpty<[Expression<InjectedIntrisic>]>>) -> Self {
         Self(exprs)
     }
 }

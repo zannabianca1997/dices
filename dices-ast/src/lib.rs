@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![feature(box_patterns)]
+#![feature(never_type)]
 
 pub mod expression;
 pub mod fmt;

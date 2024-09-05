@@ -4,11 +4,12 @@
 #![feature(box_patterns)]
 #![feature(iter_intersperse)]
 #![feature(mapped_lock_guards)]
+#![feature(error_reporter)]
 
 use std::{
     borrow::Cow,
     collections::HashMap,
-    error::Error,
+    error::Report,
     fmt::Write,
     hash::{DefaultHasher, Hash, Hasher},
     mem,
@@ -16,7 +17,10 @@ use std::{
     sync::{Mutex, MutexGuard, OnceLock},
 };
 
-use dices_ast::values::{Value, ValueNull};
+use dices_ast::{
+    intrisics::NoInjectedIntrisics,
+    values::{Value, ValueNull},
+};
 use dices_engine::Engine;
 use example::{CodeExample, CodeExampleCommand, CodeExamplePiece};
 use markdown::{
@@ -123,12 +127,13 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
             "The examples in the manual should be all well formatted, thanks to `dices-mantest`",
         );
         // initialize an engine, deterministic with regard of the seed and the code
-        let mut engine = Engine::new_with_rng(SmallRng::seed_from_u64({
-            let mut hasher = DefaultHasher::new();
-            options.seed.hash(&mut hasher);
-            code.hash(&mut hasher);
-            hasher.finish()
-        }));
+        let mut engine: Engine<SmallRng, NoInjectedIntrisics> =
+            Engine::new_with_rng(SmallRng::seed_from_u64({
+                let mut hasher = DefaultHasher::new();
+                options.seed.hash(&mut hasher);
+                code.hash(&mut hasher);
+                hasher.finish()
+            }));
         // run all commands
         for CodeExamplePiece {
             cmd:
@@ -162,17 +167,8 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
                     Ok(Value::Null(ValueNull)) => (),
                     Ok(res) => writeln!(value, "{res}").unwrap(),
                     Err(err) => {
-                        writeln!(value, "Error during evaluation:").unwrap();
-                        writeln!(value, "  {err}").unwrap();
-                        if let Some(mut src) = err.source() {
-                            writeln!(value).unwrap();
-                            writeln!(value, "Caused by:").unwrap();
-                            writeln!(value, "  - {src}").unwrap();
-                            while let Some(next_src) = src.source() {
-                                src = next_src;
-                                writeln!(value, "  - {src}").unwrap();
-                            }
-                        }
+                        let report = Report::new(err).pretty(true);
+                        writeln!(value, "{report}").unwrap()
                     }
                 }
             }

@@ -5,21 +5,24 @@ use peg::{error::ParseError, str::LineCol};
 use std::{borrow::Cow, collections::BTreeMap, str::FromStr};
 
 #[derive(Debug, Clone, Hash)]
-pub enum Matcher {
-    Exact(Value),
-    List(Box<[Matcher]>),
-    Map(BTreeMap<Box<str>, Matcher>),
+pub enum Matcher<InjectedIntrisic> {
+    Exact(Value<InjectedIntrisic>),
+    List(Box<[Matcher<InjectedIntrisic>]>),
+    Map(BTreeMap<Box<str>, Matcher<InjectedIntrisic>>),
     Range {
-        start: Value,
-        end: Value,
+        start: Value<InjectedIntrisic>,
+        end: Value<InjectedIntrisic>,
         inclusive: bool,
     },
-    And(Box<[Matcher; 2]>),
-    Or(Box<[Matcher; 2]>),
-    Not(Box<Matcher>),
+    And(Box<[Matcher<InjectedIntrisic>; 2]>),
+    Or(Box<[Matcher<InjectedIntrisic>; 2]>),
+    Not(Box<Matcher<InjectedIntrisic>>),
 }
-impl Matcher {
-    pub fn is_match(&self, v: &Value) -> bool {
+impl<InjectedIntrisic> Matcher<InjectedIntrisic> {
+    pub fn is_match(&self, v: &Value<InjectedIntrisic>) -> bool
+    where
+        InjectedIntrisic: Eq + Ord,
+    {
         match self {
             Matcher::Exact(t) => v == t,
             Matcher::Range {
@@ -74,7 +77,7 @@ peg::parser! {
     */
     pub grammar matcher() for str {
 
-        pub rule matcher() -> Matcher
+        pub rule matcher<InjectedIntrisic>() -> Matcher<InjectedIntrisic>
             = precedence! {
                 a: (
                     l: matcher_list()  { Matcher::List(l) }
@@ -95,7 +98,7 @@ peg::parser! {
             }
 
         /// A `dices` serialized value
-        rule value() -> Value
+        rule value<InjectedIntrisic>() -> Value<InjectedIntrisic>
             = v: null()    { v.into() }
             / v: boolean() { v.into() }
             / v: number()  { v.into() }
@@ -173,13 +176,13 @@ peg::parser! {
         // --- LISTS ---
 
         /// A list of values
-        rule list() -> ValueList
+        rule list<InjectedIntrisic>() -> ValueList<InjectedIntrisic>
             = "[" _ items:(value() ** (_ "," _)) _ ("," _)? "]" {
                 ValueList::from_iter(items)
             }
 
         /// A list of matchers
-        rule matcher_list() -> Box<[Matcher]>
+        rule matcher_list<InjectedIntrisic>() -> Box<[Matcher<InjectedIntrisic>]>
             = "[" _ items:(matcher() ** (_ "," _)) _ ("," _)? "]" {
                 items.into_boxed_slice()
             }
@@ -187,7 +190,7 @@ peg::parser! {
         // --- MAPS ---
 
         /// A map of strings to values
-        rule map() -> ValueMap
+        rule map<InjectedIntrisic>() -> ValueMap<InjectedIntrisic>
             = "<|" _ kvs: (
                 k: ident_or_quoted_string() _ ":" _ v:value() {
                     (ValueString::from(k.into_owned().into_boxed_str()), v)
@@ -195,7 +198,7 @@ peg::parser! {
             ) ** (_ "," _) _ ("," _)? "|>" { kvs.into_iter().collect() }
 
         /// A map of strings to matchers
-        rule matcher_map() -> BTreeMap<Box<str>, Matcher>
+        rule matcher_map<InjectedIntrisic>() -> BTreeMap<Box<str>, Matcher<InjectedIntrisic>>
             = "<|" _ kvs: (
                 k: ident_or_quoted_string() _ ":" _ v:matcher() {
                     (k.into_owned().into_boxed_str(), v)
@@ -227,7 +230,7 @@ peg::parser! {
     }
 }
 
-impl FromStr for Matcher {
+impl<InjectedIntrisic> FromStr for Matcher<InjectedIntrisic> {
     type Err = ParseError<LineCol>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

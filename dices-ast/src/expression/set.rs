@@ -7,11 +7,11 @@ use super::Expression;
 /// An `=` expression
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExpressionSet {
+pub struct ExpressionSet<InjectedIntrisic> {
     /// Where the value must be put
     pub receiver: Receiver,
     /// The value to set
-    pub value: Box<Expression>,
+    pub value: Box<Expression<InjectedIntrisic>>,
 }
 
 /// The lhs of a `=` expression

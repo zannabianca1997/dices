@@ -14,15 +14,19 @@ use super::Expression;
     Ord,
     Hash,
 )]
-pub struct ExpressionMap(Box<[(ValueString, Expression)]>);
-impl ExpressionMap {
-    pub fn iter(&self) -> impl Iterator<Item = (&ValueString, &Expression)> {
+pub struct ExpressionMap<InjectedIntrisic>(Box<[(ValueString, Expression<InjectedIntrisic>)]>);
+impl<InjectedIntrisic> ExpressionMap<InjectedIntrisic> {
+    pub fn iter(&self) -> impl Iterator<Item = (&ValueString, &Expression<InjectedIntrisic>)> {
         self.0.iter().map(|(a, b)| (a, b))
     }
 }
 
-impl FromIterator<(ValueString, Expression)> for ExpressionMap {
-    fn from_iter<T: IntoIterator<Item = (ValueString, Expression)>>(iter: T) -> Self {
+impl<InjectedIntrisic> FromIterator<(ValueString, Expression<InjectedIntrisic>)>
+    for ExpressionMap<InjectedIntrisic>
+{
+    fn from_iter<T: IntoIterator<Item = (ValueString, Expression<InjectedIntrisic>)>>(
+        iter: T,
+    ) -> Self {
         Self(FromIterator::from_iter(iter))
     }
 }

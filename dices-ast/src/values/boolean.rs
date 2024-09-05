@@ -20,7 +20,6 @@ use super::{list::ValueList, number::ValueNumber, ToNumberError};
     From,
     Into,
 )]
-#[cfg_attr(test, derive(arbitrary::Arbitrary))]
 pub struct ValueBool(bool);
 impl ValueBool {
     pub const TRUE: Self = ValueBool(true);
@@ -33,7 +32,9 @@ impl ValueBool {
         })
     }
 
-    pub fn to_list(self) -> Result<super::list::ValueList, super::ToListError> {
+    pub fn to_list<InjectedIntrisic>(
+        self,
+    ) -> Result<super::list::ValueList<InjectedIntrisic>, super::ToListError> {
         Ok(ValueList::from_iter([self.into()]))
     }
 }

@@ -16,13 +16,14 @@ use super::{ToNumberError, ValueList};
     Ord,
     Hash,
 )]
-#[cfg_attr(test, derive(arbitrary::Arbitrary))]
 pub struct ValueNull;
 impl ValueNull {
     pub fn to_number(self) -> Result<super::ValueNumber, super::ToNumberError> {
         Err(ToNumberError::InvalidNull)
     }
-    pub fn to_list(self) -> Result<super::ValueList, super::ToListError> {
+    pub fn to_list<InjectedIntrisic>(
+        self,
+    ) -> Result<super::ValueList<InjectedIntrisic>, super::ToListError> {
         Ok(ValueList::from_iter([self.into()]))
     }
 }
