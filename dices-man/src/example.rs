@@ -5,7 +5,7 @@ use std::{ ops::Deref, str::FromStr};
 use lazy_regex::{regex_captures, regex_if};
 use nunny::NonEmpty;
 
-use dices_ast::{expression::Expression, matcher::Matcher, parse::parse_file, values::ValueNull};
+use dices_ast::{expression::Expression, intrisics::NoInjectedIntrisics, matcher::Matcher, parse::parse_file, values::ValueNull};
 
 #[derive(Debug,Clone,Hash)]
 pub struct CodeExample(Box<[CodeExamplePiece]>);
@@ -111,7 +111,7 @@ impl FromStr for CodeExample {
 #[derive(Debug,Clone,Hash)]
 pub struct CodeExamplePiece {
    pub cmd: CodeExampleCommand,
-   pub res: Option<Matcher<!>>,
+   pub res: Option<Matcher<NoInjectedIntrisics>>,
 }
 
 #[derive(Debug,Clone,Hash)]
@@ -121,7 +121,7 @@ pub struct CodeExampleCommand {
     /// Used to do setup stuff, as it is not printed
    pub ignore: bool,
     /// The actual command
-   pub command: Box<NonEmpty<[Expression<!>]>>,
+   pub command: Box<NonEmpty<[Expression<NoInjectedIntrisics>]>>,
    /// The source code of the command
    pub src: String
 }

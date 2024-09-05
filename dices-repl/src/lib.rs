@@ -187,7 +187,7 @@ pub fn interactive_repl(
     // Creating the editor
     let mut line_editor = Reedline::create();
     // Initializing the engine
-    let mut engine: dices_engine::Engine<SmallRng> = if let Some(seed) = seed {
+    let mut engine: dices_engine::Engine<SmallRng, _> = if let Some(seed) = seed {
         let mut hasher = DefaultHasher::new();
         seed.hash(&mut hasher);
         dices_engine::Engine::new_with_rng(SmallRng::seed_from_u64(hasher.finish()))
@@ -224,7 +224,7 @@ pub fn detached_repl(
     // Printing the initial banner
     skin.print_text(graphic.banner());
     // Initializing the engine
-    let mut engine: dices_engine::Engine<SmallRng> = if let Some(seed) = seed {
+    let mut engine: dices_engine::Engine<SmallRng, _> = if let Some(seed) = seed {
         let mut hasher = DefaultHasher::new();
         seed.hash(&mut hasher);
         dices_engine::Engine::new_with_rng(SmallRng::seed_from_u64(hasher.finish()))

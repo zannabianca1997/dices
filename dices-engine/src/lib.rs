@@ -11,7 +11,10 @@ use nunny::NonEmpty;
 use rand::{Rng, SeedableRng};
 
 use dices_ast::{
-    expression::Expression, ident::IdentStr, intrisics::InjectedIntr, parse::parse_file,
+    expression::Expression,
+    ident::IdentStr,
+    intrisics::{InjectedIntr, NoInjectedIntrisics},
+    parse::parse_file,
     values::Value,
 };
 
@@ -24,13 +27,13 @@ mod context;
 mod dices_std;
 mod solve;
 
-pub struct EngineBuilder<RNG = (), InjectedIntrisic: InjectedIntr = !> {
+pub struct EngineBuilder<RNG = (), InjectedIntrisic: InjectedIntr = NoInjectedIntrisics> {
     rng: RNG,
     std: Option<Cow<'static, IdentStr>>,
     prelude: bool,
     injected_intrisics_data: <InjectedIntrisic as InjectedIntr>::Data,
 }
-impl EngineBuilder<(), !> {
+impl EngineBuilder<(), NoInjectedIntrisics> {
     /// Start building a new engine
     pub fn new() -> Self {
         Self {

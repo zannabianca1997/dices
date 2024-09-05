@@ -13,7 +13,7 @@ pub use null::ValueNull;
 pub use number::ValueNumber;
 pub use string::ValueString;
 
-use crate::intrisics::Intrisic;
+use crate::intrisics::{Intrisic, NoInjectedIntrisics};
 
 pub mod boolean;
 pub mod closure;
@@ -42,7 +42,7 @@ mod tests;
     // conversion
     From,
 )]
-pub enum Value<InjectedIntrisic> {
+pub enum Value<InjectedIntrisic = NoInjectedIntrisics> {
     Null(ValueNull),
     Bool(ValueBool),
     Number(ValueNumber),

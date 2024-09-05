@@ -1,6 +1,11 @@
 //! List of the language intrisics
 
-use std::{borrow::Cow, error::Error};
+use std::{
+    borrow::Cow,
+    error::Error,
+    fmt::{Debug, Display},
+    hash::Hash,
+};
 
 use crate::values::{map::ValueMap, ValueIntrisic};
 
@@ -101,12 +106,48 @@ pub trait InjectedIntr: Sized + Clone {
     fn iter() -> impl IntoIterator<Item = Self>;
 }
 
-impl InjectedIntr for ! {
+/// No injected intrisics
+#[derive(Clone, Copy)]
+pub struct NoInjectedIntrisics(!);
+
+impl Debug for NoInjectedIntrisics {
+    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0
+    }
+}
+impl Display for NoInjectedIntrisics {
+    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0
+    }
+}
+impl PartialEq for NoInjectedIntrisics {
+    fn eq(&self, _: &Self) -> bool {
+        self.0
+    }
+}
+impl Eq for NoInjectedIntrisics {}
+impl PartialOrd for NoInjectedIntrisics {
+    fn partial_cmp(&self, _: &Self) -> Option<std::cmp::Ordering> {
+        self.0
+    }
+}
+impl Ord for NoInjectedIntrisics {
+    fn cmp(&self, _: &Self) -> std::cmp::Ordering {
+        self.0
+    }
+}
+impl Hash for NoInjectedIntrisics {
+    fn hash<H: std::hash::Hasher>(&self, _: &mut H) {
+        self.0
+    }
+}
+
+impl InjectedIntr for NoInjectedIntrisics {
     type Data = ();
     type Error = !;
 
     fn name(&self) -> Cow<str> {
-        *self
+        self.0
     }
 
     fn iter() -> impl IntoIterator<Item = Self> {
