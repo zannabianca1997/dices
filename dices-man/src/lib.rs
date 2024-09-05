@@ -10,9 +10,7 @@ use std::{
     borrow::Cow,
     collections::HashMap,
     error::Report,
-    fmt::Write,
     hash::{DefaultHasher, Hash, Hasher},
-    mem,
     ops::Deref,
     sync::{Mutex, MutexGuard, OnceLock},
 };
@@ -23,10 +21,12 @@ use dices_ast::{
 };
 use dices_engine::Engine;
 use example::{CodeExample, CodeExampleCommand, CodeExamplePiece};
+use itertools::Itertools;
 use markdown::{
     mdast::{Code, Node},
     to_mdast, ParseOptions,
 };
+use pretty::DocAllocator;
 use rand::{rngs::SmallRng, SeedableRng};
 
 pub mod example;
@@ -40,6 +40,8 @@ pub struct RenderOptions {
     prompt_cont: Cow<'static, str>,
     /// The seed for the example rng
     seed: u64,
+    /// Width for the rendering
+    width: usize,
 }
 impl Default for RenderOptions {
     fn default() -> Self {
@@ -47,8 +49,15 @@ impl Default for RenderOptions {
             prompt: Cow::Borrowed(">>>"),
             prompt_cont: Cow::Borrowed("..."),
             seed: 0,
+            width: 128,
         }
     }
+}
+
+/// Content of the cache for tha parsed markdown AST
+struct AstCache {
+    ast: Node,
+    rendered: Mutex<HashMap<RenderOptions, Node>>,
 }
 
 /// A page of the manual
@@ -58,7 +67,7 @@ pub struct ManPage {
     /// The content of the page
     pub content: &'static str,
     /// The markdown ast of the page, if parsed
-    ast: OnceLock<(Node, Mutex<HashMap<RenderOptions, Node>>)>,
+    ast: OnceLock<Box<AstCache>>,
 }
 impl ManPage {
     const fn new(name: &'static str, content: &'static str) -> Self {
@@ -69,33 +78,33 @@ impl ManPage {
         }
     }
 
-    fn ast_storage(&self) -> &(Node, Mutex<HashMap<RenderOptions, Node>>) {
+    fn ast_cache(&self) -> &AstCache {
         self.ast.get_or_init(|| {
-            (
-                to_mdast(&self.content, &ParseOptions::default()).unwrap(),
-                Mutex::new(HashMap::new()),
-            )
+            Box::new(AstCache {
+                ast: to_mdast(&self.content, &ParseOptions::default()).unwrap(),
+                rendered: Mutex::new(HashMap::new()),
+            })
         })
     }
 
     /// The source ast, with the unrendered examples
     pub fn source(&self) -> &Node {
-        &self.ast_storage().0
+        &self.ast_cache().ast
     }
 
     /// The ast of the page, once the examples are rendered
     pub fn rendered(&self, options: RenderOptions) -> impl Deref<Target = Node> + '_ {
-        let (ast, cache) = self.ast_storage();
+        let AstCache { ast, rendered } = self.ast_cache();
         // Lock the cache for ourselves
         // If poisoned, clear the cache and unpoison it.
-        let cache = cache.lock().unwrap_or_else(|mut e| {
+        let rendered = rendered.lock().unwrap_or_else(|mut e| {
             **e.get_mut() = HashMap::new();
-            cache.clear_poison();
+            rendered.clear_poison();
             e.into_inner()
         });
         // Get the cached value or render it
-        MutexGuard::map(cache, |cache| {
-            cache
+        MutexGuard::map(rendered, |rendered| {
+            rendered
                 .entry(options)
                 .or_insert_with_key(|options| render_examples(ast.clone(), options))
         })
@@ -103,6 +112,7 @@ impl ManPage {
 }
 
 fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
+    // nodes that must be examined
     let mut nodes = vec![&mut ast];
     while let Some(node) = nodes.pop() {
         let Node::Code(Code {
@@ -120,10 +130,8 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
             // do not examine code that is not a `dices` code
             continue;
         }
-        // steal the original code
-        let src = mem::take(value);
         // parse it as an example
-        let code: CodeExample = src.parse().expect(
+        let code: CodeExample = value.parse().expect(
             "The examples in the manual should be all well formatted, thanks to `dices-mantest`",
         );
         // initialize an engine, deterministic with regard of the seed and the code
@@ -134,49 +142,67 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
                 code.hash(&mut hasher);
                 hasher.finish()
             }));
-        // run all commands
-        for CodeExamplePiece {
-            cmd:
-                CodeExampleCommand {
-                    ignore,
-                    command: box command,
-                    src,
-                },
-            res: _,
-        } in &*code
-        {
-            let res = engine.eval_multiple(command);
-            if *ignore {
-                // only assert that the result is ok
-                if let Err(err) = res {
-                    panic!("An example failed with {err}")
-                }
-            } else {
-                // print the command
-                value.push_str(&options.prompt);
-                for val in src
-                    .lines()
-                    .intersperse(&format!("\n{}", options.prompt_cont))
-                {
-                    value.push_str(val)
-                }
-                value.push('\n');
+        // run all commands and concatenate the results
+        let doc_arena = pretty::Arena::<()>::new();
+        let res_arena = typed_arena::Arena::with_capacity(code.len());
+        let doc = doc_arena.intersperse(
+            (&*code).into_iter().filter_map(
+                |CodeExamplePiece {
+                     cmd:
+                         CodeExampleCommand {
+                             ignore,
+                             command: box command,
+                             src,
+                         },
+                     res: _,
+                 }| {
+                    let res = engine.eval_multiple(command);
+                    if *ignore {
+                        // only assert that the result is ok
+                        if let Err(err) = res {
+                            panic!("An example failed with {err}")
+                        }
+                        None
+                    } else {
+                        // print the command
+                        let command =
+                            doc_arena.intersperse(
+                                src.lines().with_position().map(|(pos, line)| {
+                                    doc_arena
+                                        .text(match pos {
+                                            itertools::Position::First
+                                            | itertools::Position::Only => &*options.prompt,
+                                            itertools::Position::Middle
+                                            | itertools::Position::Last => &*options.prompt_cont,
+                                        })
+                                        .append(line)
+                                }),
+                                doc_arena.hardline(),
+                            );
+                        // move res into the arena
+                        let res = &*res_arena.alloc(res);
+                        // print the result or the error
+                        let command_and_res = match res {
+                            Ok(Value::Null(ValueNull)) => command,
+                            Ok(res) => command.append(doc_arena.hardline()).append(res),
+                            Err(err) => {
+                                let report = Report::new(err).pretty(true);
+                                command
+                                    .append(doc_arena.hardline())
+                                    .append(report.to_string())
+                            }
+                        };
 
-                // print the result or the error
-                match res {
-                    Ok(Value::Null(ValueNull)) => (),
-                    Ok(res) => writeln!(value, "{res}").unwrap(),
-                    Err(err) => {
-                        let report = Report::new(err).pretty(true);
-                        writeln!(value, "{report}").unwrap()
+                        Some(command_and_res)
                     }
-                }
-            }
-        }
-        // remove eccessive newlines
-        while value.ends_with(['\n', '\r']) {
-            value.pop();
-        }
+                },
+            ),
+            doc_arena.hardline(),
+        );
+        // print the result
+        value.clear();
+        doc.render_fmt(options.width, value)
+            .expect("Rendering should be infallible")
     }
     ast
 }
@@ -193,6 +219,8 @@ pub struct ManDir {
 pub enum ManItem {
     /// A single page
     Page(ManPage),
+    /// Index of this directory
+    Index,
     /// A directory of items
     Dir(ManDir),
 }

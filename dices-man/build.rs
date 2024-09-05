@@ -72,12 +72,16 @@ impl ToTokens for ManDir {
 enum ManItem {
     /// A single page
     Page(ManPage),
+    /// Index of the directory
+    Index,
     /// A directory of items
     Dir(ManDir),
 }
 impl ManItem {
     fn name(&self) -> &str {
-        let (ManItem::Page(ManPage { name, .. }) | ManItem::Dir(ManDir { name, .. })) = self;
+        let (ManItem::Page(ManPage { name, .. }) | ManItem::Dir(ManDir { name, .. })) = self else {
+            return "Index";
+        };
         &name
     }
 }
@@ -86,6 +90,7 @@ impl ToTokens for ManItem {
         match self {
             ManItem::Page(page) => quote! (ManItem::Page(#page)),
             ManItem::Dir(dir) => quote!(ManItem::Dir(#dir)),
+            ManItem::Index => quote!(ManItem::Index),
         }
         .to_tokens(tokens)
     }
@@ -187,9 +192,13 @@ fn read_dir(path: &Path, index: String) -> Result<ManDir> {
     let content = index
         .into_iter()
         .map(|item_path| -> Result<_> {
-            let path = path.join(item_path);
-            let item = read_item(&path)?;
-            Ok((item.name().to_owned(), item))
+            if item_path == "index.yml" {
+                Ok(("index".to_owned(), ManItem::Index))
+            } else {
+                let path = path.join(item_path);
+                let item = read_item(&path)?;
+                Ok((item.name().to_owned(), item))
+            }
         })
         .try_collect()?;
     Ok(ManDir { name, content })

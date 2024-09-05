@@ -412,6 +412,7 @@ dependencies = [
  "dices-engine",
  "either",
  "elsa",
+ "itertools 0.13.0",
  "lazy-regex",
  "markdown",
  "nunny",
@@ -423,6 +424,7 @@ dependencies = [
  "rand",
  "serde",
  "serde_yaml",
+ "typed-arena",
 ]
 
 [[package]]
