@@ -10,7 +10,6 @@ itertools = "0.13.0"
 nunny = "0.2.1"
 rand = "0.8.5"
 either = "1.13.0"
-thiserror = "1.0.63"
 
 [dev-dependencies]
 rand = { version = "0.8.5", features = ["small_rng"] }

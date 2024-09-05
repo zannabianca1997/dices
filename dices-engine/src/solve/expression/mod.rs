@@ -3,9 +3,9 @@
 use std::num::TryFromIntError;
 
 use closures::VarUseCalcError;
+use derive_more::{Display, Error};
 use nunny::NonEmpty;
 use rand::Rng;
-use thiserror::Error;
 
 use dices_ast::{
     expression::{
@@ -22,91 +22,91 @@ pub use intrisics::IntrisicError;
 
 use crate::solve::Solvable;
 
-#[derive(Debug, Error, Clone)]
+#[derive(Debug, Display, Error, Clone)]
 pub enum SolveError<InjectedIntrisic: InjectedIntr> {
-    #[error("The number of repeats must be a number")]
-    RepeatTimesNotANumber(#[source] ToNumberError),
-    #[error("The number of repeats must be positive")]
-    NegativeRepeats(#[source] TryFromIntError),
-    #[error("The operator {op} needs a number at is right")]
+    #[display("The number of repeats must be a number")]
+    RepeatTimesNotANumber(#[error(source)] ToNumberError),
+    #[display("The number of repeats must be positive")]
+    NegativeRepeats(#[error(source)] TryFromIntError),
+    #[display("The operator {op} needs a number at is right")]
     RHSIsNotANumber {
         op: BinOp,
-        #[source]
+        #[error(source)]
         source: ToNumberError,
     },
-    #[error("The operator {op} needs a number at is left")]
+    #[display("The operator {op} needs a number at is left")]
     LHSIsNotANumber {
         op: BinOp,
-        #[source]
+        #[error(source)]
         source: ToNumberError,
     },
-    #[error("The operator {op} needs a list at is right")]
+    #[display("The operator {op} needs a list at is right")]
     RHSIsNotAList {
         op: BinOp,
-        #[source]
+        #[error(source)]
         source: ToListError,
     },
-    #[error("The operator {op} needs a list at is left")]
+    #[display("The operator {op} needs a list at is left")]
     LHSIsNotAList {
         op: BinOp,
-        #[source]
+        #[error(source)]
         source: ToListError,
     },
-    #[error("Integer overflow")]
+    #[display("Integer overflow")]
     Overflow,
-    #[error("The filter operator {op} needs a list of number at his left")]
+    #[display("The filter operator {op} needs a list of number at his left")]
     FilterNeedNumber {
         op: BinOp,
-        #[source]
+        #[error(source)]
         source: ToNumberError,
     },
-    #[error("The filter operator {} needs a positive number at his right", op)]
+    #[display("The filter operator {} needs a positive number at his right", op)]
     FilterNeedPositive {
         op: BinOp,
-        #[source]
+        #[error(source)]
         source: TryFromIntError,
     },
-    #[error("The number of dice faces must be a number")]
+    #[display("The number of dice faces must be a number")]
     FacesAreNotANumber {
-        #[source]
+        #[error(source)]
         source: ToNumberError,
     },
-    #[error("The number of dice faces must be positive")]
+    #[display("The number of dice faces must be positive")]
     FacesMustBePositive {
-        #[source]
+        #[error(source)]
         source: TryFromIntError,
     },
-    #[error("Cannot convert into a number")]
+    #[display("Cannot convert into a number")]
     CannotMakeANumber {
-        #[source]
+        #[error(source)]
         source: ToNumberError,
     },
-    #[error("`*` operator need at least one scalar")]
+    #[display("`*` operator need at least one scalar")]
     MultNeedAScalar,
-    #[error("Undefined variable {0}")]
-    InvalidReference(Box<IdentStr>),
-    #[error("{0} is not callable")]
-    NotCallable(Value<InjectedIntrisic>),
-    #[error("Error during intrisic call")]
-    IntrisicError(#[source] Box<IntrisicError<InjectedIntrisic>>),
-    #[error("Closures requires {required} params, {given} were instead provided.")]
+    #[display("Undefined variable {_0}")]
+    InvalidReference(#[error(not(source))] Box<IdentStr>),
+    #[display("{_0} is not callable")]
+    NotCallable(#[error(not(source))] Value<InjectedIntrisic>),
+    #[display("Error during intrisic call")]
+    IntrisicError(#[error(source)] Box<IntrisicError<InjectedIntrisic>>),
+    #[display("Closures requires {required} params, {given} were instead provided.")]
     WrongNumberOfParams { required: usize, given: usize },
-    #[error("The closure failed to calculate what variables needed to be captured")]
-    ClosureCannotCalculateCaptures(#[source] VarUseCalcError),
-    #[error("{0} is not indexable")]
-    CannotIndex(Value<InjectedIntrisic>),
-    #[error("A map can be indexed only by strings, not {0}")]
-    MapIsIndexedByStrings(Value<InjectedIntrisic>),
-    #[error("A string can be indexed only by numbers")]
-    StringIsIndexedByNumbers(#[source] ToNumberError),
-    #[error("A list can be indexed only by numbers")]
-    ListIsIndexedByNumbers(#[source] ToNumberError),
-    #[error("Index {idx} out of range for string of lenght {len}")]
+    #[display("The closure failed to calculate what variables needed to be captured")]
+    ClosureCannotCalculateCaptures(#[error(source)] VarUseCalcError),
+    #[display("{_0} is not indexable")]
+    CannotIndex(#[error(not(source))] Value<InjectedIntrisic>),
+    #[display("A map can be indexed only by strings, not {_0}")]
+    MapIsIndexedByStrings(#[error(not(source))] Value<InjectedIntrisic>),
+    #[display("A string can be indexed only by numbers")]
+    StringIsIndexedByNumbers(#[error(source)] ToNumberError),
+    #[display("A list can be indexed only by numbers")]
+    ListIsIndexedByNumbers(#[error(source)] ToNumberError),
+    #[display("Index {idx} out of range for string of lenght {len}")]
     StringIndexOutOfRange { idx: ValueNumber, len: usize },
-    #[error("Index {idx} out of range for list of lenght {len}")]
+    #[display("Index {idx} out of range for list of lenght {len}")]
     ListIndexOutOfRange { idx: ValueNumber, len: usize },
-    #[error("Key not found: \"{_0}\"")]
-    MissingKey(dices_ast::values::ValueString),
+    #[display("Key not found: \"{_0}\"")]
+    MissingKey(#[error(not(source))] dices_ast::values::ValueString),
 }
 impl<InjectedIntrisic: InjectedIntr> From<!> for SolveError<InjectedIntrisic> {
     fn from(value: !) -> Self {

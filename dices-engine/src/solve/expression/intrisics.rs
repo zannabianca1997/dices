@@ -2,49 +2,49 @@
 
 use std::str::FromStr;
 
+use derive_more::{Display, Error};
 use dices_ast::{
     expression::{bin_ops::BinOp, Expression, ExpressionBinOp, ExpressionCall},
     intrisics::{InjectedIntr, Intrisic},
     values::{ToListError, ToNumberError, Value, ValueIntrisic},
 };
 use rand::Rng;
-use thiserror::Error;
 
 use crate::solve::Solvable;
 
 use super::SolveError;
 
-#[derive(Debug, Error, Clone)]
+#[derive(Debug, Display, Error, Clone)]
 pub enum IntrisicError<Injected>
 where
     Injected: InjectedIntr,
 {
-    #[error("Wrong number of params given to the intrisic {}: expected {}, given {given}", called.name(), param_num(called))]
+    #[display("Wrong number of params given to the intrisic {}: expected {}, given {given}", called.name(), param_num(called))]
     WrongParamNum {
         called: Intrisic<Injected>,
         given: usize,
     },
-    #[error("Expression called failed to evaluate")]
-    CallFailed(#[source] SolveError<Injected>),
-    #[error("Error during summing")]
-    SumFailed(#[source] SolveError<Injected>),
-    #[error("Error during multiplying")]
-    MultFailed(#[source] SolveError<Injected>),
-    #[error("Error during joining")]
-    JoinFailed(#[source] SolveError<Injected>),
-    #[error("The second parameter of `call` must be a list of parameters")]
-    CallParamsNotAList(#[source] ToListError),
-    #[error("Cannot convert to a number")]
-    ToNumber(#[source] ToNumberError),
-    #[error("Cannot convert to a list")]
-    ToList(#[source] ToListError),
-    #[error("`parse` must be called on a string, not on {_0}")]
-    CannotParseNonString(Value<Injected>),
-    #[error("Failed to parse string")]
-    ParseFailed(#[source] <Value<Injected> as FromStr>::Err),
+    #[display("Expression called failed to evaluate")]
+    CallFailed(#[error(source)] SolveError<Injected>),
+    #[display("Error during summing")]
+    SumFailed(#[error(source)] SolveError<Injected>),
+    #[display("Error during multiplying")]
+    MultFailed(#[error(source)] SolveError<Injected>),
+    #[display("Error during joining")]
+    JoinFailed(#[error(source)] SolveError<Injected>),
+    #[display("The second parameter of `call` must be a list of parameters")]
+    CallParamsNotAList(#[error(source)] ToListError),
+    #[display("Cannot convert to a number")]
+    ToNumber(#[error(source)] ToNumberError),
+    #[display("Cannot convert to a list")]
+    ToList(#[error(source)] ToListError),
+    #[display("`parse` must be called on a string, not on {_0}")]
+    CannotParseNonString(#[error(not(source))] Value<Injected>),
+    #[display("Failed to parse string")]
+    ParseFailed(#[error(source)] <Value<Injected> as FromStr>::Err),
 
-    #[error(transparent)]
-    Injected(Injected::Error),
+    #[display("{_0}")]
+    Injected(#[error(source)] Injected::Error),
 }
 
 pub(super) fn call<R: Rng, Injected>(
