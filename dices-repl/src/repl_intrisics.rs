@@ -1,11 +1,11 @@
 //! Intrisics for the REPL
 
-use std::rc::Rc;
+use std::{borrow::Cow, rc::Rc};
 
 use derive_more::derive::{Display, Error};
 use dices_ast::{
     intrisics::InjectedIntr,
-    values::{Value, ValueNull},
+    values::{Value, ValueList, ValueNull},
 };
 use termimad::MadSkin;
 
@@ -17,7 +17,12 @@ pub struct Data {
     skin: Rc<MadSkin>,
 
     // mark if the repl was quitted
-    quitted: bool,
+    quitted: Quitted,
+}
+
+pub enum Quitted {
+    No,
+    Yes(Value<REPLIntrisics>),
 }
 
 impl Data {
@@ -25,12 +30,12 @@ impl Data {
         Self {
             graphic,
             skin,
-            quitted: false,
+            quitted: Quitted::No,
         }
     }
 
-    pub fn quitted(&self) -> bool {
-        self.quitted
+    pub fn quitted(&self) -> &Quitted {
+        &self.quitted
     }
 }
 
@@ -63,6 +68,19 @@ impl InjectedIntr for REPLIntrisics {
         }
     }
 
+    fn std_paths(&self) -> impl IntoIterator<Item = std::borrow::Cow<[std::borrow::Cow<str>]>> {
+        match self {
+            REPLIntrisics::Print => [
+                Cow::Borrowed(&[Cow::Borrowed("prelude"), Cow::Borrowed("print")] as _),
+                Cow::Borrowed(&[Cow::Borrowed("repl"), Cow::Borrowed("print")] as _),
+            ],
+            REPLIntrisics::Quit => [
+                Cow::Borrowed(&[Cow::Borrowed("prelude"), Cow::Borrowed("quit")] as _),
+                Cow::Borrowed(&[Cow::Borrowed("repl"), Cow::Borrowed("quit")] as _),
+            ],
+        }
+    }
+
     fn call(
         &self,
         data: &mut Self::Data,
@@ -76,7 +94,11 @@ impl InjectedIntr for REPLIntrisics {
                 Ok(Value::Null(ValueNull))
             }
             REPLIntrisics::Quit => {
-                data.quitted = true;
+                data.quitted = Quitted::Yes(match Box::<[Value<Self>; 1]>::try_from(params) {
+                    Ok(box [v]) => v,
+                    Err(box []) => ValueNull.into(),
+                    Err(params) => ValueList::from_iter(params.into_vec()).into(),
+                });
                 Err(REPLIntrisicsError::Quitting)
             }
         }

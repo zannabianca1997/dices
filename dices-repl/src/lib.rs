@@ -1,4 +1,6 @@
 #![feature(error_reporter)]
+#![feature(box_patterns)]
+
 use std::{
     error::{Error, Report},
     ffi::OsString,
@@ -13,7 +15,7 @@ use derive_more::derive::{Debug, Display, Error, From};
 use dices_ast::values::{Value, ValueNull};
 use rand::{rngs::SmallRng, SeedableRng};
 use reedline::{Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, Reedline, Signal};
-use repl_intrisics::REPLIntrisics;
+use repl_intrisics::{Quitted, REPLIntrisics};
 use termimad::{Alignment, MadSkin};
 
 mod repl_intrisics;
@@ -210,15 +212,20 @@ pub fn interactive_repl(
         match sig {
             Signal::Success(line) => match engine.eval_str(&line) {
                 Ok(value) => print_value(*graphic, &skin, &value),
-                Err(err) => print_err(*graphic, &skin, err),
+                Err(err) => {
+                    // need to catch the quitting error
+                    if let Quitted::Yes(value) = engine.injected_intrisics_data().quitted() {
+                        // this is not an error, but the quitting value
+                        print_value(*graphic, &skin, value);
+                        break;
+                    }
+                    print_err(*graphic, &skin, err)
+                }
             },
             Signal::CtrlD => {
                 break;
             }
             Signal::CtrlC => return Err(ReplFatalError::Interrupted),
-        }
-        if engine.injected_intrisics_data().quitted() {
-            break;
         }
     }
     skin.print_text(graphic.bye());

@@ -104,6 +104,11 @@ pub trait InjectedIntr: Sized + Clone {
     fn iter() -> impl IntoIterator<Item = Self>;
     /// Give a name for this intrisic
     fn name(&self) -> Cow<str>;
+    /// Give all the paths in the std library this intrisic should be injected to
+    fn std_paths(&self) -> impl IntoIterator<Item = Cow<[Cow<str>]>> {
+        // default to not injecting anywhere
+        []
+    }
     /// Call this intrisic
     fn call<'d>(
         &self,

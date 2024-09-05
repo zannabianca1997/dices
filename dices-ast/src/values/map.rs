@@ -20,6 +20,10 @@ use super::{list::ValueList, string::ValueString, ToNumberError, Value};
 )]
 pub struct ValueMap<InjectedIntrisic>(BTreeMap<ValueString, Value<InjectedIntrisic>>);
 impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
+    pub fn new() -> Self {
+        Self(BTreeMap::new())
+    }
+
     pub fn to_number(self) -> Result<super::number::ValueNumber, super::ToNumberError> {
         match self.0.into_iter().exactly_one() {
             Ok((_, value)) => value.to_number(),
@@ -48,6 +52,18 @@ impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
     }
     pub fn get_mut(&mut self, key: &str) -> Option<&mut Value<InjectedIntrisic>> {
         self.0.get_mut(key)
+    }
+
+    pub fn insert(
+        &mut self,
+        key: ValueString,
+        value: Value<InjectedIntrisic>,
+    ) -> Option<Value<InjectedIntrisic>> {
+        self.0.insert(key, value)
+    }
+
+    pub fn contains(&self, key: &str) -> bool {
+        self.0.contains_key(key)
     }
 }
 
