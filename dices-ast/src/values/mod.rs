@@ -11,9 +11,10 @@ pub use list::ValueList;
 pub use map::ValueMap;
 pub use null::ValueNull;
 pub use number::ValueNumber;
+use pretty::{DocAllocator, Pretty};
 pub use string::ValueString;
 
-use crate::intrisics::{Intrisic, NoInjectedIntrisics};
+use crate::intrisics::{InjectedIntr, Intrisic, NoInjectedIntrisics};
 
 pub mod boolean;
 pub mod closure;
@@ -79,6 +80,26 @@ impl<InjectedIntrisic> Value<InjectedIntrisic> {
             Value::Intrisic(v) => v.to_list(),
             Value::Closure(v) => v.to_list(),
             Value::Null(v) => v.to_list(),
+        }
+    }
+}
+
+impl<'a, D, A, II> Pretty<'a, D, A> for &'a Value<II>
+where
+    A: 'a,
+    D: ?Sized + DocAllocator<'a, A>,
+    II: InjectedIntr,
+{
+    fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
+        match self {
+            Value::Null(value) => value.pretty(allocator),
+            Value::Bool(value) => value.pretty(allocator),
+            Value::Number(value) => value.pretty(allocator),
+            Value::String(value) => value.pretty(allocator),
+            Value::List(value) => value.pretty(allocator),
+            Value::Map(value) => value.pretty(allocator),
+            Value::Intrisic(value) => value.pretty(allocator),
+            Value::Closure(value) => value.pretty(allocator),
         }
     }
 }

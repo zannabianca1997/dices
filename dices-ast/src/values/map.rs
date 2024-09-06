@@ -1,8 +1,12 @@
 use std::{collections::BTreeMap, fmt::Display};
 
 use itertools::Itertools;
+use pretty::{DocAllocator, Pretty};
 
-use crate::{fmt::quoted_if_not_ident, intrisics::InjectedIntr};
+use crate::{
+    fmt::{quoted_if_not_ident, CommaLine},
+    intrisics::InjectedIntr,
+};
 
 use super::{list::ValueList, string::ValueString, ToNumberError, Value};
 
@@ -79,6 +83,37 @@ impl<II: InjectedIntr> Display for ValueMap<II> {
         }
 
         write!(f, "<|{}|>", self.0.iter().map(KeyValue).format(", "))
+    }
+}
+
+impl<'a, D, A, II> Pretty<'a, D, A> for &'a ValueMap<II>
+where
+    A: 'a,
+    D: ?Sized + DocAllocator<'a, A>,
+    II: InjectedIntr,
+{
+    fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
+        allocator
+            .intersperse(
+                self.iter().map(|(key, value)| {
+                    struct QuoteIfNotIdent<'a>(&'a str);
+                    impl Display for QuoteIfNotIdent<'_> {
+                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                            quoted_if_not_ident(self.0, f)
+                        }
+                    }
+                    allocator
+                        .text(QuoteIfNotIdent(&key).to_string())
+                        .append(":")
+                        .append(allocator.space())
+                        .append(value)
+                }),
+                CommaLine,
+            )
+            .enclose(allocator.line_(), allocator.line_())
+            .group()
+            .nest(4)
+            .enclose("<|", "|>")
     }
 }
 

@@ -2,7 +2,11 @@
 
 use std::{collections::BTreeMap, fmt::Display};
 
-use crate::{expression::Expression, ident::IdentStr, values::number::ValueNumber};
+use pretty::{DocAllocator, Pretty};
+
+use crate::{
+    expression::Expression, ident::IdentStr, intrisics::InjectedIntr, values::number::ValueNumber,
+};
 
 use super::{list::ValueList, ToNumberError, Value};
 
@@ -45,5 +49,31 @@ impl<InjectedIntrisic> Display for ValueClosure<InjectedIntrisic> {
         };
         write!(f, ">")?;
         Ok(())
+    }
+}
+
+impl<'a, D, A, II> Pretty<'a, D, A> for &'a ValueClosure<II>
+where
+    A: 'a,
+    D: ?Sized + DocAllocator<'a, A>,
+    II: InjectedIntr,
+{
+    fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
+        let text = allocator.text("<closure");
+        let text = if self.params.is_empty() {
+            text.append(" without parameters")
+        } else {
+            text.append(" with ")
+                .append(self.params.len().to_string())
+                .append(" parameters")
+        };
+        let text = if !self.captures.is_empty() {
+            text.append(" (captured ")
+                .append(self.captures.len().to_string())
+                .append(" values)")
+        } else {
+            text
+        };
+        text.append(">")
     }
 }

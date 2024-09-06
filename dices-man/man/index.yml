@@ -1,3 +1,5 @@
 name: "`dices` manual"
 index:
   - "introduction.md"
+  - "index.yml"
+  - "std"

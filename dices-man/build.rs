@@ -17,16 +17,16 @@ use serde::Deserialize;
 /// A page of the manual
 struct ManPage {
     /// The name of the page
-    name: String,
+    title: String,
     /// The content of the page
     content: String,
 }
 impl ToTokens for ManPage {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let name = &*self.name;
+        let title = &*self.title;
         let content = &*self.content;
 
-        quote!(ManPage::new(#name, #content)).to_tokens(tokens)
+        quote!(ManPage::new(#title, #content)).to_tokens(tokens)
     }
 }
 
@@ -58,13 +58,7 @@ impl ToTokens for ManDir {
             .to_string()
             .parse()
             .expect("The builder should produce valid rust");
-        quote! (
-            ManDir {
-                name: #name,
-                content: #content
-            }
-        )
-        .to_tokens(tokens)
+        quote! (ManDir::new(#name, #content)).to_tokens(tokens)
     }
 }
 
@@ -72,20 +66,17 @@ impl ToTokens for ManDir {
 enum ManItem {
     /// A single page
     Page(ManPage),
+    /// Index of the directory
+    Index,
     /// A directory of items
     Dir(ManDir),
-}
-impl ManItem {
-    fn name(&self) -> &str {
-        let (ManItem::Page(ManPage { name, .. }) | ManItem::Dir(ManDir { name, .. })) = self;
-        &name
-    }
 }
 impl ToTokens for ManItem {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
             ManItem::Page(page) => quote! (ManItem::Page(#page)),
             ManItem::Dir(dir) => quote!(ManItem::Dir(#dir)),
+            ManItem::Index => quote!(ManItem::Index(ManIndex::new())),
         }
         .to_tokens(tokens)
     }
@@ -137,14 +128,14 @@ fn read_item(path: &Path) -> Result<ManItem> {
 
 #[derive(Deserialize, Default)]
 struct FrontMatter {
-    name: Option<String>,
+    title: Option<String>,
 }
 
 fn read_page(path: &Path, content: String) -> Result<ManPage> {
     println!("cargo::rerun-if-changed={}", path.display());
 
     // read the file content
-    let (FrontMatter { name }, content) = regex_captures!(
+    let (FrontMatter { title }, content) = regex_captures!(
         r"\A\s*---((?:.|\n)*)---\s*$(?:\r\n|\n)?((?:.|\n)*)\z"m,
         &content
     )
@@ -154,14 +145,14 @@ fn read_page(path: &Path, content: String) -> Result<ManPage> {
             .map(|front| (front, content))
     })
     .unwrap_or_else(|| Ok((FrontMatter::default(), &*content)))?;
-    let name = name.unwrap_or_else(|| {
+    let title = title.unwrap_or_else(|| {
         path.file_stem()
             .expect("Every file name should have a stem")
             .to_string_lossy()
             .into_owned()
     });
     let content = content.to_owned();
-    Ok(ManPage { name, content })
+    Ok(ManPage { title, content })
 }
 
 #[derive(Deserialize)]
@@ -187,9 +178,16 @@ fn read_dir(path: &Path, index: String) -> Result<ManDir> {
     let content = index
         .into_iter()
         .map(|item_path| -> Result<_> {
-            let path = path.join(item_path);
-            let item = read_item(&path)?;
-            Ok((item.name().to_owned(), item))
+            if item_path == "index.yml" {
+                Ok(("index".to_owned(), ManItem::Index))
+            } else {
+                let path = path.join(item_path);
+                let item = read_item(&path)?;
+                Ok((
+                    path.file_stem().unwrap().to_string_lossy().into_owned(),
+                    item,
+                ))
+            }
         })
         .try_collect()?;
     Ok(ManDir { name, content })

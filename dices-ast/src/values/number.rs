@@ -1,6 +1,7 @@
 use derive_more::derive::{
     Add, AddAssign, Display, Div, DivAssign, From, Into, Mul, MulAssign, Neg, Sub, SubAssign,
 };
+use pretty::{DocAllocator, Pretty};
 
 use super::list::ValueList;
 
@@ -46,5 +47,15 @@ impl ValueNumber {
         self,
     ) -> Result<ValueList<InjectedIntrisic>, super::ToListError> {
         Ok(ValueList::from_iter([self.into()]))
+    }
+}
+
+impl<'a, D, A> Pretty<'a, D, A> for &'a ValueNumber
+where
+    A: 'a,
+    D: ?Sized + DocAllocator<'a, A>,
+{
+    fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
+        allocator.text(self.to_string())
     }
 }
