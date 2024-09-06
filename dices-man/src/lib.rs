@@ -23,7 +23,7 @@ use dices_engine::Engine;
 use example::{CodeExample, CodeExampleCommand, CodeExamplePiece};
 use itertools::Itertools;
 use markdown::{
-    mdast::{Code, Node},
+    mdast::{self, Code, Node},
     to_mdast, ParseOptions,
 };
 use pretty::DocAllocator;
@@ -287,25 +287,47 @@ fn render_index(dir: &ManDir) -> Node {
     use markdown::mdast::*;
 
     fn list_item(name: &str, key: &str) -> Paragraph {
+        // parse the name as markdown
+        let mut children = {
+            let Node::Root(Root {
+                mut children,
+                position: _,
+            }) = markdown::to_mdast(name, &ParseOptions::gfm())
+                .expect("Markdown has no syntax error")
+            else {
+                panic!("`to_mdast` should always emit a `Root` node")
+            };
+            if children.len() > 1 {
+                panic!("The name should contain a single paragrah")
+            }
+            let Node::Paragraph(Paragraph {
+                children,
+                position: _,
+            }) = children.pop().unwrap_or(Node::Paragraph(Paragraph {
+                children: vec![],
+                position: None,
+            }))
+            else {
+                panic!("The name should contain a paragraph")
+            };
+            children
+        };
+        children.extend([
+            Node::Text(Text {
+                value: " (".to_owned(),
+                position: None,
+            }),
+            Node::InlineCode(InlineCode {
+                value: key.to_owned(),
+                position: None,
+            }),
+            Node::Text(Text {
+                value: ")".to_owned(),
+                position: None,
+            }),
+        ]);
         Paragraph {
-            children: vec![
-                Node::Text(Text {
-                    value: name.to_owned(),
-                    position: None,
-                }),
-                Node::Text(Text {
-                    value: " (".to_owned(),
-                    position: None,
-                }),
-                Node::InlineCode(InlineCode {
-                    value: key.to_owned(),
-                    position: None,
-                }),
-                Node::Text(Text {
-                    value: ")".to_owned(),
-                    position: None,
-                }),
-            ],
+            children,
             position: None,
         }
     }
