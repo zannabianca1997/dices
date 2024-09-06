@@ -23,7 +23,7 @@ use dices_engine::Engine;
 use example::{CodeExample, CodeExampleCommand, CodeExamplePiece};
 use itertools::Itertools;
 use markdown::{
-    mdast::{self, Code, Node},
+    mdast::{Code, Node},
     to_mdast, ParseOptions,
 };
 use pretty::DocAllocator;
