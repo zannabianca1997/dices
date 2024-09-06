@@ -44,7 +44,7 @@ impl ManTests<'_, '_, ManItem> {
                 name_pool,
             } => ManTests { item, name_pool }.into_token_stream(),
             ManTests {
-                item: ManItem::Index,
+                item: ManItem::Index(_),
                 ..
             } => TokenStream::new(), // no tests in the index
             ManTests {

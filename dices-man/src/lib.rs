@@ -213,6 +213,29 @@ pub struct ManDir {
     pub name: &'static str,
     /// The content of the subdirectory
     pub content: phf::OrderedMap<&'static str, &'static ManItem>,
+    /// The index of the subdirectory, if rendered
+    index: OnceLock<Box<Node>>,
+}
+
+impl ManDir {
+    const fn new(
+        name: &'static str,
+        content: phf::OrderedMap<&'static str, &'static ManItem>,
+    ) -> Self {
+        Self {
+            name,
+            content,
+            index: OnceLock::new(),
+        }
+    }
+}
+
+/// The index of a manual dir
+pub struct ManIndex;
+impl ManIndex {
+    const fn new() -> Self {
+        Self
+    }
 }
 
 /// A item of the manual
@@ -220,9 +243,141 @@ pub enum ManItem {
     /// A single page
     Page(ManPage),
     /// Index of this directory
-    Index,
+    Index(ManIndex),
     /// A directory of items
     Dir(ManDir),
+}
+
+/// Possible contents of a manual topic
+#[derive(Clone, Copy)]
+pub enum ManTopicContent {
+    /// A manual page
+    Page(&'static ManPage),
+    /// Index of a directory
+    Index(&'static ManDir),
+}
+impl ManTopicContent {
+    /// The ast of the topic
+    pub fn rendered<'r>(&self, options: RenderOptions) -> impl Deref<Target = Node> + 'r {
+        enum RenderedRef<P: Deref<Target = Node>, I: Deref<Target = Node>> {
+            Page(P),
+            Index(I),
+        }
+        impl<P: Deref<Target = Node>, I: Deref<Target = Node>> Deref for RenderedRef<P, I> {
+            type Target = Node;
+
+            fn deref(&self) -> &Self::Target {
+                match self {
+                    RenderedRef::Page(p) => &p,
+                    RenderedRef::Index(i) => &i,
+                }
+            }
+        }
+        match self {
+            ManTopicContent::Page(p) => RenderedRef::Page(p.rendered(options)),
+            ManTopicContent::Index(dir) => {
+                RenderedRef::Index(&**dir.index.get_or_init(|| Box::new(render_index(dir))))
+            }
+        }
+    }
+}
+
+/// Create the index of a page
+fn render_index(dir: &ManDir) -> Node {
+    use markdown::mdast::*;
+
+    fn list_item(name: &str, key: &str) -> Paragraph {
+        Paragraph {
+            children: vec![
+                Node::Text(Text {
+                    value: name.to_owned(),
+                    position: None,
+                }),
+                Node::Text(Text {
+                    value: " (".to_owned(),
+                    position: None,
+                }),
+                Node::InlineCode(InlineCode {
+                    value: key.to_owned(),
+                    position: None,
+                }),
+                Node::Text(Text {
+                    value: ")".to_owned(),
+                    position: None,
+                }),
+            ],
+            position: None,
+        }
+    }
+
+    fn list_of(dir: &ManDir) -> List {
+        List {
+            children: dir
+                .content
+                .entries()
+                .map(|(&key, &v)| {
+                    Node::ListItem(ListItem {
+                        children: match v {
+                            ManItem::Page(p) => vec![Node::Paragraph(list_item(p.name, key))],
+                            ManItem::Index(_) => vec![Node::Paragraph(list_item("Index", "index"))],
+                            ManItem::Dir(d) => vec![
+                                Node::Paragraph(list_item(d.name, key)),
+                                Node::List(list_of(d)),
+                            ],
+                        },
+                        position: None,
+                        spread: false,
+                        checked: None,
+                    })
+                })
+                .collect(),
+            position: None,
+            ordered: false,
+            start: None,
+            spread: false,
+        }
+    }
+
+    Node::Root(Root {
+        children: vec![
+            Node::Heading(Heading {
+                children: vec![
+                    Node::Text(Text {
+                        value: "Index of ".to_owned(),
+                        position: None,
+                    }),
+                    Node::InlineCode(InlineCode {
+                        value: dir.name.to_owned(),
+                        position: None,
+                    }),
+                ],
+                position: None,
+                depth: 1,
+            }),
+            Node::List(list_of(dir)),
+        ],
+        position: None,
+    })
+}
+
+/// Lookup a specific topic
+pub fn search<'a>(topic: &str) -> Option<ManTopicContent> {
+    let mut topic = topic.split('/');
+    let name = topic.next_back()?;
+
+    let mut dir = &MANUAL;
+    for part in topic {
+        if let ManItem::Dir(child) = dir.content.get(part)? {
+            dir = child
+        } else {
+            return None;
+        }
+    }
+    Some(match dir.content.get(name)? {
+        ManItem::Page(page) => ManTopicContent::Page(page),
+        ManItem::Index(_) => ManTopicContent::Index(dir),
+        ManItem::Dir(dir) => ManTopicContent::Index(dir),
+    })
 }
 
 pub static MANUAL: ManDir = include!(env!("MANUAL_RS"));

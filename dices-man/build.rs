@@ -58,13 +58,7 @@ impl ToTokens for ManDir {
             .to_string()
             .parse()
             .expect("The builder should produce valid rust");
-        quote! (
-            ManDir {
-                name: #name,
-                content: #content
-            }
-        )
-        .to_tokens(tokens)
+        quote! (ManDir::new(#name, #content)).to_tokens(tokens)
     }
 }
 
@@ -90,7 +84,7 @@ impl ToTokens for ManItem {
         match self {
             ManItem::Page(page) => quote! (ManItem::Page(#page)),
             ManItem::Dir(dir) => quote!(ManItem::Dir(#dir)),
-            ManItem::Index => quote!(ManItem::Index),
+            ManItem::Index => quote!(ManItem::Index(ManIndex::new())),
         }
         .to_tokens(tokens)
     }
