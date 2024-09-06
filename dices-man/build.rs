@@ -191,7 +191,10 @@ fn read_dir(path: &Path, index: String) -> Result<ManDir> {
             } else {
                 let path = path.join(item_path);
                 let item = read_item(&path)?;
-                Ok((item.name().to_owned(), item))
+                Ok((
+                    path.file_stem().unwrap().to_string_lossy().into_owned(),
+                    item,
+                ))
             }
         })
         .try_collect()?;
