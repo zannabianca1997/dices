@@ -22,7 +22,7 @@ That can be combined with the usual arithmetic operations:
 >>> d6 + 10
 11..=16
 ```
-and with more dice-related ones, like filtering for highest-lowest dices:
+And operations related to dices, like filtering for highest-lowest dices:
 ```dices
 >>> 2d20 kh 1 // throws 2 d20, then keep the highest
 [1..=20]
@@ -33,7 +33,7 @@ and with more dice-related ones, like filtering for highest-lowest dices:
 >>> 5d4 rl 2 // throws 5 d4, remove the two lower ones
 [1..=4, 1..=4, 1..=4]
 ```
-And more programming related concept, like variables, scopes and closures:
+More programming related concept, like variables, scopes and closures, are also available:
 ```dices
 >>> let STR_MODIFIER = 3;
 >>> STR_MODIFIER
@@ -54,7 +54,7 @@ And more programming related concept, like variables, scopes and closures:
 ```
 
 ## Where to go from there
-`dices` has an internal manual. Type `help()` in the *REPL* to get started. The manual is not specifically targeted neither to programmers nor tabletop gamers, but to the kind of people that use a computer program to play *DnD*. I tried to make it accessible to people that only want to throw dice, but some arguments might need more programming knowledge. 
+`dices` has an internal manual. Type `help("index")` in the *REPL* to see the index. The manual is not specifically targeted neither to programmers nor tabletop gamers, but to the kind of people that use a computer program to play *DnD*. I tried to make it accessible to people that only want to throw dice, but some arguments might need more programming knowledge. 
 
 ## License
 This software is distributed under the **MIT** license, if you need to know. Use it at will.
