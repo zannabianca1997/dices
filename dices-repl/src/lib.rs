@@ -85,6 +85,13 @@ impl Graphic {
             Graphic::Fancy => "🎲> ",
         }
     }
+    fn prompt_cont(&self) -> &str {
+        match self {
+            Graphic::None => "",
+            Graphic::Ascii => "... ",
+            Graphic::Fancy => "🎲. ",
+        }
+    }
     fn bye(&self) -> &str {
         match self {
             Graphic::None => "",
@@ -103,7 +110,7 @@ impl Graphic {
             },
         };
         // Disabling centered text, I find it confusing
-        skin.headers[0].align = Alignment::Right;
+        skin.headers[0].align = Alignment::Left;
         skin
     }
 }

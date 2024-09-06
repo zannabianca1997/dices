@@ -35,13 +35,13 @@ pub mod example;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RenderOptions {
     /// The prompt for the command: `>>> `
-    prompt: Cow<'static, str>,
+    pub prompt: Cow<'static, str>,
     /// The continue prompt for longer command: `... `
-    prompt_cont: Cow<'static, str>,
+    pub prompt_cont: Cow<'static, str>,
     /// The seed for the example rng
-    seed: u64,
+    pub seed: u64,
     /// Width for the rendering
-    width: usize,
+    pub width: usize,
 }
 impl Default for RenderOptions {
     fn default() -> Self {
@@ -361,7 +361,7 @@ fn render_index(dir: &ManDir) -> Node {
 }
 
 /// Lookup a specific topic
-pub fn search<'a>(topic: &str) -> Option<ManTopicContent> {
+pub fn search(topic: &str) -> Option<ManTopicContent> {
     let mut topic = topic.split('/');
     let name = topic.next_back()?;
 
@@ -379,5 +379,11 @@ pub fn search<'a>(topic: &str) -> Option<ManTopicContent> {
         ManItem::Dir(dir) => ManTopicContent::Index(dir),
     })
 }
+pub fn index() -> ManTopicContent {
+    search("index").unwrap()
+}
 
 pub static MANUAL: ManDir = include!(env!("MANUAL_RS"));
+
+#[cfg(test)]
+mod tests;

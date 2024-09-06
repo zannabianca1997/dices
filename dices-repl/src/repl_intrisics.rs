@@ -7,7 +7,8 @@ use dices_ast::{
     intrisics::InjectedIntr,
     values::{Value, ValueList, ValueNull},
 };
-use termimad::MadSkin;
+use dices_man::RenderOptions;
+use termimad::{crossterm::terminal, MadSkin};
 
 use crate::{print_value, Graphic};
 
@@ -45,6 +46,8 @@ pub enum REPLIntrisics {
     Print,
     /// Quit the repl
     Quit,
+    /// Print a manual page
+    Help,
 }
 #[derive(Debug, Clone, Display, Error)]
 pub enum REPLIntrisicsError {
@@ -58,14 +61,16 @@ impl InjectedIntr for REPLIntrisics {
     type Error = REPLIntrisicsError;
 
     fn iter() -> impl IntoIterator<Item = Self> {
-        [Self::Print, Self::Quit]
+        [Self::Print, Self::Quit, Self::Help]
     }
 
     fn name(&self) -> std::borrow::Cow<str> {
         match self {
-            REPLIntrisics::Print => "print".into(),
-            REPLIntrisics::Quit => "quit".into(),
+            REPLIntrisics::Print => "print",
+            REPLIntrisics::Quit => "quit",
+            REPLIntrisics::Help => "help",
         }
+        .into()
     }
 
     fn std_paths(&self) -> impl IntoIterator<Item = std::borrow::Cow<[std::borrow::Cow<str>]>> {
@@ -77,6 +82,10 @@ impl InjectedIntr for REPLIntrisics {
             REPLIntrisics::Quit => [
                 Cow::Borrowed(&[Cow::Borrowed("prelude"), Cow::Borrowed("quit")] as _),
                 Cow::Borrowed(&[Cow::Borrowed("repl"), Cow::Borrowed("quit")] as _),
+            ],
+            REPLIntrisics::Help => [
+                Cow::Borrowed(&[Cow::Borrowed("prelude"), Cow::Borrowed("help")] as _),
+                Cow::Borrowed(&[Cow::Borrowed("repl"), Cow::Borrowed("help")] as _),
             ],
         }
     }
@@ -100,6 +109,38 @@ impl InjectedIntr for REPLIntrisics {
                     Err(params) => ValueList::from_iter(params.into_vec()).into(),
                 });
                 Err(REPLIntrisicsError::Quitting)
+            }
+            REPLIntrisics::Help => {
+                // the help intrisic never fails, at most fall on her help page itself
+                let topic = match &*params {
+                    [] => "introduction",
+                    [Value::String(s)] => &*s,
+                    _ => "std/repl/help",
+                };
+                // search the manual. If absent, find the index.
+                let content = dices_man::search(topic).unwrap_or_else(dices_man::index);
+                // render the content, running the examples with the current prompt
+                let content = content.rendered(RenderOptions {
+                    prompt: data.graphic.prompt().to_owned().into(),
+                    prompt_cont: data.graphic.prompt_cont().to_owned().into(),
+                    width: terminal::size()
+                        .map(|(w, _)| w as _)
+                        .unwrap_or(RenderOptions::default().width),
+                    ..Default::default()
+                });
+                // convert the content into a minimad text
+                let content = mdast2minimad::to_minimad(&*content)
+                    .expect("All help pages should be convertible");
+                // print it with the current skin
+                println!(
+                    "{}",
+                    termimad::FmtText::from_text(
+                        &data.skin,
+                        content,
+                        terminal::size().map(|(w, _)| w as _).ok()
+                    )
+                );
+                Ok(Value::Null(ValueNull))
             }
         }
     }
