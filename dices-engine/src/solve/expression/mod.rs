@@ -311,7 +311,7 @@ impl<InjectedIntrisic: InjectedIntr> Solvable<InjectedIntrisic>
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
-        context.scoped(|context| solve_multiple(&self.0, context))
+        context.scoped(|context| solve_multiple(&*self, context))
     }
 }
 
