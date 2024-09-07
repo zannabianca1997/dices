@@ -665,7 +665,7 @@ dependencies = [
 [[package]]
 name = "mdast2minimad"
 version = "0.1.0"
-source = "git+https://github.com/zannabianca1997/mdast2minimad.git#8c4f9c5cecf281627f2fbda6750bd99f58858583"
+source = "git+https://github.com/zannabianca1997/mdast2minimad.git#e959462ddb6811cf4f35df89d2c77851a392ddd8"
 dependencies = [
  "derive_more",
  "markdown",
