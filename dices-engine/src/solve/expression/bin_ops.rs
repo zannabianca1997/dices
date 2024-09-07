@@ -1,6 +1,6 @@
 use std::mem;
 
-use dices_ast::values::ValueNull;
+use dices_ast::values::{ValueNull, ValueString};
 use itertools::Itertools;
 use un_ops::{neg, plus};
 
@@ -326,15 +326,30 @@ fn join<R, InjectedIntrisic>(
 where
     InjectedIntrisic: InjectedIntr,
 {
-    let a = a.to_list().map_err(|source| SolveError::LHSIsNotAList {
-        op: BinOp::Join,
-        source,
-    })?;
-    let b = b.to_list().map_err(|source| SolveError::RHSIsNotAList {
-        op: BinOp::Join,
-        source,
-    })?;
-    Ok(Value::List(Iterator::chain(a.into_iter(), b).collect()))
+    match (a, b) {
+        (Value::String(s1), Value::String(s2)) => {
+            let mut s1 = Box::<str>::from(s1).into_string();
+            s1.push_str(&*s2);
+            Ok(ValueString::from(s1).into())
+        }
+        (Value::Map(mut m1), Value::Map(m2)) => {
+            for (key, value) in m2 {
+                m1.insert(key, value);
+            }
+            Ok(m1.into())
+        }
+        (a, b) => {
+            let a = a.to_list().map_err(|source| SolveError::LHSIsNotAList {
+                op: BinOp::Join,
+                source,
+            })?;
+            let b = b.to_list().map_err(|source| SolveError::RHSIsNotAList {
+                op: BinOp::Join,
+                source,
+            })?;
+            Ok(Value::List(Iterator::chain(a.into_iter(), b).collect()))
+        }
+    }
 }
 
 fn keep_high<R, InjectedIntrisic>(
