@@ -115,7 +115,7 @@ impl InjectedIntr for REPLIntrisics {
                 let topic = match &*params {
                     [] => "introduction",
                     [Value::String(s)] => &*s,
-                    _ => "std/repl/help",
+                    _ => HELP_PAGE_FOR_HELP,
                 };
                 // search the manual. If absent, find the index.
                 let content = dices_man::search(topic).unwrap_or_else(dices_man::index);
@@ -144,4 +144,14 @@ impl InjectedIntr for REPLIntrisics {
             }
         }
     }
+}
+
+/// The page for help about `help`
+const HELP_PAGE_FOR_HELP: &str = "std/repl/help";
+
+/// The help for `help` must exist as it is shown when calling `help` with invalid params
+#[cfg(test)]
+#[test]
+fn help_for_help_exist() {
+    assert!(dices_man::search(HELP_PAGE_FOR_HELP).is_some())
 }
