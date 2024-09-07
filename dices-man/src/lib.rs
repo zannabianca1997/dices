@@ -54,6 +54,11 @@ impl Default for RenderOptions {
     }
 }
 
+/// Parse options used to parse the manual pages markdown
+pub const fn man_parse_options() -> ParseOptions {
+    mdast2minimad::md_parse_options()
+}
+
 /// Content of the cache for tha parsed markdown AST
 struct AstCache {
     ast: Node,
@@ -81,7 +86,7 @@ impl ManPage {
     fn ast_cache(&self) -> &AstCache {
         self.ast.get_or_init(|| {
             Box::new(AstCache {
-                ast: to_mdast(&self.content, &ParseOptions::default()).unwrap(),
+                ast: to_mdast(&self.content, &man_parse_options()).unwrap(),
                 rendered: Mutex::new(HashMap::new()),
             })
         })
