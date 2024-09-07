@@ -1,6 +1,7 @@
 #![feature(assert_matches)]
 #![feature(never_type)]
 #![feature(iterator_try_collect)]
+#![feature(iterator_try_reduce)]
 #![feature(box_patterns)]
 #![feature(type_changing_struct_update)]
 

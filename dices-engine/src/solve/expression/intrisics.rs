@@ -83,26 +83,29 @@ where
         Intrisic::Sum => params
             .into_vec()
             .into_iter()
-            .try_fold(Value::Number(0.into()), |acc, expr| {
-                Expression::BinOp(ExpressionBinOp::new(BinOp::Add, acc.into(), expr.into()))
+            .try_reduce(|e1, e2| {
+                Expression::BinOp(ExpressionBinOp::new(BinOp::Add, e1.into(), e2.into()))
                     .solve(context)
             })
+            .map(|r| r.unwrap_or(Value::Number(0.into())))
             .map_err(IntrisicError::SumFailed),
         Intrisic::Join => params
             .into_vec()
             .into_iter()
-            .try_fold(Value::Number(0.into()), |acc, expr| {
-                Expression::BinOp(ExpressionBinOp::new(BinOp::Join, acc.into(), expr.into()))
+            .try_reduce(|e1, e2| {
+                Expression::BinOp(ExpressionBinOp::new(BinOp::Join, e1.into(), e2.into()))
                     .solve(context)
             })
+            .map(|r| r.unwrap_or(Value::List([].into_iter().collect())))
             .map_err(IntrisicError::JoinFailed),
         Intrisic::Mult => params
             .into_vec()
             .into_iter()
-            .try_fold(Value::Number(0.into()), |acc, expr| {
-                Expression::BinOp(ExpressionBinOp::new(BinOp::Mult, acc.into(), expr.into()))
+            .try_reduce(|e1, e2| {
+                Expression::BinOp(ExpressionBinOp::new(BinOp::Mult, e1.into(), e2.into()))
                     .solve(context)
             })
+            .map(|r| r.unwrap_or(Value::Number(0.into())))
             .map_err(IntrisicError::MultFailed),
 
         // Conversions
