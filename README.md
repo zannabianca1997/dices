@@ -1,17 +1,17 @@
-# Welcome to `dices` 0.3.0!
-This is a program able to simulate dice throwing. It supports traditional dice notation, but also mathematical operations, variables and closures. 
+# `dices` 0.3.0
+This is a program able to simulate dice-throwing. It supports traditional dice notation, but also mathematical operations, variables, and closures. 
 
 ## Running
 > [!NOTE]
-> If you know your way around git and the Rust build system, just clone the repository and run `cargo run --releases`.
+> If you know your way around git and the Rust build system, just clone the repository and run `cargo run +nightly --releases`.
 
 To compile and run this program, you must first ensure that both [`git`](https://git-scm.com/) and [`cargo`](https://doc.rust-lang.org/cargo/) are present on your system. Then from a console clone the repository and run the project:
 ```sh
 $ git clone https://github.com/zannabianca1997/dices.git
 $ cd dices
-$ cargo run --release
+$ cargo run +nightly --release
 ```
-You should see a lot of text, and then a prompt similar to `>>>`. Type `quit()` or press Ctrl + C to exit.
+You should see a lot of text, and then a prompt similar to `>>>`. Type `quit()` or press `Ctrl + D` to exit.
 
 ## Where to go from there
 `dices` has an internal manual. Type `help()` in the *REPL* to get started. The manual is not specifically targeted neither to programmers nor tabletop gamers, but to the kind of people that use a computer program to play *DnD*. I tried to make it accessible to people that only want to throw dice, but some arguments might need more programming knowledge. 
