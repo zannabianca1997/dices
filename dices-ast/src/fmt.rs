@@ -10,7 +10,7 @@ use crate::ident::IdentStr;
 pub fn escaped(mut s: &str, f: &mut Formatter<'_>) -> std::fmt::Result {
     while let Some((pos, ch)) = s
         .char_indices()
-        .find(|(_, ch)| !(ch.is_ascii_graphic() || *ch == ' '))
+        .find(|(_, ch)| ['\"', '\\'].contains(ch) || !(ch.is_ascii_graphic() || *ch == ' '))
     {
         f.write_str(&s[..pos])?;
         s = &s[pos + ch.len_utf8()..];
