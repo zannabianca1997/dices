@@ -2,6 +2,7 @@
 name = "dices-man"
 version = "0.3.0"
 edition = "2021"
+authors = ["zannabianca1997 <zannabianca199712@gmail.com>"]
 
 [features]
 test_std_handle = []
