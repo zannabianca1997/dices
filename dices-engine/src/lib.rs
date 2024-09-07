@@ -169,6 +169,10 @@ pub struct Engine<RNG, InjectedIntrisic: InjectedIntr> {
     context: Context<RNG, InjectedIntrisic>,
 }
 
+/// Error during evaluation of a string
+pub type EvalStrError<InjectedIntrisic> =
+    Either<dices_ast::parse::Error, SolveError<InjectedIntrisic>>;
+
 impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
     /// Initialize a new engine
     ///
@@ -225,10 +229,7 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
     pub fn eval_str(
         &mut self,
         cmd: &str,
-    ) -> Result<
-        Value<InjectedIntrisic>,
-        Either<dices_ast::parse::Error, SolveError<InjectedIntrisic>>,
-    >
+    ) -> Result<Value<InjectedIntrisic>, EvalStrError<InjectedIntrisic>>
     where
         RNG: Rng,
         InjectedIntrisic: Clone,

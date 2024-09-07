@@ -13,6 +13,7 @@ use chrono::Local;
 use clap::{Parser, ValueEnum};
 use derive_more::derive::{Debug, Display, Error, From};
 use dices_ast::values::{Value, ValueNull};
+use dices_engine::Engine;
 use pretty::Pretty;
 use rand::{rngs::SmallRng, SeedableRng};
 use reedline::{Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, Reedline, Signal};
@@ -35,6 +36,20 @@ pub struct ReplCli {
     /// The seed to use to initialize the random number generator
     #[clap(long, short)]
     seed: Option<OsString>,
+
+    /// If `run` is given, do not close after command execution.
+    #[clap(long, short)]
+    interactive: bool,
+
+    #[clap(
+        short,
+        long,
+        num_args = ..,
+        trailing_var_arg = true,
+        allow_hyphen_values = true
+    )]
+    /// Command to run. If missing, an interactive prompt is open
+    run: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Copy, Display, ValueEnum)]
@@ -46,10 +61,13 @@ pub enum TerminalLightness {
 }
 #[derive(Debug, Clone, Copy, Display, ValueEnum, PartialEq, Eq)]
 pub enum Graphic {
+    /// No graphic
     #[display("none")]
     None,
+    /// Only ascii graphic
     #[display("ascii")]
     Ascii,
+    /// Fancy graphic, with emojis
     #[display("fancy")]
     Fancy,
 }
@@ -173,35 +191,26 @@ impl Prompt for ReplPrompt {
 pub enum ReplFatalError {
     #[display("An error happende during io")]
     IO(io::Error),
+    #[display("Error during execution")]
+    Run(dices_engine::EvalStrError<REPLIntrisics>),
     #[display("Interrupted.")]
     Interrupted,
 }
 
 /// Run the REPL
-pub fn repl(args: ReplCli) -> Result<(), ReplFatalError> {
-    if atty::is(atty::Stream::Stdin) {
-        interactive_repl(args)
-    } else {
-        detached_repl(args)
-    }
-}
-
-/// Run the REPL in interactive mode
-pub fn interactive_repl(
+pub fn repl(
     ReplCli {
         graphic,
         teminal,
         seed,
+        interactive,
+        run,
     }: ReplCli,
 ) -> Result<(), ReplFatalError> {
     // Boxing the graphic
     let graphic = Rc::new(graphic);
     // Creating the skin
     let skin = Rc::new(graphic.skin(teminal));
-    // Printing the initial banner
-    skin.print_text(graphic.banner());
-    // Creating the editor
-    let mut line_editor = Reedline::create();
     // Initializing the engine
     let engine_builder = dices_engine::EngineBuilder::new()
         .inject_intrisics_with_data(repl_intrisics::Data::new(graphic.clone(), skin.clone()));
@@ -214,20 +223,67 @@ pub fn interactive_repl(
         engine_builder.with_rng_from_entropy()
     };
     let mut engine: dices_engine::Engine<SmallRng, REPLIntrisics> = engine_builder.build();
+
+    if let Some(run) = run {
+        // joining of the shell arguments
+        let cmd = run.join(" ");
+        // running in the new engine
+        let value = engine.eval_str(&cmd).map_err(ReplFatalError::Run)?;
+        // printing the result of the init command
+        print_value(
+            *graphic,
+            &*skin,
+            &value,
+            interactive, // skip printing `null` if the console is interactive
+        );
+        println!();
+
+        if !interactive {
+            // runned the single command, exiting.
+            return Ok(());
+        }
+    }
+
+    // Printing the initial banner
+    skin.print_text(graphic.banner());
+
+    if atty::is(atty::Stream::Stdin) {
+        interactive_repl(graphic.clone(), skin.clone(), &mut engine)?
+    } else {
+        detached_repl(graphic.clone(), skin.clone(), &mut engine)?
+    };
+
+    // Print the out banner
+    skin.print_text(graphic.bye());
+
+    Ok(())
+}
+
+/// Run the REPL in interactive mode
+pub fn interactive_repl(
+    graphic: Rc<Graphic>,
+    skin: Rc<MadSkin>,
+    engine: &mut Engine<SmallRng, REPLIntrisics>,
+) -> Result<(), ReplFatalError> {
+    // Creating the editor
+    let mut line_editor = Reedline::create();
     // REPL loop
     loop {
         let sig = line_editor.read_line(&ReplPrompt { graphic: *graphic })?;
         match sig {
             Signal::Success(line) => match engine.eval_str(&line) {
-                Ok(value) => print_value(*graphic, &skin, &value, true),
+                Ok(value) => print_value(*graphic, &*skin, &value, true),
                 Err(err) => {
                     // need to catch the quitting error
                     if let Quitted::Yes(value) = engine.injected_intrisics_data().quitted() {
-                        // this is not an error, but the quitting value
-                        print_value(*graphic, &skin, value, true);
+                        // this is not an error, but the quitting signal
+                        let _ = err;
+                        // printing the value provided to the `quit` intrisic
+                        print_value(*graphic, &*skin, value, true);
+                        // stopping the REPL
                         break;
                     }
-                    print_err(*graphic, &skin, err)
+                    print_err(*graphic, &*skin, err)
                 }
             },
             Signal::CtrlD => {
@@ -236,46 +292,35 @@ pub fn interactive_repl(
             Signal::CtrlC => return Err(ReplFatalError::Interrupted),
         }
     }
-    skin.print_text(graphic.bye());
     Ok(())
 }
 
 /// Run the REPL in detached mode (input from a stream)
 pub fn detached_repl(
-    ReplCli {
-        graphic,
-        teminal,
-        seed,
-    }: ReplCli,
+    graphic: Rc<Graphic>,
+    skin: Rc<MadSkin>,
+    engine: &mut Engine<SmallRng, REPLIntrisics>,
 ) -> Result<(), ReplFatalError> {
-    // Boxing the graphic
-    let graphic = Rc::new(graphic);
-    // Creating the skin
-    let skin = Rc::new(graphic.skin(teminal));
-    // Printing the initial banner
-    skin.print_text(graphic.banner());
-    // Initializing the engine
-    let engine_builder = dices_engine::EngineBuilder::new()
-        .inject_intrisics_with_data(repl_intrisics::Data::new(graphic.clone(), skin.clone()));
-    let engine_builder = if let Some(seed) = seed {
-        let mut hasher = DefaultHasher::new();
-        seed.hash(&mut hasher);
-
-        engine_builder.with_rng(SmallRng::seed_from_u64(hasher.finish()))
-    } else {
-        engine_builder.with_rng_from_entropy()
-    };
-    let mut engine: dices_engine::Engine<SmallRng, REPLIntrisics> = engine_builder.build();
     // REPL loop
     for line in stdin().lines() {
         let line = line?;
         println!("{}{}", graphic.prompt(), line);
         match engine.eval_str(&line) {
-            Ok(value) => print_value(*graphic, &skin, &value, true),
-            Err(err) => print_err(*graphic, &skin, err),
+            Ok(value) => print_value(*graphic, &*skin, &value, true),
+            Err(err) => {
+                // need to catch the quitting error
+                if let Quitted::Yes(value) = engine.injected_intrisics_data().quitted() {
+                    // this is not an error, but the quitting signal
+                    let _ = err;
+                    // printing the value provided to the `quit` intrisic
+                    print_value(*graphic, &*skin, value, true);
+                    // stopping the REPL
+                    break;
+                }
+                print_err(*graphic, &*skin, err)
+            }
         }
     }
-    skin.print_text(graphic.bye());
     Ok(())
 }
 
