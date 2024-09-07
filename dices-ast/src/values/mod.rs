@@ -1,6 +1,6 @@
 //! The value a `dices` variable
 
-use std::num::ParseIntError;
+use std::str::FromStr;
 
 use derive_more::derive::{Display, Error, From};
 
@@ -106,8 +106,8 @@ where
 
 #[derive(Debug, Display, Error, Clone)]
 pub enum ToNumberError {
-    #[display("The string cannot be converted in a number")]
-    InvalidString(#[error(source)] ParseIntError),
+    #[display("The string cannot be converted in a value")]
+    InvalidString(#[error(source)] <Value as FromStr>::Err),
     #[display("A list of length {} cannot be interpreted as a number", 0)]
     WrongListLength(#[error(not(source))] usize),
     #[display("A map of length {} cannot be interpreted as a number", 0)]

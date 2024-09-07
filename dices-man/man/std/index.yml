@@ -1,3 +1,4 @@
 name: "The standard library"
 index:
+  - "conversions"
   - "repl"

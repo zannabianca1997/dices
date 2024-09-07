@@ -5,7 +5,7 @@ use pretty::{DocAllocator, Pretty};
 
 use crate::fmt::quoted;
 
-use super::{list::ValueList, number::ValueNumber, ToNumberError};
+use super::{list::ValueList, number::ValueNumber, ToNumberError, Value};
 
 /// An unicode string
 #[derive(
@@ -32,9 +32,10 @@ pub struct ValueString(Box<str>);
 impl ValueString {
     pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
         self.0
-            .parse::<i64>()
-            .map(Into::into)
-            .map_err(ToNumberError::InvalidString)
+            .trim()
+            .parse::<Value>()
+            .map_err(ToNumberError::InvalidString)?
+            .to_number()
     }
     pub fn to_list<InjectedIntrisic>(
         self,
