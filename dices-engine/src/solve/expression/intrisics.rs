@@ -159,7 +159,7 @@ where
                     })
                 }
             };
-            value.parse().map_err(IntrisicError::ParseFailed)
+            value.trim().parse().map_err(IntrisicError::ParseFailed)
         }
         Intrisic::Injected(injected) => injected
             .call(context.injected_intrisics_data_mut(), params)
