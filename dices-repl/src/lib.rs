@@ -219,12 +219,12 @@ pub fn interactive_repl(
         let sig = line_editor.read_line(&ReplPrompt { graphic: *graphic })?;
         match sig {
             Signal::Success(line) => match engine.eval_str(&line) {
-                Ok(value) => print_value(*graphic, &skin, &value),
+                Ok(value) => print_value(*graphic, &skin, &value, true),
                 Err(err) => {
                     // need to catch the quitting error
                     if let Quitted::Yes(value) = engine.injected_intrisics_data().quitted() {
                         // this is not an error, but the quitting value
-                        print_value(*graphic, &skin, value);
+                        print_value(*graphic, &skin, value, true);
                         break;
                     }
                     print_err(*graphic, &skin, err)
@@ -271,7 +271,7 @@ pub fn detached_repl(
         let line = line?;
         println!("{}{}", graphic.prompt(), line);
         match engine.eval_str(&line) {
-            Ok(value) => print_value(*graphic, &skin, &value),
+            Ok(value) => print_value(*graphic, &skin, &value, true),
             Err(err) => print_err(*graphic, &skin, err),
         }
     }
@@ -280,8 +280,8 @@ pub fn detached_repl(
 }
 
 /// Print a value
-fn print_value(graphic: Graphic, _skin: &MadSkin, value: &Value<REPLIntrisics>) {
-    if value == &Value::Null(ValueNull) {
+fn print_value(graphic: Graphic, _skin: &MadSkin, value: &Value<REPLIntrisics>, skip_nulls: bool) {
+    if skip_nulls && value == &Value::Null(ValueNull) {
         // do not print null values
         return;
     }

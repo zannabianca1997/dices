@@ -98,7 +98,8 @@ impl InjectedIntr for REPLIntrisics {
         match self {
             REPLIntrisics::Print => {
                 for value in params.iter() {
-                    print_value(*data.graphic, &data.skin, value)
+                    print_value(*data.graphic, &data.skin, value, false);
+                    println!()
                 }
                 Ok(Value::Null(ValueNull))
             }
