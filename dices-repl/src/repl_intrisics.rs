@@ -156,3 +156,10 @@ const HELP_PAGE_FOR_HELP: &str = "std/repl/help";
 fn help_for_help_exist() {
     assert!(dices_man::search(HELP_PAGE_FOR_HELP).is_some())
 }
+
+/// The manual must contains the pages relative to the *REPL* intrisics
+#[cfg(test)]
+#[test]
+fn man_has_repl_intrisics() {
+    dices_man::std_library_is_represented::<REPLIntrisics>()
+}

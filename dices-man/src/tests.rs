@@ -1,8 +1,9 @@
 //! Test checking the well-formness of the manual
 
+use dices_ast::intrisics::NoInjectedIntrisics;
 use markdown::mdast::{Link, Node};
 
-use crate::{search, MANUAL};
+use crate::{search, std_library_is_represented, MANUAL};
 
 /// The introduction must exist as it is shown when calling `help()`
 #[test]
@@ -55,4 +56,10 @@ fn manual_internal_links_are_not_dangling() {
             }
         }
     }
+}
+
+/// Check that the default std library is fully documented
+#[test]
+fn default_std_library_is_represented() {
+    std_library_is_represented::<NoInjectedIntrisics>()
 }

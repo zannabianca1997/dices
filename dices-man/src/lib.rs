@@ -417,3 +417,33 @@ pub static MANUAL: ManDir = include!(env!("MANUAL_RS"));
 
 #[cfg(test)]
 mod tests;
+
+/// Check if the std library is fully documented
+#[cfg(any(feature = "test_std_handle", test))]
+
+pub fn std_library_is_represented<InjectedIntrisic: dices_ast::intrisics::InjectedIntr>() {
+    assert!(
+        search("std").is_some(),
+        "The std library is fully undocumented!"
+    );
+    let mut paths = vec![(
+        "std".to_owned(),
+        dices_engine::dices_std::<InjectedIntrisic>(),
+    )];
+    while let Some((path, map)) = paths.pop() {
+        // Do not check inside those path, as they contains only things that are contained elsewhere
+        if path.starts_with("std/prelude") || path.starts_with("std/intrisics") {
+            continue;
+        }
+        // iter throught the map
+        for (name, value) in map {
+            let path = path.clone() + "/" + &*name;
+            // check it is documented
+            assert!(search(&*path).is_some(), "The topic {path} is missing");
+            // if a map, recurst
+            if let Value::Map(map) = value {
+                paths.push((path, map))
+            }
+        }
+    }
+}

@@ -105,7 +105,7 @@ where
                 Expression::BinOp(ExpressionBinOp::new(BinOp::Mult, e1.into(), e2.into()))
                     .solve(context)
             })
-            .map(|r| r.unwrap_or(Value::Number(0.into())))
+            .map(|r| r.unwrap_or(Value::Number(1.into())))
             .map_err(IntrisicError::MultFailed),
 
         // Conversions

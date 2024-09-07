@@ -22,6 +22,7 @@ use dices_ast::{
 use solve::{solve_multiple, Solvable};
 
 pub use context::Context;
+pub use dices_std::std as dices_std;
 pub use solve::{IntrisicError, SolveError};
 
 mod context;

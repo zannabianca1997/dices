@@ -3,6 +3,9 @@ name = "dices-man"
 version = "0.3.0"
 edition = "2021"
 
+[features]
+test_std_handle = []
+
 [dependencies]
 phf = "0.11.2"
 markdown = "1.0.0-alpha.20"
