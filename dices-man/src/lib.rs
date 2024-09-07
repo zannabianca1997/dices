@@ -23,7 +23,7 @@ use dices_engine::Engine;
 use example::{CodeExample, CodeExampleCommand, CodeExamplePiece};
 use itertools::Itertools;
 use markdown::{
-    mdast::{Code, Node},
+    mdast::{self, Code, Node},
     to_mdast, ParseOptions,
 };
 use pretty::DocAllocator;
@@ -293,30 +293,7 @@ fn render_index(dir: &ManDir) -> Node {
 
     fn list_item(name: &str, key: &str) -> Paragraph {
         // parse the name as markdown
-        let mut children = {
-            let Node::Root(Root {
-                mut children,
-                position: _,
-            }) = markdown::to_mdast(name, &ParseOptions::gfm())
-                .expect("Markdown has no syntax error")
-            else {
-                panic!("`to_mdast` should always emit a `Root` node")
-            };
-            if children.len() > 1 {
-                panic!("The name should contain a single paragrah")
-            }
-            let Node::Paragraph(Paragraph {
-                children,
-                position: _,
-            }) = children.pop().unwrap_or(Node::Paragraph(Paragraph {
-                children: vec![],
-                position: None,
-            }))
-            else {
-                panic!("The name should contain a paragraph")
-            };
-            children
-        };
+        let mut children = markdown_one_line(name);
         children.extend([
             Node::Text(Text {
                 value: " (".to_owned(),
@@ -368,16 +345,18 @@ fn render_index(dir: &ManDir) -> Node {
     Node::Root(Root {
         children: vec![
             Node::Heading(Heading {
-                children: vec![
-                    Node::Text(Text {
-                        value: "Index of ".to_owned(),
+                children: {
+                    let mut children = vec![Node::Text(Text {
+                        value: "Index of \"".to_owned(),
                         position: None,
-                    }),
-                    Node::InlineCode(InlineCode {
-                        value: dir.name.to_owned(),
+                    })];
+                    children.append(&mut markdown_one_line(dir.name));
+                    children.push(Node::Text(Text {
+                        value: "\"".to_owned(),
                         position: None,
-                    }),
-                ],
+                    }));
+                    children
+                },
                 position: None,
                 depth: 1,
             }),
@@ -385,6 +364,30 @@ fn render_index(dir: &ManDir) -> Node {
         ],
         position: None,
     })
+}
+
+fn markdown_one_line(name: &str) -> Vec<Node> {
+    let Node::Root(mdast::Root {
+        mut children,
+        position: _,
+    }) = markdown::to_mdast(name, &ParseOptions::gfm()).expect("Markdown has no syntax error")
+    else {
+        panic!("`to_mdast` should always emit a `Root` node")
+    };
+    if children.len() > 1 {
+        panic!("The name should contain a single paragrah")
+    }
+    let Node::Paragraph(mdast::Paragraph {
+        children,
+        position: _,
+    }) = children.pop().unwrap_or(Node::Paragraph(mdast::Paragraph {
+        children: vec![],
+        position: None,
+    }))
+    else {
+        panic!("The name should contain a paragraph")
+    };
+    children
 }
 
 /// Lookup a specific topic
