@@ -1,7 +1,7 @@
 ---
-title: "Arithmetic"
+title: "Arithmetic operators"
 ---
-# Arithmetic
+# Arithmetic operators
 
 `dices` supports the five operations `+` (addition), `-` (subtraction), `*` (multiplication), `/` (integer division), `%` (remainder). 
 ```dices
