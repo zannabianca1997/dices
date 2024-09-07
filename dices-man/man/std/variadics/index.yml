@@ -1,0 +1,6 @@
+name: "Variadic utilities"
+index:
+  - "sum.md"
+  - "mult.md"
+  - "join.md"
+  - "call.md"

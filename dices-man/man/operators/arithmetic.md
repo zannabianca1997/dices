@@ -29,12 +29,14 @@ As `dices` only support integer operations, division is approximated toward 0
 ## List and maps
 `dices` has, in addition to numbers, lists (`[...]`) and maps(`<|...|>`).
 
-Sum operation act on them by summing all members
+Sum operation act on them by summing all members. It will recurse into nested values, if present.
 ```dices
 >>> [3, 2, 1] + 6
 12
 >>> <|a: 3, b: 2, c: -1|> + 4
 8
+>>> [3, 2, [34, 1]] + 6
+46
 ```
 
 The unary minus, multiplication, division and remainder instead distribute over the content

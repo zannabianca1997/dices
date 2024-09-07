@@ -1,4 +1,5 @@
 name: "The standard library"
 index:
   - "conversions"
+  - "variadics"
   - "repl"
