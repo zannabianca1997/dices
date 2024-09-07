@@ -1,0 +1,6 @@
+name: "Operators"
+index:
+  - "throwing.md"
+  - "arithmetic.md"
+  - "joining.md"
+  - "repeat.md"

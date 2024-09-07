@@ -2,4 +2,7 @@ name: "`dices` manual"
 index:
   - "introduction.md"
   - "index.yml"
+  - "types"
+  - "operators"
+  - "variables.md"
   - "std"

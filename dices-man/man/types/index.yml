@@ -1,0 +1,11 @@
+name: "The `dices` datatypes"
+index:
+  - "introduction.md"
+  - "nulls.md"
+  - "bools.md"
+  - "ints.md"
+  - "strings.md"
+  - "lists.md"
+  - "maps.md"
+  - "closures.md"
+  - "intrisics.md"
