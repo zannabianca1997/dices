@@ -3,3 +3,5 @@ index:
   - "conversions"
   - "variadics"
   - "repl"
+  - "intrisics.md"
+  - "prelude.md"
