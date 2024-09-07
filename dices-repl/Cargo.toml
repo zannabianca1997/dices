@@ -17,6 +17,9 @@ atty = "0.2.14"
 chrono = "0.4.38"
 rand = { version = "0.8.5", features = ["small_rng"] }
 pretty = "0.12.3"
+serde = { version = "1.0.210", features = ["derive"] }
+figment = { version = "0.10.19", features = ["env", "toml"] }
+home = "0.5.9"
 
 [dev-dependencies]
 dices-man = { path = "../dices-man", features = ["test_std_handle"] }
