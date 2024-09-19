@@ -3,7 +3,6 @@
 
 use std::{
     error::{Error, Report},
-    ffi::OsString,
     hash::{DefaultHasher, Hash, Hasher},
     io::{self, stdin, stdout},
     path::PathBuf,
@@ -11,14 +10,10 @@ use std::{
 };
 
 use chrono::Local;
-use clap::{Args, Parser, ValueEnum};
+use clap::{Parser, ValueEnum};
 use derive_more::derive::{Debug, Display, Error, From};
 use dices_ast::values::{Value, ValueNull};
 use dices_engine::Engine;
-use figment::{
-    providers::{Env, Format, Serialized, Toml},
-    Figment,
-};
 use pretty::Pretty;
 use rand::{rngs::SmallRng, SeedableRng};
 use reedline::{Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, Reedline, Signal};
@@ -27,6 +22,7 @@ use serde::{Deserialize, Serialize};
 use termimad::{terminal_size, Alignment, MadSkin};
 
 mod repl_intrisics;
+mod setup;
 
 #[derive(Debug, Clone, Parser)]
 #[command(name="dices", version, about, long_about = None)]
@@ -36,7 +32,7 @@ pub struct ReplCli {
     file_setup: Option<PathBuf>,
 
     #[clap(flatten)]
-    cli_setup: Setup,
+    cli_setup: setup::Setup,
 
     /// If `run` is given, do not close after command execution.
     #[clap(long, short)]
@@ -53,24 +49,6 @@ pub struct ReplCli {
     run: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Args, Deserialize, Serialize, Default)]
-pub struct Setup {
-    #[clap(long, short)]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    /// The grafic level of the REPL
-    graphic: Option<Graphic>,
-
-    /// If the terminal is light or dark
-    #[clap(long, short)]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    teminal: Option<TerminalLightness>,
-
-    /// The seed to use to initialize the random number generator
-    #[clap(long, short)]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    seed: Option<OsString>,
-}
-
 #[derive(Debug, Clone, Copy, Display, ValueEnum, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TerminalLightness {
@@ -79,6 +57,7 @@ pub enum TerminalLightness {
     #[display("dark")]
     Dark,
 }
+
 #[derive(Debug, Clone, Copy, Display, ValueEnum, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Graphic {
@@ -229,23 +208,11 @@ pub fn repl(
         run,
     }: ReplCli,
 ) -> Result<(), ReplFatalError> {
-    // Extracting the setup
-    let mut figment = Figment::new().merge(Serialized::defaults(Setup::default())); // Seek first the default values
-    if let Some(home) = home::home_dir() {
-        figment = figment.merge(Toml::file_exact(home.join("Dices.toml"))) // Then if the user has an home directory, search a file called `Dices.toml` inside it
-    }
-    figment = figment.merge(Toml::file("./Dices.toml")); // Then any file called `Dices.toml` in this directory or superior ones
-    if let Some(file_setup) = file_setup {
-        figment = figment.merge(Toml::file_exact(file_setup)) // If the user provided a setup file, look into it
-    }
-    figment = figment
-        .merge(Env::prefixed("DICES_")) // Then all environmental variable
-        .merge(Serialized::defaults(cli_setup)); // Finally, the CLI values
-    let Setup {
+    let setup::Setup {
         graphic,
         teminal,
         seed,
-    } = figment.extract()?;
+    } = setup::Setup::extract_setups(file_setup, cli_setup)?;
 
     // Identify the default graphic if not given
     let graphic = graphic.unwrap_or_default();
