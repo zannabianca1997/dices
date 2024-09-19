@@ -1,7 +1,6 @@
 use std::{borrow::Borrow, fmt::Display};
 
 use derive_more::derive::{AsMut, AsRef, Deref, DerefMut, From, Into};
-use pretty::{DocAllocator, Pretty};
 
 use crate::fmt::quoted;
 
@@ -68,10 +67,11 @@ impl Display for ValueString {
     }
 }
 
-impl<'a, D, A> Pretty<'a, D, A> for &'a ValueString
+#[cfg(feature = "pretty")]
+impl<'a, D, A> pretty::Pretty<'a, D, A> for &'a ValueString
 where
     A: 'a,
-    D: ?Sized + DocAllocator<'a, A>,
+    D: ?Sized + pretty::DocAllocator<'a, A>,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
         allocator.text(self.to_string())

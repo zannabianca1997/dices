@@ -2,8 +2,6 @@
 
 use std::fmt::Display;
 
-use pretty::{DocAllocator, Pretty};
-
 use super::{ToNumberError, ValueList};
 
 #[derive(
@@ -36,10 +34,11 @@ impl Display for ValueNull {
     }
 }
 
-impl<'a, D, A> Pretty<'a, D, A> for &'a ValueNull
+#[cfg(feature = "pretty")]
+impl<'a, D, A> pretty::Pretty<'a, D, A> for &'a ValueNull
 where
     A: 'a,
-    D: ?Sized + DocAllocator<'a, A>,
+    D: ?Sized + pretty::DocAllocator<'a, A>,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
         allocator.text("null")

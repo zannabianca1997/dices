@@ -2,8 +2,6 @@
 
 use std::fmt::{Formatter, Write};
 
-use pretty::{DocAllocator, DocBuilder, Pretty};
-
 use crate::ident::IdentStr;
 
 /// Format a string escaping special chars
@@ -52,14 +50,18 @@ pub fn quoted_if_not_ident(s: &str, f: &mut Formatter<'_>) -> std::fmt::Result {
     }
 }
 
+#[cfg(feature = "pretty")]
 #[derive(Clone, Copy)]
+/// Structure that prettify in a comma followed by an optional line
 pub(crate) struct CommaLine;
-impl<'a, D, A> Pretty<'a, D, A> for CommaLine
+
+#[cfg(feature = "pretty")]
+impl<'a, D, A> pretty::Pretty<'a, D, A> for CommaLine
 where
     A: 'a,
-    D: ?Sized + DocAllocator<'a, A>,
+    D: ?Sized + pretty::DocAllocator<'a, A>,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, A> {
+    fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
         allocator.text(",").append(allocator.line())
     }
 }

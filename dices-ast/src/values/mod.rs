@@ -11,7 +11,6 @@ pub use list::ValueList;
 pub use map::ValueMap;
 pub use null::ValueNull;
 pub use number::ValueNumber;
-use pretty::{DocAllocator, Pretty};
 pub use string::ValueString;
 
 use crate::intrisics::{InjectedIntr, Intrisic, NoInjectedIntrisics};
@@ -84,10 +83,11 @@ impl<InjectedIntrisic> Value<InjectedIntrisic> {
     }
 }
 
-impl<'a, D, A, II> Pretty<'a, D, A> for &'a Value<II>
+#[cfg(feature = "pretty")]
+impl<'a, D, A, II> pretty::Pretty<'a, D, A> for &'a Value<II>
 where
     A: 'a,
-    D: ?Sized + DocAllocator<'a, A>,
+    D: ?Sized + pretty::DocAllocator<'a, A>,
     II: InjectedIntr,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {

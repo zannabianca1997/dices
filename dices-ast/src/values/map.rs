@@ -1,12 +1,8 @@
 use std::{collections::BTreeMap, fmt::Display};
 
 use itertools::Itertools;
-use pretty::{DocAllocator, Pretty};
 
-use crate::{
-    fmt::{quoted_if_not_ident, CommaLine},
-    intrisics::InjectedIntr,
-};
+use crate::{fmt::quoted_if_not_ident, intrisics::InjectedIntr};
 
 use super::{list::ValueList, string::ValueString, ToNumberError, Value};
 
@@ -86,10 +82,11 @@ impl<II: InjectedIntr> Display for ValueMap<II> {
     }
 }
 
-impl<'a, D, A, II> Pretty<'a, D, A> for &'a ValueMap<II>
+#[cfg(feature = "pretty")]
+impl<'a, D, A, II> pretty::Pretty<'a, D, A> for &'a ValueMap<II>
 where
     A: 'a,
-    D: ?Sized + DocAllocator<'a, A>,
+    D: ?Sized + pretty::DocAllocator<'a, A>,
     II: InjectedIntr,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
@@ -108,7 +105,7 @@ where
                         .append(allocator.space())
                         .append(value)
                 }),
-                CommaLine,
+                crate::fmt::CommaLine,
             )
             .enclose(allocator.line_(), allocator.line_())
             .group()
