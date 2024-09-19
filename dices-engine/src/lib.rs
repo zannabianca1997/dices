@@ -7,16 +7,13 @@
 
 use std::borrow::Cow;
 
-use either::Either::{self, Left, Right};
 use nunny::NonEmpty;
 use rand::{Rng, SeedableRng};
 
 use dices_ast::{
-    expression::Expression,
     ident::IdentStr,
     intrisics::{InjectedIntr, NoInjectedIntrisics},
-    parse::parse_file,
-    values::Value,
+    Expression, Value,
 };
 
 use solve::{solve_multiple, Solvable};
@@ -169,9 +166,10 @@ pub struct Engine<RNG, InjectedIntrisic: InjectedIntr> {
     context: Context<RNG, InjectedIntrisic>,
 }
 
+#[cfg(feature = "eval_str")]
 /// Error during evaluation of a string
 pub type EvalStrError<InjectedIntrisic> =
-    Either<dices_ast::parse::Error, SolveError<InjectedIntrisic>>;
+    either::Either<dices_ast::expression::ParseError, SolveError<InjectedIntrisic>>;
 
 impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
     /// Initialize a new engine
@@ -225,6 +223,7 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
         solve_multiple(exprs, &mut self.context)
     }
 
+    #[cfg(feature = "eval_str")]
     /// Evaluate a command string
     pub fn eval_str(
         &mut self,
@@ -234,8 +233,8 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
         RNG: Rng,
         InjectedIntrisic: Clone,
     {
-        let exprs = parse_file(cmd).map_err(Left)?;
-        self.eval_multiple(&exprs).map_err(Right)
+        let exprs = dices_ast::parse_file(cmd).map_err(either::Either::Left)?;
+        self.eval_multiple(&exprs).map_err(either::Either::Right)
     }
 
     pub fn injected_intrisics_data(&self) -> &<InjectedIntrisic as InjectedIntr>::Data {

@@ -1,7 +1,7 @@
 pub(crate) use expression::solve_multiple;
 use rand::Rng;
 
-use dices_ast::{intrisics::InjectedIntr, values::Value};
+use dices_ast::{intrisics::InjectedIntr, value::Value};
 
 use crate::Context;
 

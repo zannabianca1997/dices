@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use crate::intrisics::InjectedIntr;
 
-use super::{number::ValueNumber, ToNumberError, Value};
+use super::Value;
 
 #[derive(
     // display helper
@@ -23,10 +23,11 @@ use super::{number::ValueNumber, ToNumberError, Value};
 )]
 pub struct ValueList<InjectedIntrisic>(Box<[Value<InjectedIntrisic>]>);
 impl<InjectedIntrisic> ValueList<InjectedIntrisic> {
-    pub fn to_number(self) -> Result<ValueNumber, super::ToNumberError> {
+    #[cfg(feature = "parse_value")]
+    pub fn to_number(self) -> Result<super::ValueNumber, super::ToNumberError> {
         match Box::<[_; 1]>::try_from(self.0) {
             Ok(box [value]) => value.to_number(),
-            Err(vals) => Err(ToNumberError::WrongListLength(vals.len())),
+            Err(vals) => Err(super::ToNumberError::WrongListLength(vals.len())),
         }
     }
 

@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use crate::{fmt::quoted_if_not_ident, intrisics::InjectedIntr};
 
-use super::{list::ValueList, string::ValueString, ToNumberError, Value};
+use super::{list::ValueList, string::ValueString, Value};
 
 #[derive(
     // display helper
@@ -24,12 +24,14 @@ impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
         Self(BTreeMap::new())
     }
 
+    #[cfg(feature = "parse_value")]
     pub fn to_number(self) -> Result<super::number::ValueNumber, super::ToNumberError> {
         match self.0.into_iter().exactly_one() {
             Ok((_, value)) => value.to_number(),
-            Err(vals) => Err(ToNumberError::WrongListLength(vals.len())),
+            Err(vals) => Err(super::ToNumberError::WrongListLength(vals.len())),
         }
     }
+
     pub fn to_list(self) -> Result<ValueList<InjectedIntrisic>, super::ToListError> {
         Ok(self.0.into_values().collect())
     }

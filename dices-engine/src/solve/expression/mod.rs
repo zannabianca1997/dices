@@ -16,7 +16,7 @@ use dices_ast::{
     },
     ident::IdentStr,
     intrisics::InjectedIntr,
-    values::{ToListError, ToNumberError, Value, ValueClosure, ValueNumber},
+    value::{ToListError, ToNumberError, Value, ValueClosure, ValueNumber},
 };
 pub use intrisics::IntrisicError;
 
@@ -106,7 +106,7 @@ pub enum SolveError<InjectedIntrisic: InjectedIntr> {
     #[display("Index {idx} out of range for list of lenght {len}")]
     ListIndexOutOfRange { idx: ValueNumber, len: usize },
     #[display("Key not found: \"{_0}\"")]
-    MissingKey(#[error(not(source))] dices_ast::values::ValueString),
+    MissingKey(#[error(not(source))] dices_ast::value::ValueString),
 }
 impl<InjectedIntrisic: InjectedIntr> From<!> for SolveError<InjectedIntrisic> {
     fn from(value: !) -> Self {

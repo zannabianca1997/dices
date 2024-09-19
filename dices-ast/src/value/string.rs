@@ -4,7 +4,7 @@ use derive_more::derive::{AsMut, AsRef, Deref, DerefMut, From, Into};
 
 use crate::fmt::quoted;
 
-use super::{list::ValueList, number::ValueNumber, ToNumberError, Value};
+use super::list::ValueList;
 
 /// An unicode string
 #[derive(
@@ -29,13 +29,15 @@ use super::{list::ValueList, number::ValueNumber, ToNumberError, Value};
 )]
 pub struct ValueString(Box<str>);
 impl ValueString {
-    pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
+    #[cfg(feature = "parse_value")]
+    pub fn to_number(self) -> Result<super::ValueNumber, super::ToNumberError> {
         self.0
             .trim()
-            .parse::<Value>()
-            .map_err(ToNumberError::InvalidString)?
+            .parse::<super::Value>()
+            .map_err(super::ToNumberError::InvalidString)?
             .to_number()
     }
+
     pub fn to_list<InjectedIntrisic>(
         self,
     ) -> Result<ValueList<InjectedIntrisic>, super::ToListError> {

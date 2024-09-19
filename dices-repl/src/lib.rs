@@ -12,7 +12,7 @@ use std::{
 use chrono::Local;
 use clap::{Parser, ValueEnum};
 use derive_more::derive::{Debug, Display, Error, From};
-use dices_ast::values::{Value, ValueNull};
+use dices_ast::value::{Value, ValueNull};
 use dices_engine::Engine;
 use pretty::Pretty;
 use rand::{rngs::SmallRng, SeedableRng};

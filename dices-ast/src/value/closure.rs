@@ -2,9 +2,7 @@
 
 use std::{collections::BTreeMap, fmt::Display};
 
-use crate::{
-    expression::Expression, ident::IdentStr, intrisics::InjectedIntr, values::number::ValueNumber,
-};
+use crate::{expression::Expression, ident::IdentStr, value::number::ValueNumber};
 
 use super::{list::ValueList, ToNumberError, Value};
 
@@ -26,7 +24,7 @@ pub struct ValueClosure<InjectedIntrisic> {
     pub body: Expression<InjectedIntrisic>,
 }
 impl<InjectedIntrisic> ValueClosure<InjectedIntrisic> {
-    pub fn to_number(self) -> Result<ValueNumber, crate::values::ToNumberError> {
+    pub fn to_number(self) -> Result<ValueNumber, crate::value::ToNumberError> {
         Err(ToNumberError::Closure)
     }
     pub fn to_list(self) -> Result<ValueList<InjectedIntrisic>, super::ToListError> {
@@ -55,7 +53,7 @@ impl<'a, D, A, II> pretty::Pretty<'a, D, A> for &'a ValueClosure<II>
 where
     A: 'a,
     D: ?Sized + pretty::DocAllocator<'a, A>,
-    II: InjectedIntr,
+    II: crate::intrisics::InjectedIntr,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
         let text = allocator.text("<closure");

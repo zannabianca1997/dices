@@ -1,7 +1,7 @@
 //! Type containing a `dices` expression
 use derive_more::derive::From;
 
-use crate::values::Value;
+use crate::value::Value;
 
 pub use bin_ops::ExpressionBinOp;
 pub use call::ExpressionCall;
@@ -24,6 +24,11 @@ pub mod ref_;
 pub mod scope;
 pub mod set;
 pub mod un_ops;
+
+#[cfg(feature = "parse_expression")]
+mod parse;
+#[cfg(feature = "parse_expression")]
+pub use parse::{parse_file, Error as ParseError};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, From)]
 pub enum Expression<InjectedIntrisic> {

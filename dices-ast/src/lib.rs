@@ -2,11 +2,19 @@
 #![feature(box_patterns)]
 #![feature(never_type)]
 
-pub mod expression;
 pub mod fmt;
 pub mod ident;
 pub mod intrisics;
+
+pub mod value;
+pub use value::Value;
+
+pub mod expression;
+#[cfg(feature = "parse_expression")]
+pub use expression::parse_file;
+pub use expression::Expression;
+
 #[cfg(feature = "matcher")]
 pub mod matcher;
-pub mod parse;
-pub mod values;
+#[cfg(feature = "matcher")]
+pub use matcher::Matcher;

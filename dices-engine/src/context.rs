@@ -2,7 +2,7 @@
 
 use std::{collections::BTreeMap, mem};
 
-use dices_ast::{ident::IdentStr, intrisics::InjectedIntr, values::Value};
+use dices_ast::{ident::IdentStr, intrisics::InjectedIntr, value::Value};
 use nunny::NonEmpty;
 
 type Scope<InjectedIntrisic> = BTreeMap<Box<IdentStr>, Value<InjectedIntrisic>>;

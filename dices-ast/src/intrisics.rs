@@ -7,7 +7,7 @@ use std::{
     hash::Hash,
 };
 
-use crate::values::{map::ValueMap, Value, ValueIntrisic};
+use crate::value::{map::ValueMap, Value, ValueIntrisic};
 
 #[derive(
     // display helper
