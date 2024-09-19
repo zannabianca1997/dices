@@ -13,7 +13,7 @@ use dices_ast::{
     },
     ident::IdentStr,
     intrisics::InjectedIntr,
-    values::{Value, ValueClosure},
+    value::{Value, ValueClosure},
 };
 
 use crate::solve::Solvable;

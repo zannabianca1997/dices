@@ -8,12 +8,17 @@ description = "A `REPL` to communicate with a `dices` session"
 [dependencies]
 mdast2minimad = { git = "https://github.com/zannabianca1997/mdast2minimad.git" }
 dices-man = { path = "../dices-man" }
-dices-engine = { path = "../dices-engine" }
+dices-engine = { path = "../dices-engine", features = ["eval_str"] }
 dices-ast = { path = "../dices-ast" }
 termimad = "0.30.0"
 clap = { version = "4.5.16", features = ["derive"] }
 reedline = "0.34.0"
-derive_more = { version = "1.0.0", features = ["error", "display", "debug"] }
+derive_more = { version = "1.0.0", features = [
+    "debug",
+    "display",
+    "error",
+    "from",
+] }
 atty = "0.2.14"
 chrono = "0.4.38"
 rand = { version = "0.8.5", features = ["small_rng"] }

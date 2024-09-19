@@ -5,7 +5,7 @@ use std::{borrow::Cow, rc::Rc};
 use derive_more::derive::{Display, Error};
 use dices_ast::{
     intrisics::InjectedIntr,
-    values::{Value, ValueList, ValueNull},
+    value::{Value, ValueList, ValueNull},
 };
 use dices_man::RenderOptions;
 use termimad::{crossterm::terminal, MadSkin};

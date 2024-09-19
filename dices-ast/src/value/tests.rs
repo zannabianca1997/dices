@@ -1,8 +1,7 @@
-use super::*;
-
+#[cfg(feature = "parse_value")]
 mod roundtrips {
 
-    use super::*;
+    use super::super::*;
 
     fn check_display_roundtrip(value: Value) {
         let serialized = dbg!(value.to_string());

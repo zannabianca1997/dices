@@ -1,7 +1,5 @@
 //! The value a `dices` variable
 
-use std::str::FromStr;
-
 use derive_more::derive::{Display, Error, From};
 
 pub use boolean::ValueBool;
@@ -13,7 +11,7 @@ pub use null::ValueNull;
 pub use number::ValueNumber;
 pub use string::ValueString;
 
-use crate::intrisics::{InjectedIntr, Intrisic, NoInjectedIntrisics};
+use crate::intrisics::{Intrisic, NoInjectedIntrisics};
 
 pub mod boolean;
 pub mod closure;
@@ -26,6 +24,9 @@ pub mod string;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "parse_value")]
+mod parse;
 
 #[derive(
     // display helper
@@ -56,6 +57,7 @@ pub enum Value<InjectedIntrisic = NoInjectedIntrisics> {
 }
 
 impl<InjectedIntrisic> Value<InjectedIntrisic> {
+    #[cfg(feature = "parse_value")]
     pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
         match self {
             Value::Bool(v) => v.to_number(),
@@ -88,7 +90,7 @@ impl<'a, D, A, II> pretty::Pretty<'a, D, A> for &'a Value<II>
 where
     A: 'a,
     D: ?Sized + pretty::DocAllocator<'a, A>,
-    II: InjectedIntr,
+    II: crate::intrisics::InjectedIntr,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
         match self {
@@ -106,8 +108,9 @@ where
 
 #[derive(Debug, Display, Error, Clone)]
 pub enum ToNumberError {
-    #[display("The string cannot be converted in a value")]
-    InvalidString(#[error(source)] <Value as FromStr>::Err),
+    #[cfg(feature = "parse_value")]
+    #[display("The string cannot be converted in a number")]
+    InvalidString(#[error(source)] <Value as std::str::FromStr>::Err),
     #[display("A list of length {} cannot be interpreted as a number", 0)]
     WrongListLength(#[error(not(source))] usize),
     #[display("A map of length {} cannot be interpreted as a number", 0)]

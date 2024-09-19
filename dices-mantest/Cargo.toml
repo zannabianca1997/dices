@@ -6,7 +6,6 @@ authors = ["zannabianca1997 <zannabianca199712@gmail.com>"]
 
 [dev-dependencies]
 rand = { version = "0.8.5", features = ["small_rng"] }
-dices-ast = { path = "../dices-ast", features = ["matcher"] }
 dices-engine = { path = "../dices-engine" }
 dices-man = { path = "../dices-man" }
 

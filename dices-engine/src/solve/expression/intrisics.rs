@@ -6,7 +6,7 @@ use derive_more::{Display, Error};
 use dices_ast::{
     expression::{bin_ops::BinOp, Expression, ExpressionBinOp, ExpressionCall},
     intrisics::{InjectedIntr, Intrisic},
-    values::{ToListError, ToNumberError, Value, ValueIntrisic},
+    value::{ToListError, ToNumberError, Value, ValueIntrisic},
 };
 use rand::Rng;
 

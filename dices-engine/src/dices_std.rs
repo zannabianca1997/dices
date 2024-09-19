@@ -2,7 +2,7 @@
 
 use dices_ast::{
     intrisics::{InjectedIntr, Intrisic},
-    values::{Value, ValueMap},
+    value::{Value, ValueMap},
 };
 
 macro_rules! map {

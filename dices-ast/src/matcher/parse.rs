@@ -1,80 +1,19 @@
-use crate::ident::IdentStr;
-use crate::values::*;
-use either::Either::{Left, Right};
-use peg::{error::ParseError, str::LineCol};
 use std::{borrow::Cow, collections::BTreeMap, str::FromStr};
 
-#[derive(Debug, Clone, Hash)]
-pub enum Matcher<InjectedIntrisic> {
-    Exact(Value<InjectedIntrisic>),
-    List(Box<[Matcher<InjectedIntrisic>]>),
-    Map(BTreeMap<Box<str>, Matcher<InjectedIntrisic>>),
-    Range {
-        start: Value<InjectedIntrisic>,
-        end: Value<InjectedIntrisic>,
-        inclusive: bool,
-    },
-    And(Box<[Matcher<InjectedIntrisic>; 2]>),
-    Or(Box<[Matcher<InjectedIntrisic>; 2]>),
-    Not(Box<Matcher<InjectedIntrisic>>),
-}
-impl<InjectedIntrisic> Matcher<InjectedIntrisic> {
-    pub fn is_match(&self, v: &Value<InjectedIntrisic>) -> bool
-    where
-        InjectedIntrisic: Eq + Ord,
-    {
-        match self {
-            Matcher::Exact(t) => v == t,
-            Matcher::Range {
-                start,
-                end,
-                inclusive: false,
-            } => start <= v && v < end,
-            Matcher::Range {
-                start,
-                end,
-                inclusive: true,
-            } => start <= v && v <= end,
-            Matcher::List(box matchers) => {
-                let Value::List(values) = v else {
-                    return false;
-                };
-                let values = &**values;
-                if values.len() != matchers.len() {
-                    return false;
-                }
-                matchers.iter().zip(values).all(|(m, v)| m.is_match(v))
-            }
-            Matcher::Map(matchers) => {
-                let Value::Map(values) = v else {
-                    return false;
-                };
-                // check the map have the same size
-                if values.len() != matchers.len() {
-                    return false;
-                }
-                // check that all matchers have their match
-                matchers.iter().all(|(box name, matcher)| {
-                    let Some(value) = values.get(name) else {
-                        return false;
-                    };
-                    matcher.is_match(value)
-                })
-                // we do not have to check for orfan values, because the maps have the same size.
-            }
-            Matcher::And(box [a, b]) => a.is_match(v) && b.is_match(v),
-            Matcher::Or(box [a, b]) => a.is_match(v) || b.is_match(v),
-            Matcher::Not(box a) => !a.is_match(v),
-        }
-    }
-}
+use either::Either::{Left, Right};
+use peg::{error::ParseError, str::LineCol};
+
+use crate::ident::IdentStr;
+use crate::value::*;
+
+use super::Matcher;
 
 peg::parser! {
     /**
-        # Value matcher
+            # Value matcher
 
-        This grammar parse a value matcher, that check if a value corresponds to some requirements
-    */
+            This grammar parse a value matcher, that check if a value corresponds to some requirements
+        */
     pub grammar matcher() for str {
 
         pub rule matcher<InjectedIntrisic>() -> Matcher<InjectedIntrisic>
