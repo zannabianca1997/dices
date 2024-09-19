@@ -1,9 +1,30 @@
+use super::*;
+
 mod roundtrips {
 
-    use super::super::*;
+    use super::*;
 
-    fn check_roundtrip(value: Value) {
+    fn check_display_roundtrip(value: Value) {
         let serialized = dbg!(value.to_string());
+        let reparsed: Value = serialized.parse().expect("The value should be parseable");
+        assert_eq!(
+            value, reparsed,
+            "The value parsed is different from the original"
+        )
+    }
+
+    #[cfg(feature = "pretty")]
+    fn check_pretty_roundtrip(value: Value) {
+        use pretty::{Arena, Pretty};
+
+        let arena = Arena::<()>::new();
+        let mut buffer = String::new();
+        value
+            .pretty(&arena)
+            .render_fmt(80, &mut buffer)
+            .expect("Pretty printing should be infallible");
+
+        let serialized = dbg!(buffer);
         let reparsed: Value = serialized.parse().expect("The value should be parseable");
         assert_eq!(
             value, reparsed,
@@ -18,9 +39,19 @@ mod roundtrips {
             )*
         ) => {
         $(
-            #[test]
-            fn $name() {
-                check_roundtrip($value.into())
+            mod $name {
+                use super::*;
+
+                #[test]
+                fn display() {
+                    check_display_roundtrip($value.into())
+                }
+
+                #[cfg(feature = "pretty")]
+                #[test]
+                fn pretty() {
+                    check_pretty_roundtrip($value.into())
+                }
             }
         )*};
     }
