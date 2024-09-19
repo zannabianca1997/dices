@@ -1,5 +1,4 @@
 use derive_more::derive::{Display, From, Into};
-use pretty::{DocAllocator, Pretty};
 
 use super::{list::ValueList, number::ValueNumber, ToNumberError};
 
@@ -40,10 +39,11 @@ impl ValueBool {
     }
 }
 
-impl<'a, D, A> Pretty<'a, D, A> for &'a ValueBool
+#[cfg(feature = "pretty")]
+impl<'a, D, A> pretty::Pretty<'a, D, A> for &'a ValueBool
 where
     A: 'a,
-    D: ?Sized + DocAllocator<'a, A>,
+    D: ?Sized + pretty::DocAllocator<'a, A>,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
         allocator.text(match self.0 {

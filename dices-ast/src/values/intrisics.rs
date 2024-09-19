@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use derive_more::derive::{From, Into};
-use pretty::{DocAllocator, Pretty};
 
 use crate::intrisics::{InjectedIntr, Intrisic};
 
@@ -40,10 +39,11 @@ impl<Injected> ValueIntrisic<Injected> {
     }
 }
 
-impl<'a, D, A, II> Pretty<'a, D, A> for &'a ValueIntrisic<II>
+#[cfg(feature = "pretty")]
+impl<'a, D, A, II> pretty::Pretty<'a, D, A> for &'a ValueIntrisic<II>
 where
     A: 'a,
-    D: ?Sized + DocAllocator<'a, A>,
+    D: ?Sized + pretty::DocAllocator<'a, A>,
     II: InjectedIntr,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {

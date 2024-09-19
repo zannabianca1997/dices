@@ -2,8 +2,6 @@
 
 use std::{collections::BTreeMap, fmt::Display};
 
-use pretty::{DocAllocator, Pretty};
-
 use crate::{
     expression::Expression, ident::IdentStr, intrisics::InjectedIntr, values::number::ValueNumber,
 };
@@ -52,10 +50,11 @@ impl<InjectedIntrisic> Display for ValueClosure<InjectedIntrisic> {
     }
 }
 
-impl<'a, D, A, II> Pretty<'a, D, A> for &'a ValueClosure<II>
+#[cfg(feature = "pretty")]
+impl<'a, D, A, II> pretty::Pretty<'a, D, A> for &'a ValueClosure<II>
 where
     A: 'a,
-    D: ?Sized + DocAllocator<'a, A>,
+    D: ?Sized + pretty::DocAllocator<'a, A>,
     II: InjectedIntr,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {

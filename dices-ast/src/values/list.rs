@@ -4,9 +4,8 @@ use std::{
 };
 
 use itertools::Itertools;
-use pretty::{DocAllocator, Pretty};
 
-use crate::{fmt::CommaLine, intrisics::InjectedIntr};
+use crate::intrisics::InjectedIntr;
 
 use super::{number::ValueNumber, ToNumberError, Value};
 
@@ -80,15 +79,16 @@ impl<InjectedIntrisic> IntoIterator for ValueList<InjectedIntrisic> {
     }
 }
 
-impl<'a, D, A, II> Pretty<'a, D, A> for &'a ValueList<II>
+#[cfg(feature = "pretty")]
+impl<'a, D, A, II> pretty::Pretty<'a, D, A> for &'a ValueList<II>
 where
     A: 'a,
-    D: ?Sized + DocAllocator<'a, A>,
+    D: ?Sized + pretty::DocAllocator<'a, A>,
     II: InjectedIntr,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
         allocator
-            .intersperse(self.iter(), CommaLine)
+            .intersperse(self.iter(), crate::fmt::CommaLine)
             .enclose(allocator.line_(), allocator.line_())
             .group()
             .nest(4)
