@@ -1,6 +1,7 @@
 use std::{borrow::Cow, str::FromStr};
 
 use either::Either::{Left, Right};
+use num_bigint::BigInt;
 use peg::{error::ParseError, str::LineCol};
 
 use super::*;
@@ -41,7 +42,7 @@ peg::parser! {
 
         /// A signed number
         pub rule number() -> ValueNumber
-            = n:$(['-']?['0'..='9']+) {? n.parse::<i64>().map(Into::into).or(Err("number")) }
+            = n:$(['-']?['0'..='9']+) {? n.parse::<BigInt>().map(ValueNumber::new).or(Err("number")) }
 
         /// A quoted string value
         pub rule string() -> ValueString

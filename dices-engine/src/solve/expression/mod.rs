@@ -1,7 +1,5 @@
 //! Implementations of Solvable on all types of expressions
 
-use std::num::TryFromIntError;
-
 use closures::VarUseCalcError;
 use derive_more::{Debug, Display, Error};
 use nunny::NonEmpty;
@@ -26,8 +24,8 @@ use crate::solve::Solvable;
 pub enum SolveError<InjectedIntrisic: InjectedIntr> {
     #[display("The number of repeats must be a number")]
     RepeatTimesNotANumber(#[error(source)] ToNumberError),
-    #[display("The number of repeats must be positive")]
-    NegativeRepeats(#[error(source)] TryFromIntError),
+    #[display("The number of repeats must be positive (given {_0})")]
+    NegativeRepeats(#[error(not(source))] ValueNumber),
     #[display("The operator {op} needs a number at is right")]
     RHSIsNotANumber {
         op: BinOp,
@@ -63,19 +61,15 @@ pub enum SolveError<InjectedIntrisic: InjectedIntr> {
     #[display("The filter operator {} needs a positive number at his right", op)]
     FilterNeedPositive {
         op: BinOp,
-        #[error(source)]
-        source: TryFromIntError,
+        source: <usize as TryFrom<ValueNumber>>::Error,
     },
     #[display("The number of dice faces must be a number")]
     FacesAreNotANumber {
         #[error(source)]
         source: ToNumberError,
     },
-    #[display("The number of dice faces must be positive")]
-    FacesMustBePositive {
-        #[error(source)]
-        source: TryFromIntError,
-    },
+    #[display("The number of dice faces must be positive (given {faces})")]
+    FacesMustBePositive { faces: ValueNumber },
     #[display("Cannot convert into a number")]
     CannotMakeANumber {
         #[error(source)]
@@ -251,15 +245,14 @@ where
                 let n = n
                     .to_number()
                     .map_err(SolveError::StringIsIndexedByNumbers)?;
-                let n = i64::from(n);
-                let ch = if n >= 0 {
-                    usize::try_from(n).ok().and_then(|n| s.chars().nth(n))
+                let ch = if n >= ValueNumber::ZERO {
+                    usize::try_from(n.clone())
+                        .ok()
+                        .and_then(|n| s.chars().nth(n))
                 } else {
-                    n.checked_neg().and_then(|n| {
-                        usize::try_from(n)
-                            .ok()
-                            .and_then(|n| s.chars().nth_back(n - 1))
-                    })
+                    usize::try_from(n.clone().abs() - 1.into())
+                        .ok()
+                        .and_then(|n| s.chars().nth_back(n))
                 };
                 if let Some(ch) = ch {
                     Ok(Value::String(ch.to_string().into()))
@@ -274,14 +267,12 @@ where
                 let n = n
                     .to_number()
                     .map_err(SolveError::StringIsIndexedByNumbers)?;
-                let n = i64::from(n);
-                let ch = if n >= 0 {
-                    usize::try_from(n).ok().and_then(|n| l.get(n))
+                let ch = if n >= ValueNumber::ZERO {
+                    usize::try_from(n.clone()).ok().and_then(|n| l.get(n))
                 } else {
-                    isize::try_from(n).ok().and_then(|n| {
-                        let n = l.len().checked_add_signed(n)?;
-                        l.get(n)
-                    })
+                    usize::try_from(n.clone() + ValueNumber::from(l.len()))
+                        .ok()
+                        .and_then(|n| l.get(n))
                 };
                 if let Some(ch) = ch {
                     Ok(ch.clone())

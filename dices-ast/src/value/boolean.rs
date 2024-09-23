@@ -1,3 +1,5 @@
+use std::iter::Step;
+
 use derive_more::derive::{Display, From, Into};
 
 use super::{list::ValueList, number::ValueNumber, ToNumberError};
@@ -27,7 +29,7 @@ impl ValueBool {
 
     pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
         Ok(match self.0 {
-            true => ValueNumber::ONE,
+            true => Step::forward(ValueNumber::ZERO, 1),
             false => ValueNumber::ZERO,
         })
     }

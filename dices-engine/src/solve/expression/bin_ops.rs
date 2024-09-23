@@ -62,33 +62,32 @@ fn repeats<R: Rng, InjectedIntrisic>(
 where
     InjectedIntrisic: InjectedIntr,
 {
-    let repeats: i64 = n
+    let repeats = n
         .solve(context)?
         .to_number()
-        .map_err(SolveError::RepeatTimesNotANumber)?
-        .into();
-    let repeats: u64 = repeats
-        .try_into()
-        .map_err(|err| SolveError::NegativeRepeats(err))?;
+        .map_err(SolveError::RepeatTimesNotANumber)?;
+    if repeats < ValueNumber::ZERO {
+        return Err(SolveError::NegativeRepeats(repeats));
+    }
     Ok(Value::List(
-        (0..repeats).map(|_| a.solve(context)).try_collect()?,
+        (ValueNumber::ZERO..repeats)
+            .map(|_| a.solve(context))
+            .try_collect()?,
     ))
 }
 
-fn ops_to_i64<InjectedIntrisic>(
+fn ops_to_numbers<InjectedIntrisic>(
     op: BinOp,
     [a, b]: [Value<InjectedIntrisic>; 2],
-) -> Result<[i64; 2], SolveError<InjectedIntrisic>>
+) -> Result<[ValueNumber; 2], SolveError<InjectedIntrisic>>
 where
     InjectedIntrisic: InjectedIntr,
 {
     Ok([
         a.to_number()
-            .map_err(|source| SolveError::LHSIsNotANumber { op, source })?
-            .into(),
+            .map_err(|source| SolveError::LHSIsNotANumber { op, source })?,
         b.to_number()
-            .map_err(|source| SolveError::RHSIsNotANumber { op, source })?
-            .into(),
+            .map_err(|source| SolveError::RHSIsNotANumber { op, source })?,
     ])
 }
 
@@ -100,11 +99,9 @@ pub(super) fn add<R, InjectedIntrisic>(
 where
     InjectedIntrisic: InjectedIntr,
 {
-    let a = plus(context, a)?.to_number().unwrap().into();
-    let b = plus(context, b)?.to_number().unwrap().into();
-    Ok(Value::Number(
-        i64::checked_add(a, b).ok_or(SolveError::Overflow)?.into(),
-    ))
+    let a = plus(context, a)?.to_number().unwrap();
+    let b = plus(context, b)?.to_number().unwrap();
+    Ok(Value::Number(a + b))
 }
 
 pub(super) fn mult<R, InjectedIntrisic>(
@@ -131,10 +128,8 @@ where
             | Value::Intrisic(_)
             | Value::Closure(_)),
         ) => {
-            let [a, b] = ops_to_i64(BinOp::Add, [a, b])?;
-            Ok(Value::Number(
-                i64::checked_mul(a, b).ok_or(SolveError::Overflow)?.into(),
-            ))
+            let [a, b] = ops_to_numbers(BinOp::Mult, [a, b])?;
+            Ok(Value::Number(a * b))
         }
         // scalar and not
         (
@@ -278,10 +273,8 @@ where
             Ok(m.into())
         }
         _ => {
-            let [a, b] = ops_to_i64(BinOp::Div, [a, b])?;
-            Ok(Value::Number(
-                i64::checked_div(a, b).ok_or(SolveError::Overflow)?.into(),
-            ))
+            let [a, b] = ops_to_numbers(BinOp::Div, [a, b])?;
+            Ok(Value::Number(a / b))
         }
     }
 }
@@ -310,10 +303,8 @@ where
             Ok(m.into())
         }
         _ => {
-            let [a, b] = ops_to_i64(BinOp::Rem, [a, b])?;
-            Ok(Value::Number(
-                i64::checked_rem(a, b).ok_or(SolveError::Overflow)?.into(),
-            ))
+            let [a, b] = ops_to_numbers(BinOp::Rem, [a, b])?;
+            Ok(Value::Number(a % b))
         }
     }
 }
@@ -365,10 +356,9 @@ where
     let a = a
         .to_list()
         .map_err(|source| SolveError::LHSIsNotAList { op: OP, source })?;
-    let b: i64 = b
+    let b = b
         .to_number()
-        .map_err(|source| SolveError::RHSIsNotANumber { op: OP, source })?
-        .into();
+        .map_err(|source| SolveError::RHSIsNotANumber { op: OP, source })?;
 
     let k: usize = b
         .try_into()
@@ -398,10 +388,9 @@ where
     let a = a
         .to_list()
         .map_err(|source| SolveError::LHSIsNotAList { op: OP, source })?;
-    let b: i64 = b
+    let b = b
         .to_number()
-        .map_err(|source| SolveError::RHSIsNotANumber { op: OP, source })?
-        .into();
+        .map_err(|source| SolveError::RHSIsNotANumber { op: OP, source })?;
 
     let k: usize = b
         .try_into()
@@ -431,10 +420,9 @@ where
     let a = a
         .to_list()
         .map_err(|source| SolveError::LHSIsNotAList { op: OP, source })?;
-    let b: i64 = b
+    let b = b
         .to_number()
-        .map_err(|source| SolveError::RHSIsNotANumber { op: OP, source })?
-        .into();
+        .map_err(|source| SolveError::RHSIsNotANumber { op: OP, source })?;
 
     let k: usize = a.len().saturating_sub(
         b.try_into()
@@ -465,10 +453,9 @@ where
     let a = a
         .to_list()
         .map_err(|source| SolveError::LHSIsNotAList { op: OP, source })?;
-    let b: i64 = b
+    let b = b
         .to_number()
-        .map_err(|source| SolveError::RHSIsNotANumber { op: OP, source })?
-        .into();
+        .map_err(|source| SolveError::RHSIsNotANumber { op: OP, source })?;
 
     let k: usize = a.len().saturating_sub(
         b.try_into()

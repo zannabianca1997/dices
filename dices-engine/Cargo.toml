@@ -9,7 +9,7 @@ eval_str = ["dices-ast/parse_expression", "dep:either"]
 
 [dependencies]
 derive_more = { version = "1.0.0", features = ["debug", "constructor"] }
-dices-ast = { path = "../dices-ast", features = ["parse_value"] }
+dices-ast = { path = "../dices-ast", features = ["parse_value", "rand"] }
 itertools = "0.13.0"
 nunny = "0.2.1"
 rand = "0.8.5"

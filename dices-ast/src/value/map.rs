@@ -56,6 +56,10 @@ impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
         self.0.get_mut(key)
     }
 
+    pub fn remove(&mut self, key: &str) -> Option<Value<InjectedIntrisic>> {
+        self.0.remove(key)
+    }
+
     pub fn insert(
         &mut self,
         key: ValueString,
