@@ -58,7 +58,7 @@ peg::parser! {
 
         /// A signed number
         pub rule number() -> ValueNumber
-            = n:$(['-']?['0'..='9']+) {? n.parse::<i64>().map(Into::into).or(Err("number")) }
+            = n:$(['-']?['0'..='9']+) {? n.parse().map(ValueNumber::new).or(Err("number")) }
 
         /// A quoted string value
         pub rule string() -> ValueString

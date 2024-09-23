@@ -109,7 +109,7 @@ peg::parser! {
 
         /// An unsigned number
         rule number() -> ValueNumber
-            = n:$(['0'..='9']+) {? n.parse::<i64>().map(Into::into).or(Err("number")) }
+            = n:$(['0'..='9']+) {? n.parse().or(Err("number")) }
 
         /// A quoted string value
         rule string() -> ValueString

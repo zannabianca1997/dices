@@ -1,6 +1,6 @@
 //! The value a `dices` variable
 
-use derive_more::derive::{Display, Error, From};
+use derive_more::derive::{Display, Error, From, TryUnwrap, Unwrap};
 
 pub use boolean::ValueBool;
 pub use closure::ValueClosure;
@@ -40,6 +40,10 @@ mod parse;
     PartialOrd,
     Ord,
     Hash,
+    // Members
+    Unwrap,
+    TryUnwrap,
+    enum_as_inner::EnumAsInner,
     // conversion
     From,
 )]

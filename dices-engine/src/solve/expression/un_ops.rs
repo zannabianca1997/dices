@@ -74,15 +74,15 @@ fn dice<R: Rng, InjectedIntrisic: InjectedIntr>(
     context: &mut crate::Context<R, InjectedIntrisic>,
     a: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
-    let a: i64 = a
+    let a = a
         .to_number()
-        .map_err(|source| SolveError::FacesAreNotANumber { source })?
-        .into();
+        .map_err(|source| SolveError::FacesAreNotANumber { source })?;
 
-    let f: usize = a
-        .try_into()
-        .map_err(|source| SolveError::FacesMustBePositive { source })?;
+    if a <= ValueNumber::ZERO {
+        return Err(SolveError::FacesMustBePositive { faces: a });
+    }
+
     Ok(Value::Number(
-        (context.rng().gen_range(1..=f) as i64).into(),
+        context.rng().gen_range(ValueNumber::from(1)..=a),
     ))
 }

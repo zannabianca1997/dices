@@ -57,6 +57,12 @@ impl From<String> for ValueString {
     }
 }
 
+impl From<char> for ValueString {
+    fn from(value: char) -> Self {
+        Self(String::from(value).into_boxed_str())
+    }
+}
+
 impl Borrow<str> for ValueString {
     fn borrow(&self) -> &str {
         &self.0

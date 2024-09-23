@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![feature(box_patterns)]
 #![feature(never_type)]
+#![feature(step_trait)]
 
 pub mod fmt;
 pub mod ident;
