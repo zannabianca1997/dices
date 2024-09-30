@@ -22,6 +22,11 @@ use super::{ToListError, ToNumberError, ValueList, ValueNumber};
     From,
     Into,
 )]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Decode, bincode::Encode),
+    bincode(bounds = "Injected: crate::intrisics::InjectedIntr + 'static")
+)]
 pub struct ValueIntrisic<Injected>(Intrisic<Injected>);
 
 impl<Injected: InjectedIntr> Display for ValueIntrisic<Injected> {

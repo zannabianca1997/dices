@@ -18,6 +18,11 @@ use super::{list::ValueList, ToNumberError, Value};
     Ord,
     Hash,
 )]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Decode, bincode::Encode,),
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+)]
 pub struct ValueClosure<InjectedIntrisic> {
     pub params: Box<[Box<IdentStr>]>,
     pub captures: BTreeMap<Box<IdentStr>, Value<InjectedIntrisic>>,

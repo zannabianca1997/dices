@@ -15,6 +15,11 @@ use crate::ident::IdentStr;
     Ord,
     Hash,
 )]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Decode, bincode::Encode,),
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+)]
 pub struct ExpressionClosure<InjectedIntrisic> {
     pub params: Box<[Box<IdentStr>]>,
     pub body: Box<Expression<InjectedIntrisic>>,

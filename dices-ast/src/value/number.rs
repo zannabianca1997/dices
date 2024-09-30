@@ -167,3 +167,23 @@ impl rand::distributions::uniform::UniformSampler for ValueNumberSampler {
         ValueNumber(self.0.sample(rng))
     }
 }
+
+#[cfg(feature = "bincode")]
+impl bincode::Encode for ValueNumber {
+    fn encode<E: bincode::enc::Encoder>(
+        &self,
+        encoder: &mut E,
+    ) -> Result<(), bincode::error::EncodeError> {
+        self.0.to_signed_bytes_le().encode(encoder)
+    }
+}
+#[cfg(feature = "bincode")]
+impl bincode::Decode for ValueNumber {
+    fn decode<D: bincode::de::Decoder>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
+        Vec::decode(decoder).map(|digits| Self::new(BigInt::from_signed_bytes_le(&digits)))
+    }
+}
+#[cfg(feature = "bincode")]
+bincode::impl_borrow_decode! {ValueNumber}

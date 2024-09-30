@@ -4,6 +4,7 @@ use super::Expression;
 
 /// An unary operator
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "bincode", derive(bincode::Decode, bincode::Encode,))]
 pub enum UnOp {
     /// `+`: Sum lists and maps, recursive
     Plus,
@@ -15,6 +16,11 @@ pub enum UnOp {
 
 /// An expression made with an unary operator
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Decode, bincode::Encode,),
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+)]
 pub struct ExpressionUnOp<InjectedIntrisic> {
     pub op: UnOp,
     pub expression: Box<Expression<InjectedIntrisic>>,

@@ -31,6 +31,11 @@ mod parse;
 pub use parse::{parse_file, Error as ParseError};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, From)]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Decode, bincode::Encode,),
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+)]
 pub enum Expression<InjectedIntrisic> {
     /// Expression returning a constant value
     Const(Value<InjectedIntrisic>),

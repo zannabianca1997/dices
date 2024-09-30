@@ -13,6 +13,7 @@ pub fn is_valid_ident(s: &str) -> bool {
 
 /// A string that is guarantee to be a valid identifier (`r"(?:[a-zA-Z]|_+[a-zA-Z0-9])[_a-zA-Z0-9]*"`)
 #[derive(Debug, Display, AsRef, Deref, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode))]
 #[repr(transparent)]
 pub struct IdentStr(str);
 
@@ -73,5 +74,30 @@ impl Clone for Box<IdentStr> {
         let s: &str = self;
         let s: Box<str> = s.into();
         unsafe { IdentStr::new_boxed_unchecked(s) }
+    }
+}
+
+#[cfg(feature = "bincode")]
+impl bincode::Decode for Box<IdentStr> {
+    fn decode<D: bincode::de::Decoder>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
+        IdentStr::new_boxed(bincode::Decode::decode(decoder)?).map_err(|err| {
+            bincode::error::DecodeError::OtherString(format!("Invalid identifier {err}"))
+        })
+    }
+}
+#[cfg(feature = "bincode")]
+bincode::impl_borrow_decode! {Box<IdentStr>}
+
+#[cfg(feature = "bincode")]
+impl<'de> bincode::BorrowDecode<'de> for &'de IdentStr {
+    fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
+        let decoded = bincode::BorrowDecode::borrow_decode(decoder)?;
+        IdentStr::new(decoded).ok_or_else(|| {
+            bincode::error::DecodeError::OtherString(format!("Invalid identifier {decoded}"))
+        })
     }
 }
