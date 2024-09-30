@@ -21,6 +21,11 @@ use super::Value;
     Ord,
     Hash,
 )]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Decode, bincode::Encode,),
+    bincode(bounds = "InjectedIntrisic: InjectedIntr + 'static")
+)]
 pub struct ValueList<InjectedIntrisic>(Box<[Value<InjectedIntrisic>]>);
 impl<InjectedIntrisic> ValueList<InjectedIntrisic> {
     #[cfg(feature = "parse_value")]

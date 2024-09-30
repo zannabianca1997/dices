@@ -18,6 +18,11 @@ use super::{list::ValueList, string::ValueString, Value};
     Ord,
     Hash,
 )]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Decode, bincode::Encode,),
+    bincode(bounds = "InjectedIntrisic: InjectedIntr + 'static")
+)]
 pub struct ValueMap<InjectedIntrisic>(BTreeMap<ValueString, Value<InjectedIntrisic>>);
 impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
     pub fn new() -> Self {

@@ -14,6 +14,11 @@ use super::Expression;
     Ord,
     Hash,
 )]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Decode, bincode::Encode,),
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+)]
 pub struct ExpressionMap<InjectedIntrisic>(Box<[(ValueString, Expression<InjectedIntrisic>)]>);
 impl<InjectedIntrisic> ExpressionMap<InjectedIntrisic> {
     pub fn iter(&self) -> impl Iterator<Item = (&ValueString, &Expression<InjectedIntrisic>)> {

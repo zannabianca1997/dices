@@ -1,6 +1,11 @@
 use super::Expression;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Decode, bincode::Encode,),
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+)]
 pub struct ExpressionCall<InjectedIntrisic> {
     /// the called expression
     pub called: Box<Expression<InjectedIntrisic>>,

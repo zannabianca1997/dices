@@ -27,6 +27,7 @@ use super::list::ValueList;
     From,
     Into,
 )]
+#[cfg_attr(feature = "bincode", derive(bincode::Decode, bincode::Encode,))]
 pub struct ValueString(Box<str>);
 impl ValueString {
     #[cfg(feature = "parse_value")]

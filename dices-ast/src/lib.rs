@@ -2,6 +2,7 @@
 #![feature(box_patterns)]
 #![feature(never_type)]
 #![feature(step_trait)]
+#![feature(ptr_as_ref_unchecked)]
 
 pub mod fmt;
 pub mod ident;

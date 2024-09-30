@@ -92,6 +92,20 @@ where
             Intrisic::Injected(injected) => injected.name(),
         }
     }
+
+    pub fn named(name: &str) -> Option<Self> {
+        Some(match name {
+            "sum" => Intrisic::Sum,
+            "join" => Intrisic::Join,
+            "mult" => Intrisic::Mult,
+            "to_number" => Intrisic::ToNumber,
+            "to_list" => Intrisic::ToList,
+            "call" => Intrisic::Call,
+            "to_string" => Intrisic::ToString,
+            "parse" => Intrisic::Parse,
+            _ => return Injected::named(name).map(Intrisic::Injected),
+        })
+    }
 }
 
 pub trait InjectedIntr: Sized + Clone {
@@ -104,6 +118,8 @@ pub trait InjectedIntr: Sized + Clone {
     fn iter() -> impl IntoIterator<Item = Self>;
     /// Give a name for this intrisic
     fn name(&self) -> Cow<str>;
+    /// Get the intrisic from the name
+    fn named(name: &str) -> Option<Self>;
     /// Give all the paths in the std library this intrisic should be injected to
     fn std_paths(&self) -> impl IntoIterator<Item = Cow<[Cow<str>]>> {
         // default to not injecting anywhere
@@ -171,5 +187,52 @@ impl InjectedIntr for NoInjectedIntrisics {
         _: Box<[Value<Self>]>,
     ) -> Result<Value<Self>, Self::Error> {
         self.0
+    }
+
+    fn named(_: &str) -> Option<Self> {
+        None
+    }
+}
+
+#[cfg(feature = "bincode")]
+impl<II> bincode::Encode for Intrisic<II>
+where
+    II: InjectedIntr + 'static,
+{
+    fn encode<E: bincode::enc::Encoder>(
+        &self,
+        encoder: &mut E,
+    ) -> Result<(), bincode::error::EncodeError> {
+        self.name().encode(encoder)
+    }
+}
+
+#[cfg(feature = "bincode")]
+impl<II> bincode::Decode for Intrisic<II>
+where
+    II: InjectedIntr + 'static,
+{
+    fn decode<D: bincode::de::Decoder>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
+        let name: Cow<str> = bincode::Decode::decode(decoder)?;
+        Self::named(&*name).ok_or_else(|| {
+            bincode::error::DecodeError::OtherString(format!("Unknow intrisic {name}"))
+        })
+    }
+}
+
+#[cfg(feature = "bincode")]
+impl<'de, II> bincode::BorrowDecode<'de> for Intrisic<II>
+where
+    II: InjectedIntr + 'static,
+{
+    fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
+        let name: Cow<str> = bincode::BorrowDecode::borrow_decode(decoder)?;
+        Self::named(&*name).ok_or_else(|| {
+            bincode::error::DecodeError::OtherString(format!("Unknow intrisic {name}"))
+        })
     }
 }

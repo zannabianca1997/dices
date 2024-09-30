@@ -3,6 +3,11 @@
 use super::Expression;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Decode, bincode::Encode,),
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+)]
 /// Access a member of a map or a list
 pub struct ExpressionMemberAccess<InjectedIntrisic> {
     pub accessed: Box<Expression<InjectedIntrisic>>,

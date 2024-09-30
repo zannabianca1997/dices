@@ -66,11 +66,20 @@ impl InjectedIntr for REPLIntrisics {
 
     fn name(&self) -> std::borrow::Cow<str> {
         match self {
-            REPLIntrisics::Print => "print",
-            REPLIntrisics::Quit => "quit",
-            REPLIntrisics::Help => "help",
+            REPLIntrisics::Print => "repl_print",
+            REPLIntrisics::Quit => "repl_quit",
+            REPLIntrisics::Help => "repl_help",
         }
         .into()
+    }
+
+    fn named(name: &str) -> Option<Self> {
+        Some(match name {
+            "repl_print" => REPLIntrisics::Print,
+            "repl_quit" => REPLIntrisics::Quit,
+            "repl_help" => REPLIntrisics::Help,
+            _ => return None,
+        })
     }
 
     fn std_paths(&self) -> impl IntoIterator<Item = std::borrow::Cow<[std::borrow::Cow<str>]>> {

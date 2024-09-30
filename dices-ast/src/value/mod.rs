@@ -47,6 +47,11 @@ mod parse;
     // conversion
     From,
 )]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Decode, bincode::Encode,),
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+)]
 pub enum Value<InjectedIntrisic = NoInjectedIntrisics> {
     Null(ValueNull),
     Bool(ValueBool),
