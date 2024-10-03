@@ -24,12 +24,6 @@ serde = ["dep:serde", "bincode", "dep:serde_bytes", "num-bigint/serde"]
 # Enable serialization and deserialization of values and expressions to a byte string
 bincode = ["dep:bincode"]
 
-###     AST CHANGING FEATURES      ###
-# These feature change the dices AST #
-
-# Add the intrisics used to manipulate json inside `dices`
-json = []
-
 [dependencies]
 derive_more = { version = "1.0.0", features = [
     "from",

@@ -2,7 +2,6 @@ use std::{collections::HashSet, iter::once};
 
 use derive_more::derive::{Display, Error};
 use itertools::Itertools;
-use rand::Rng;
 
 use dices_ast::{
     expression::{
@@ -16,7 +15,7 @@ use dices_ast::{
     value::{Value, ValueClosure},
 };
 
-use crate::solve::Solvable;
+use crate::{solve::Solvable, DicesRng};
 
 use super::SolveError;
 
@@ -26,7 +25,7 @@ where
 {
     type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(
+    fn solve<R: DicesRng>(
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {

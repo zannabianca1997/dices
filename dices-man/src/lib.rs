@@ -27,7 +27,8 @@ use markdown::{
     to_mdast, ParseOptions,
 };
 use pretty::DocAllocator;
-use rand::{rngs::SmallRng, SeedableRng};
+use rand::SeedableRng;
+use rand_xoshiro::Xoshiro256PlusPlus;
 
 pub mod example;
 
@@ -140,8 +141,8 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
             "The examples in the manual should be all well formatted, thanks to `dices-mantest`",
         );
         // initialize an engine, deterministic with regard of the seed and the code
-        let mut engine: Engine<SmallRng, NoInjectedIntrisics> =
-            Engine::new_with_rng(SmallRng::seed_from_u64({
+        let mut engine: Engine<Xoshiro256PlusPlus, NoInjectedIntrisics> =
+            Engine::new_with_rng(SeedableRng::seed_from_u64({
                 let mut hasher = DefaultHasher::new();
                 options.seed.hash(&mut hasher);
                 code.hash(&mut hasher);

@@ -448,6 +448,7 @@ dependencies = [
  "itertools 0.13.0",
  "nunny",
  "rand",
+ "serde",
  "serde_json",
 ]
 
@@ -469,6 +470,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rand",
+ "rand_xoshiro",
  "serde",
  "serde_yaml",
  "typed-arena",
@@ -485,6 +487,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rand",
+ "rand_xoshiro",
  "slug",
 ]
 
@@ -504,6 +507,7 @@ dependencies = [
  "mdast2minimad",
  "pretty",
  "rand",
+ "rand_xoshiro",
  "reedline",
  "serde",
  "termimad",
@@ -1084,6 +1088,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom",
+]
+
+[[package]]
+name = "rand_xoshiro"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f97cdb2a36ed4183de61b2f824cc45c9f1037f28afe0a322e9fff4c108b5aaa"
+dependencies = [
+ "rand_core",
+ "serde",
 ]
 
 [[package]]
