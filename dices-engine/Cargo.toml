@@ -6,11 +6,15 @@ authors = ["zannabianca1997 <zannabianca199712@gmail.com>"]
 
 [features]
 eval_str = ["dices-ast/parse_expression", "dep:either"]
-json = ["dices-ast/json", "dep:serde_json", "dices-ast/serde"]
+json = ["dices-ast/json", "dep:serde_json"]
 
 [dependencies]
 derive_more = { version = "1.0.0", features = ["debug", "constructor"] }
-dices-ast = { path = "../dices-ast", features = ["parse_value", "rand"] }
+dices-ast = { path = "../dices-ast", features = [
+    "parse_value",
+    "rand",
+    "serde",
+] }
 itertools = "0.13.0"
 nunny = "0.2.1"
 rand = "0.8.5"
