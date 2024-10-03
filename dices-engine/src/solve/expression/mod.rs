@@ -3,7 +3,6 @@
 use closures::VarUseCalcError;
 use derive_more::{Debug, Display, Error};
 use nunny::NonEmpty;
-use rand::Rng;
 
 use dices_ast::{
     expression::{
@@ -18,7 +17,7 @@ use dices_ast::{
 };
 pub use intrisics::IntrisicError;
 
-use crate::solve::Solvable;
+use crate::{solve::Solvable, DicesRng};
 
 #[derive(Debug, Display, Error)]
 pub enum SolveError<InjectedIntrisic: InjectedIntr> {
@@ -117,7 +116,7 @@ where
 {
     type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(
+    fn solve<R: DicesRng>(
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
@@ -143,7 +142,7 @@ where
 {
     type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(
+    fn solve<R: DicesRng>(
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
@@ -159,7 +158,7 @@ where
 {
     type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(
+    fn solve<R: DicesRng>(
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
@@ -182,7 +181,7 @@ where
 {
     type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(
+    fn solve<R: DicesRng>(
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
@@ -231,7 +230,7 @@ where
 {
     type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(
+    fn solve<R: DicesRng>(
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
@@ -298,7 +297,7 @@ impl<InjectedIntrisic: InjectedIntr> Solvable<InjectedIntrisic>
 {
     type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(
+    fn solve<R: DicesRng>(
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
@@ -307,7 +306,7 @@ impl<InjectedIntrisic: InjectedIntr> Solvable<InjectedIntrisic>
 }
 
 /// Solve multiple expressions, discarding the result of all but the last
-pub(crate) fn solve_multiple<R: Rng, InjectedIntrisic: InjectedIntr>(
+pub(crate) fn solve_multiple<R: DicesRng, InjectedIntrisic: InjectedIntr>(
     scope: &NonEmpty<[Expression<InjectedIntrisic>]>,
     context: &mut crate::Context<R, InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
@@ -324,7 +323,7 @@ where
 {
     type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(
+    fn solve<R: DicesRng>(
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
@@ -350,7 +349,7 @@ where
 {
     type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(
+    fn solve<R: DicesRng>(
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {

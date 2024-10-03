@@ -15,7 +15,8 @@ use derive_more::derive::{Debug, Display, Error, From};
 use dices_ast::value::{Value, ValueNull};
 use dices_engine::Engine;
 use pretty::Pretty;
-use rand::{rngs::SmallRng, SeedableRng};
+use rand::SeedableRng;
+use rand_xoshiro::Xoshiro256PlusPlus;
 use reedline::{Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, Reedline, Signal};
 use repl_intrisics::{Quitted, REPLIntrisics};
 use serde::{Deserialize, Serialize};
@@ -228,11 +229,12 @@ pub fn repl(
         let mut hasher = DefaultHasher::new();
         seed.hash(&mut hasher);
 
-        engine_builder.with_rng(SmallRng::seed_from_u64(hasher.finish()))
+        engine_builder.with_rng(Xoshiro256PlusPlus::seed_from_u64(hasher.finish()))
     } else {
         engine_builder.with_rng_from_entropy()
     };
-    let mut engine: dices_engine::Engine<SmallRng, REPLIntrisics> = engine_builder.build();
+    let mut engine: dices_engine::Engine<Xoshiro256PlusPlus, REPLIntrisics> =
+        engine_builder.build();
 
     if let Some(run) = run {
         // joining of the shell arguments
@@ -273,7 +275,7 @@ pub fn repl(
 pub fn interactive_repl(
     graphic: Rc<Graphic>,
     skin: Rc<MadSkin>,
-    engine: &mut Engine<SmallRng, REPLIntrisics>,
+    engine: &mut Engine<Xoshiro256PlusPlus, REPLIntrisics>,
 ) -> Result<(), ReplFatalError> {
     // Creating the editor
     let mut line_editor = Reedline::create();
@@ -309,7 +311,7 @@ pub fn interactive_repl(
 pub fn detached_repl(
     graphic: Rc<Graphic>,
     skin: Rc<MadSkin>,
-    engine: &mut Engine<SmallRng, REPLIntrisics>,
+    engine: &mut Engine<Xoshiro256PlusPlus, REPLIntrisics>,
 ) -> Result<(), ReplFatalError> {
     // REPL loop
     for line in stdin().lines() {

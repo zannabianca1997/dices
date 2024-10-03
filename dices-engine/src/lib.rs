@@ -16,6 +16,7 @@ use dices_ast::{
     Expression, Value,
 };
 
+use serde::{de::DeserializeOwned, Serialize};
 use solve::{solve_multiple, Solvable};
 
 pub use context::Context;
@@ -205,7 +206,7 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
         expr: &Expression<InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
     where
-        RNG: Rng,
+        RNG: DicesRng,
         InjectedIntrisic: Clone,
     {
         expr.solve(&mut self.context)
@@ -217,7 +218,7 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
         exprs: &NonEmpty<[Expression<InjectedIntrisic>]>,
     ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
     where
-        RNG: Rng,
+        RNG: DicesRng,
         InjectedIntrisic: Clone,
     {
         solve_multiple(exprs, &mut self.context)
@@ -230,7 +231,7 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
         cmd: &str,
     ) -> Result<Value<InjectedIntrisic>, EvalStrError<InjectedIntrisic>>
     where
-        RNG: Rng,
+        RNG: DicesRng,
         InjectedIntrisic: Clone,
     {
         let exprs = dices_ast::parse_file(cmd).map_err(either::Either::Left)?;
@@ -245,3 +246,6 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
         self.context.injected_intrisics_data_mut()
     }
 }
+
+pub trait DicesRng: Rng + SeedableRng + Serialize + DeserializeOwned {}
+impl<T> DicesRng for T where T: Rng + SeedableRng + Serialize + DeserializeOwned {}

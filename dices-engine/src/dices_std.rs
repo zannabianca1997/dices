@@ -43,6 +43,11 @@ where
 {
     let mut dices_std = std!(
             intrisics: Intrisic::all(),
+            rng: mod {
+                seed: Intrisic::SeedRNG,
+                save: Intrisic::SaveRNG,
+                restore: Intrisic::RestoreRNG,
+            },
             variadics: mod {
                 call: Intrisic::Call,
                 sum: Intrisic::Sum,
@@ -54,6 +59,8 @@ where
                 to_list: Intrisic::ToList,
                 to_string: Intrisic::ToString,
                 parse: Intrisic::Parse,
+                to_json: Intrisic::ToJson,
+                from_json: Intrisic::FromJson,
             },
             prelude: mod {
                 sum: Intrisic::Sum,
@@ -64,21 +71,13 @@ where
                 to_list: Intrisic::ToList,
                 to_string: Intrisic::ToString,
                 parse: Intrisic::Parse,
+
+                seed: Intrisic::SeedRNG,
             },
             versions: mod {
                 ast: version_value()
             }
     );
-    #[cfg(feature = "json")]
-    {
-        let conversions = dices_std
-            .get_mut("conversions")
-            .unwrap()
-            .as_map_mut()
-            .unwrap();
-        conversions.insert("to_json".into(), Intrisic::ToJson.into());
-        conversions.insert("from_json".into(), Intrisic::FromJson.into());
-    }
     // injecting the injected intrisics in the required places
     for intrisic in II::iter() {
         for path in intrisic.std_paths() {

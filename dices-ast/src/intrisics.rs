@@ -45,11 +45,16 @@ pub enum Intrisic<Injected> {
     Call,
 
     /// Convert its param to a json string
-    #[cfg(feature = "json")]
     ToJson,
     /// Convert its param from a json string
-    #[cfg(feature = "json")]
     FromJson,
+
+    /// Seed the RNG
+    SeedRNG,
+    /// Save the RNG state
+    SaveRNG,
+    /// Restore the RNG state
+    RestoreRNG,
 
     /// Injected intrisic
     ///
@@ -57,30 +62,79 @@ pub enum Intrisic<Injected> {
     Injected(Injected),
 }
 
+macro_rules! repetitive_impl {
+    (
+        $(
+            $variant:ident <=> $str:literal
+        ),*
+    ) => {
+        impl<Injected> Intrisic<Injected>
+        where
+            Injected: InjectedIntr,
+        {
+            /// Iter all possible intrisics
+            pub fn iter() -> impl IntoIterator<Item = Self> {
+                [
+                    $(
+                        Self::$variant
+                    ),*
+                ]
+                .into_iter()
+                .chain(Injected::iter().into_iter().map(Self::Injected))
+            }
+
+            pub fn name(&self) -> Cow<str> {
+                match self {
+                    $(
+                        Self::$variant => $str.into(),
+                    )*
+                    Intrisic::Injected(injected) => injected.name(),
+                }
+            }
+
+            pub fn named(name: &str) -> Option<Self> {
+                Some(match name {
+                    $(
+                        $str => Self::$variant,
+                    )*
+                    _ => return Injected::named(name).map(Intrisic::Injected),
+                })
+            }
+        }
+        impl Intrisic<NoInjectedIntrisics> {
+            pub fn with_arbitrary_injected_intrisics<II>(self) -> Intrisic<II> {
+                match self {
+                    $(
+                        Intrisic::$variant => Intrisic::$variant,
+                    )*
+                    // This last case never happens
+                    Intrisic::Injected(injected) => *injected,
+                }
+            }
+        }
+    };
+}
+
+repetitive_impl! {
+    Sum <=> "sum",
+    Join <=> "join",
+    Mult <=> "mult",
+    ToNumber <=> "to_number",
+    ToList <=> "to_list",
+    ToString <=> "to_string",
+    Parse <=> "parse",
+    Call <=> "call",
+    ToJson <=> "to_json",
+    FromJson <=> "from_json",
+    SeedRNG <=> "seed_rng",
+    SaveRNG <=> "save_rng",
+    RestoreRNG <=> "restore_rng"
+}
+
 impl<Injected> Intrisic<Injected>
 where
     Injected: InjectedIntr,
 {
-    /// Iter all possible intrisics
-    pub fn iter() -> impl IntoIterator<Item = Self> {
-        [
-            Self::Sum,
-            Self::Join,
-            Self::Mult,
-            Self::ToNumber,
-            Self::ToList,
-            Self::ToString,
-            Self::Parse,
-            Self::Call,
-            #[cfg(feature = "json")]
-            Self::ToJson,
-            #[cfg(feature = "json")]
-            Self::FromJson,
-        ]
-        .into_iter()
-        .chain(Injected::iter().into_iter().map(Self::Injected))
-    }
-
     /// Build a module containing all the intrisics, to include in the standard library
     pub fn all() -> ValueMap<Injected> {
         ValueMap::from_iter(Self::iter().into_iter().map(|v| {
@@ -89,63 +143,6 @@ where
                 ValueIntrisic::from(v).into(),
             )
         }))
-    }
-
-    pub fn name(&self) -> Cow<str> {
-        match self {
-            Intrisic::Sum => "sum".into(),
-            Intrisic::Join => "join".into(),
-            Intrisic::Mult => "mult".into(),
-            Intrisic::ToNumber => "to_number".into(),
-            Intrisic::ToList => "to_list".into(),
-            Intrisic::Call => "call".into(),
-            Intrisic::ToString => "to_string".into(),
-            Intrisic::Parse => "parse".into(),
-            #[cfg(feature = "json")]
-            Intrisic::ToJson => "to_json".into(),
-            #[cfg(feature = "json")]
-            Intrisic::FromJson => "from_json".into(),
-            Intrisic::Injected(injected) => injected.name(),
-        }
-    }
-
-    pub fn named(name: &str) -> Option<Self> {
-        Some(match name {
-            "sum" => Intrisic::Sum,
-            "join" => Intrisic::Join,
-            "mult" => Intrisic::Mult,
-            "to_number" => Intrisic::ToNumber,
-            "to_list" => Intrisic::ToList,
-            "call" => Intrisic::Call,
-            "to_string" => Intrisic::ToString,
-            "parse" => Intrisic::Parse,
-            #[cfg(feature = "json")]
-            "to_json" => Intrisic::ToJson,
-            #[cfg(feature = "json")]
-            "from_json" => Intrisic::FromJson,
-            _ => return Injected::named(name).map(Intrisic::Injected),
-        })
-    }
-}
-impl Intrisic<NoInjectedIntrisics> {
-    pub fn with_arbitrary_injected_intrisics<II>(self) -> Intrisic<II> {
-        match self {
-            Intrisic::Sum => Intrisic::Sum,
-            Intrisic::Join => Intrisic::Join,
-            Intrisic::Mult => Intrisic::Mult,
-            Intrisic::ToNumber => Intrisic::ToNumber,
-            Intrisic::ToList => Intrisic::ToList,
-            Intrisic::ToString => Intrisic::ToString,
-            Intrisic::Parse => Intrisic::Parse,
-            Intrisic::Call => Intrisic::Call,
-            #[cfg(feature = "json")]
-            Intrisic::ToJson => Intrisic::ToJson,
-            #[cfg(feature = "json")]
-            Intrisic::FromJson => Intrisic::FromJson,
-
-            // This last case never happens
-            Intrisic::Injected(injected) => *injected,
-        }
     }
 }
 
@@ -161,7 +158,7 @@ fn all_names_roundtrip() {
     }
 }
 
-pub trait InjectedIntr: Sized + Clone + 'static {
+pub trait InjectedIntr: Sized + Clone + 'static + Hash {
     /// The data used by the injected intrisics
     type Data;
     /// The error type given by calling this intrisic

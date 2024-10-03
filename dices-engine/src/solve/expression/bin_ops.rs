@@ -12,7 +12,7 @@ where
 {
     type Error = SolveError<InjectedIntrisic>;
 
-    fn solve<R: Rng>(
+    fn solve<R: DicesRng>(
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
@@ -54,7 +54,7 @@ where
     }
 }
 
-fn repeats<R: Rng, InjectedIntrisic>(
+fn repeats<R: DicesRng, InjectedIntrisic>(
     context: &mut crate::Context<R, InjectedIntrisic>,
     a: &Expression<InjectedIntrisic>,
     n: &Expression<InjectedIntrisic>,

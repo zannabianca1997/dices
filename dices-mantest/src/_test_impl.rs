@@ -1,5 +1,4 @@
 use dices_man::example::CodeExample;
-use rand::rngs::SmallRng;
 
 use dices_engine::Engine;
 
@@ -8,7 +7,7 @@ pub(crate) fn test_inner(test: &str, _tags: &[&str]) {
     // Parse the test
     let test: CodeExample = test.parse().expect("The test should be parseable");
     // Create the engine
-    let mut engine: Engine<SmallRng, _> = Engine::new();
+    let mut engine: Engine<rand_xoshiro::Xoshiro256PlusPlus, _> = Engine::new();
     // run the test
     for (n, piece) in test.iter().enumerate() {
         let res = engine

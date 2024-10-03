@@ -5,10 +5,10 @@ edition = "2021"
 authors = ["zannabianca1997 <zannabianca199712@gmail.com>"]
 
 [dev-dependencies]
-rand = { version = "0.8.5", features = ["small_rng"] }
+rand = "0.8.5"
 dices-engine = { path = "../dices-engine" }
 dices-man = { path = "../dices-man" }
-
+rand_xoshiro = { version = "0.6.0", features = ["serde1"] }
 
 [build-dependencies]
 markdown = "1.0.0-alpha.20"
