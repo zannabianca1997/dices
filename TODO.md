@@ -1,9 +1,16 @@
 # Language
 
+- Assign to member `x.a = ...`
+
 ## Intrisics
 
-- `serialize`: serialization of safe `Value`s
-- `to_json`, `from_json`: conversion to and from json
+- `serialize`: serialization of safe `Value`s (subset of `print`)
+- `repr`: current implementation of `print`, make print print strings verbatim
+- RNG utils: `seed`, `state`, `restore`
+
+## REPL
+
+- `file_read` and `file_write`
 
 ## Lua integration
 
@@ -15,7 +22,6 @@
 ## API
 
 - Plan the API
-- Add (de)serialization to `Value`s and `Expression`s
 
 ## Auth
 

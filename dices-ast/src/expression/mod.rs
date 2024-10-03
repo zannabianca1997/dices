@@ -1,7 +1,7 @@
 //! Type containing a `dices` expression
 use derive_more::derive::From;
 
-use crate::value::Value;
+use crate::{intrisics::NoInjectedIntrisics, value::Value};
 
 pub use bin_ops::ExpressionBinOp;
 pub use call::ExpressionCall;
@@ -66,4 +66,10 @@ pub enum Expression<InjectedIntrisic> {
     Set(ExpressionSet<InjectedIntrisic>),
     /// Ref expression
     Ref(ExpressionRef),
+}
+
+impl Expression<NoInjectedIntrisics> {
+    pub fn with_arbitrary_injected_intrisics<II>(&self) -> Expression<II> {
+        todo!("Implement injecting arbitrary intrisics in expressions")
+    }
 }

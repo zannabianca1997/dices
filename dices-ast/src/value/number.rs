@@ -1,8 +1,8 @@
 use std::iter::Step;
 
 use derive_more::derive::{
-    Add, AddAssign, Display, Div, DivAssign, Error, Mul, MulAssign, Neg, Rem, RemAssign, Sub,
-    SubAssign,
+    Add, AddAssign, Display, Div, DivAssign, Error, From, Into, Mul, MulAssign, Neg, Rem,
+    RemAssign, Sub, SubAssign,
 };
 use num_bigint::{BigInt, ToBigInt};
 
@@ -33,6 +33,8 @@ use super::list::ValueList;
     Neg,
     Rem,
     RemAssign,
+    From,
+    Into,
 )]
 #[mul(forward)]
 #[rem(forward)]
@@ -81,7 +83,7 @@ macro_rules! impl_lesser_nums {
 impl_lesser_nums! {i8 u8 i16 u16 i32 u32 i64 u64 i128 u128 isize usize}
 #[derive(Debug, Clone, Copy, Error, Display)]
 #[display("The float {_0} is too big to be represented")]
-pub struct FloatTooBig<F>(F);
+pub struct FloatTooBig<F>(#[error(not(source))] F);
 
 macro_rules! impl_floating_nums {
     ( $( $n:ty ) *) => {

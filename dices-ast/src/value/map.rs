@@ -2,7 +2,10 @@ use std::{collections::BTreeMap, fmt::Display};
 
 use itertools::Itertools;
 
-use crate::{fmt::quoted_if_not_ident, intrisics::InjectedIntr};
+use crate::{
+    fmt::quoted_if_not_ident,
+    intrisics::{InjectedIntr, NoInjectedIntrisics},
+};
 
 use super::{list::ValueList, string::ValueString, Value};
 
@@ -75,6 +78,16 @@ impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
 
     pub fn contains(&self, key: &str) -> bool {
         self.0.contains_key(key)
+    }
+}
+impl ValueMap<NoInjectedIntrisics> {
+    pub fn with_arbitrary_injected_intrisics<II>(self) -> ValueMap<II> {
+        ValueMap(
+            self.0
+                .into_iter()
+                .map(|(k, v)| (k, v.with_arbitrary_injected_intrisics()))
+                .collect(),
+        )
     }
 }
 

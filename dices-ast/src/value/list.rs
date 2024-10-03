@@ -3,9 +3,10 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use derive_more::derive::{From, Into};
 use itertools::Itertools;
 
-use crate::intrisics::InjectedIntr;
+use crate::intrisics::{InjectedIntr, NoInjectedIntrisics};
 
 use super::Value;
 
@@ -20,6 +21,9 @@ use super::Value;
     PartialOrd,
     Ord,
     Hash,
+    // Conversions
+    From,
+    Into,
 )]
 #[cfg_attr(
     feature = "bincode",
@@ -56,6 +60,15 @@ impl<InjectedIntrisic> ValueList<InjectedIntrisic> {
         self.0.iter_mut()
     }
 }
+impl ValueList<NoInjectedIntrisics> {
+    pub fn with_arbitrary_injected_intrisics<II>(self) -> ValueList<II> {
+        ValueList(
+            self.into_iter()
+                .map(Value::with_arbitrary_injected_intrisics)
+                .collect(),
+        )
+    }
+}
 impl<InjectedIntrisic> Deref for ValueList<InjectedIntrisic> {
     type Target = [Value<InjectedIntrisic>];
 
@@ -87,6 +100,12 @@ impl<InjectedIntrisic> IntoIterator for ValueList<InjectedIntrisic> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_vec().into_iter()
+    }
+}
+
+impl<II> From<Vec<Value<II>>> for ValueList<II> {
+    fn from(value: Vec<Value<II>>) -> Self {
+        value.into_boxed_slice().into()
     }
 }
 
