@@ -52,10 +52,15 @@ impl From<&str> for ValueString {
         Self(value.into())
     }
 }
-
 impl From<String> for ValueString {
     fn from(value: String) -> Self {
         Self(value.into())
+    }
+}
+
+impl From<ValueString> for String {
+    fn from(value: ValueString) -> Self {
+        value.0.into_string()
     }
 }
 

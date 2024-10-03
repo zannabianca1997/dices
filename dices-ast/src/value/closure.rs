@@ -2,7 +2,10 @@
 
 use std::{collections::BTreeMap, fmt::Display};
 
-use crate::{expression::Expression, ident::IdentStr, value::number::ValueNumber};
+use crate::{
+    expression::Expression, ident::IdentStr, intrisics::NoInjectedIntrisics,
+    value::number::ValueNumber,
+};
 
 use super::{list::ValueList, ToNumberError, Value};
 
@@ -34,6 +37,25 @@ impl<InjectedIntrisic> ValueClosure<InjectedIntrisic> {
     }
     pub fn to_list(self) -> Result<ValueList<InjectedIntrisic>, super::ToListError> {
         Ok(ValueList::from_iter([Box::new(self).into()]))
+    }
+}
+
+impl ValueClosure<NoInjectedIntrisics> {
+    // Add any intrisic type to a intrisic-less value
+    pub fn with_arbitrary_injected_intrisics<II>(self) -> ValueClosure<II> {
+        let ValueClosure {
+            params,
+            captures,
+            body,
+        } = self;
+        ValueClosure {
+            params,
+            captures: captures
+                .into_iter()
+                .map(|(k, v)| (k, v.with_arbitrary_injected_intrisics()))
+                .collect(),
+            body: body.with_arbitrary_injected_intrisics(),
+        }
     }
 }
 

@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use derive_more::derive::{From, Into};
 
-use crate::intrisics::{InjectedIntr, Intrisic};
+use crate::intrisics::{InjectedIntr, Intrisic, NoInjectedIntrisics};
 
 use super::{ToListError, ToNumberError, ValueList, ValueNumber};
 
@@ -41,6 +41,11 @@ impl<Injected> ValueIntrisic<Injected> {
     }
     pub fn to_list(self) -> Result<ValueList<Injected>, ToListError> {
         Ok(ValueList::from_iter([self.into()]))
+    }
+}
+impl ValueIntrisic<NoInjectedIntrisics> {
+    pub fn with_arbitrary_injected_intrisics<II>(self) -> ValueIntrisic<II> {
+        ValueIntrisic(self.0.with_arbitrary_injected_intrisics())
     }
 }
 

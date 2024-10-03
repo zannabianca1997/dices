@@ -1,6 +1,6 @@
 use std::iter::Step;
 
-use derive_more::derive::{Display, From, Into};
+use derive_more::derive::{Deref, DerefMut, Display, From, Into};
 
 use super::{list::ValueList, number::ValueNumber, ToNumberError};
 
@@ -21,6 +21,8 @@ use super::{list::ValueList, number::ValueNumber, ToNumberError};
     // conversions
     From,
     Into,
+    Deref,
+    DerefMut,
 )]
 #[cfg_attr(feature = "bincode", derive(bincode::Decode, bincode::Encode,))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

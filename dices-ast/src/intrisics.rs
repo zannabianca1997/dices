@@ -5,6 +5,7 @@ use std::{
     error::Error,
     fmt::{Debug, Display},
     hash::Hash,
+    ops::{Deref, DerefMut},
 };
 
 use crate::value::{map::ValueMap, Value, ValueIntrisic};
@@ -126,6 +127,27 @@ where
         })
     }
 }
+impl Intrisic<NoInjectedIntrisics> {
+    pub fn with_arbitrary_injected_intrisics<II>(self) -> Intrisic<II> {
+        match self {
+            Intrisic::Sum => Intrisic::Sum,
+            Intrisic::Join => Intrisic::Join,
+            Intrisic::Mult => Intrisic::Mult,
+            Intrisic::ToNumber => Intrisic::ToNumber,
+            Intrisic::ToList => Intrisic::ToList,
+            Intrisic::ToString => Intrisic::ToString,
+            Intrisic::Parse => Intrisic::Parse,
+            Intrisic::Call => Intrisic::Call,
+            #[cfg(feature = "json")]
+            Intrisic::ToJson => Intrisic::ToJson,
+            #[cfg(feature = "json")]
+            Intrisic::FromJson => Intrisic::FromJson,
+
+            // This last case never happens
+            Intrisic::Injected(injected) => *injected,
+        }
+    }
+}
 
 #[cfg(test)]
 #[test]
@@ -167,6 +189,19 @@ pub trait InjectedIntr: Sized + Clone + 'static {
 /// No injected intrisics
 #[derive(Clone, Copy)]
 pub struct NoInjectedIntrisics(!);
+
+impl Deref for NoInjectedIntrisics {
+    type Target = !;
+
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+impl DerefMut for NoInjectedIntrisics {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.0
+    }
+}
 
 impl Debug for NoInjectedIntrisics {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
