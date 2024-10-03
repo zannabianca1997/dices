@@ -31,6 +31,11 @@ macro_rules! std {
     ($($tokens:tt)*) => {map!(@ACC [] $($tokens)*)};
 }
 
+fn version_value<II>() -> Value<II> {
+    dices_ast::value::serde::serialize_to_value(dices_ast::version::VERSION)
+        .expect("Version should be serializable to a value")
+}
+
 /// Build the default std library
 pub fn std<II>() -> ValueMap<II>
 where
@@ -59,6 +64,9 @@ where
                 to_list: Intrisic::ToList,
                 to_string: Intrisic::ToString,
                 parse: Intrisic::Parse,
+            },
+            versions: mod {
+                ast: version_value()
             }
     );
     #[cfg(feature = "json")]
