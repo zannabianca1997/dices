@@ -1,6 +1,11 @@
 //! Intrisics for the REPL
 
-use std::{borrow::Cow, rc::Rc};
+use std::{
+    fs, io,
+    path::Path,
+    rc::Rc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use derive_more::derive::{Display, Error};
 use dices_ast::{
@@ -48,54 +53,84 @@ pub enum REPLIntrisics {
     Quit,
     /// Print a manual page
     Help,
+
+    /// Get the system time
+    Time,
+
+    /// Read a file as a string
+    FileRead,
+    /// Write a string to a file
+    FileWrite,
 }
-#[derive(Debug, Clone, Display, Error)]
+#[derive(Debug, Display, Error)]
 pub enum REPLIntrisicsError {
     /// The `quit` intrisic was called
     Quitting,
+
+    #[display("`file_read` must be called with a single string parameter")]
+    FileReadUsage,
+    #[display("Error while reading file")]
+    FileReadError(io::Error),
+
+    #[display("`file_write` must be called with two string parameters")]
+    FileWriteUsage,
+    #[display("Error while writing file")]
+    FileWriteError(io::Error),
+}
+
+macro_rules! repetitive_impls {
+    (
+        $(
+            $variant:ident <=> $str:literal
+        ),*
+    ) => {
+        fn iter() -> impl IntoIterator<Item = Self> {
+            [$(Self::$variant),*]
+        }
+
+        fn name(&self) -> &'static str {
+            match self {
+              $(
+                Self::$variant => $str
+              ),*
+            }
+            .into()
+        }
+
+        fn named(name: &str) -> Option<Self> {
+            Some(match name {
+                $(
+                  $str => Self::$variant,
+                )*
+                _ => return None,
+            })
+        }
+    };
 }
 
 impl InjectedIntr for REPLIntrisics {
     type Data = Data;
-
     type Error = REPLIntrisicsError;
 
-    fn iter() -> impl IntoIterator<Item = Self> {
-        [Self::Print, Self::Quit, Self::Help]
+    repetitive_impls! {
+        Print <=> "print",
+        Quit <=> "quit",
+        Help <=> "help",
+        Time <=> "time",
+        FileRead <=> "file_read",
+        FileWrite <=> "file_write"
     }
 
-    fn name(&self) -> std::borrow::Cow<str> {
+    fn std_paths(&self) -> &[&[&'static str]] {
         match self {
-            REPLIntrisics::Print => "repl_print",
-            REPLIntrisics::Quit => "repl_quit",
-            REPLIntrisics::Help => "repl_help",
-        }
-        .into()
-    }
-
-    fn named(name: &str) -> Option<Self> {
-        Some(match name {
-            "repl_print" => REPLIntrisics::Print,
-            "repl_quit" => REPLIntrisics::Quit,
-            "repl_help" => REPLIntrisics::Help,
-            _ => return None,
-        })
-    }
-
-    fn std_paths(&self) -> impl IntoIterator<Item = std::borrow::Cow<[std::borrow::Cow<str>]>> {
-        match self {
-            REPLIntrisics::Print => [
-                Cow::Borrowed(&[Cow::Borrowed("prelude"), Cow::Borrowed("print")] as _),
-                Cow::Borrowed(&[Cow::Borrowed("repl"), Cow::Borrowed("print")] as _),
-            ],
-            REPLIntrisics::Quit => [
-                Cow::Borrowed(&[Cow::Borrowed("prelude"), Cow::Borrowed("quit")] as _),
-                Cow::Borrowed(&[Cow::Borrowed("repl"), Cow::Borrowed("quit")] as _),
-            ],
-            REPLIntrisics::Help => [
-                Cow::Borrowed(&[Cow::Borrowed("prelude"), Cow::Borrowed("help")] as _),
-                Cow::Borrowed(&[Cow::Borrowed("repl"), Cow::Borrowed("help")] as _),
-            ],
+            REPLIntrisics::Print => {
+                &[&["prelude", "print"] as &[&str], &["repl", "print"]] as &[&[&str]]
+            }
+            REPLIntrisics::Quit => &[&["prelude", "quit"] as &[&str], &["repl", "quit"]],
+            REPLIntrisics::Help => &[&["prelude", "help"] as &[&str], &["repl", "help"]],
+            REPLIntrisics::Time => &[&["prelude", "time"] as &[&str], &["sys", "time"]],
+            REPLIntrisics::FileRead => &[&["sys", "files", "read"] as &[&str]],
+            REPLIntrisics::FileWrite => &[&["sys", "files", "write"] as &[&str]],
         }
     }
 
@@ -150,6 +185,31 @@ impl InjectedIntr for REPLIntrisics {
                         terminal::size().map(|(w, _)| w as _).ok()
                     )
                 );
+                Ok(Value::Null(ValueNull))
+            }
+            REPLIntrisics::Time => Ok(Value::Number(
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+                    .into(),
+            )),
+            REPLIntrisics::FileRead => {
+                let path = match Box::<[Value<Self>; 1]>::try_from(params) {
+                    Ok(box [Value::String(path)]) => path,
+                    _ => return Err(REPLIntrisicsError::FileReadUsage),
+                };
+                let content = fs::read_to_string(Path::new(&**path))
+                    .map_err(REPLIntrisicsError::FileReadError)?;
+                Ok(Value::String(content.into()))
+            }
+            REPLIntrisics::FileWrite => {
+                let (path, content) = match Box::<[Value<Self>; 2]>::try_from(params) {
+                    Ok(box [Value::String(path), Value::String(content)]) => (path, content),
+                    _ => return Err(REPLIntrisicsError::FileWriteUsage),
+                };
+                fs::write(Path::new(&**path), &**content)
+                    .map_err(REPLIntrisicsError::FileWriteError)?;
                 Ok(Value::Null(ValueNull))
             }
         }
