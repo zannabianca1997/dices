@@ -83,7 +83,7 @@ macro_rules! repetitive_impl {
                 .chain(Injected::iter().into_iter().map(Self::Injected))
             }
 
-            pub fn name(&self) -> Cow<str> {
+            pub fn name(&self) -> &'static str {
                 match self {
                     $(
                         Self::$variant => $str.into(),
@@ -162,18 +162,18 @@ pub trait InjectedIntr: Sized + Clone + 'static + Hash {
     /// The data used by the injected intrisics
     type Data;
     /// The error type given by calling this intrisic
-    type Error: Error + Clone + 'static;
+    type Error: Error + 'static;
 
     /// Iter all possible intrisics that must be injected
     fn iter() -> impl IntoIterator<Item = Self>;
     /// Give a name for this intrisic
-    fn name(&self) -> Cow<str>;
+    fn name(&self) -> &'static str;
     /// Get the intrisic from the name
     fn named(name: &str) -> Option<Self>;
     /// Give all the paths in the std library this intrisic should be injected to
-    fn std_paths(&self) -> impl IntoIterator<Item = Cow<[Cow<str>]>> {
+    fn std_paths(&self) -> &[&[&'static str]] {
         // default to not injecting anywhere
-        []
+        &[]
     }
     /// Call this intrisic
     fn call<'d>(
@@ -240,7 +240,7 @@ impl InjectedIntr for NoInjectedIntrisics {
         []
     }
 
-    fn name(&self) -> Cow<str> {
+    fn name(&self) -> &'static str {
         self.0
     }
 
