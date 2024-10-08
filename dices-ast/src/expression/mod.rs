@@ -34,7 +34,7 @@ pub use parse::{parse_file, Error as ParseError};
 #[cfg_attr(
     feature = "bincode",
     derive(bincode::Decode, bincode::Encode,),
-    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr")
 )]
 pub enum Expression<InjectedIntrisic> {
     /// Expression returning a constant value

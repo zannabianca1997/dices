@@ -15,7 +15,7 @@ use super::Expression;
 #[cfg_attr(
     feature = "bincode",
     derive(bincode::Decode, bincode::Encode,),
-    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr")
 )]
 pub struct ExpressionList<InjectedIntrisic>(Box<[Expression<InjectedIntrisic>]>);
 impl<InjectedIntrisic> ExpressionList<InjectedIntrisic> {

@@ -10,6 +10,9 @@ parse_value = ["dep:peg", "dep:either"]
 parse_matcher = ["matcher", "dep:peg", "dep:either"]
 parse_expression = ["dep:peg", "dep:either"]
 rand = ["dep:rand", "num-bigint/rand"]
+serde = ["dep:serde", "bincode", "dep:serde_bytes", "num-bigint/serde"]
+bincode = ["dep:bincode"]
+json = []
 
 [dependencies]
 derive_more = { version = "1.0.0", features = [
@@ -35,7 +38,9 @@ peg = { version = "0.8.4", optional = true }
 phf = { version = "0.11.2", features = ["macros"] }
 nunny = "0.2.1"
 pretty = { version = "0.12.3", optional = true }
-num-bigint = { version = "0.4.6", features = ["serde"] }
+num-bigint = { version = "0.4.6" }
 rand = { version = "0.8.5", optional = true }
 enum-as-inner = "0.6.1"
 bincode = { version = "2.0.0-rc.3", optional = true }
+serde = { version = "1.0.210", features = ["derive"], optional = true }
+serde_bytes = { version = "0.11.15", optional = true }

@@ -4,3 +4,5 @@ index:
   - "to_list.md"
   - "to_string.md"
   - "parse.md"
+  - "to_json.md"
+  - "from_json.md"

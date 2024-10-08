@@ -14,7 +14,7 @@ use crate::solve::Solvable;
 
 use super::SolveError;
 
-#[derive(Debug, Display, Error, Clone)]
+#[derive(Debug, Display, Error)]
 pub enum IntrisicError<Injected>
 where
     Injected: InjectedIntr,
@@ -40,11 +40,17 @@ where
     ToList(#[error(source)] ToListError),
     #[display("`parse` must be called on a string, not on {_0}")]
     CannotParseNonString(#[error(not(source))] Value<Injected>),
+    #[cfg(feature = "json")]
+    #[display("`from_json` must be called on a string, not on {_0}")]
+    JsonMustBeString(#[error(not(source))] Value<Injected>),
     #[display("Failed to parse string")]
     ParseFailed(#[error(source)] <Value<Injected> as FromStr>::Err),
 
     #[display("{_0}")]
     Injected(#[error(source)] Injected::Error),
+    #[cfg(feature = "json")]
+    #[display("Cannot deserialize from json")]
+    JsonError(#[error(source)] serde_json::Error),
 }
 
 pub(super) fn call<R: Rng, Injected>(
@@ -167,6 +173,35 @@ where
         Intrisic::Injected(injected) => injected
             .call(context.injected_intrisics_data_mut(), params)
             .map_err(IntrisicError::Injected),
+        #[cfg(feature = "json")]
+        Intrisic::ToJson => {
+            let [value] = match Box::<[_; 1]>::try_from(params) {
+                Ok(box [v]) => [v],
+                Err(box ref s) => {
+                    return Err(IntrisicError::WrongParamNum {
+                        called: Intrisic::ToJson,
+                        given: s.len(),
+                    })
+                }
+            };
+            serde_json::to_string(&value)
+                .map(|s| Value::String(s.into()))
+                .map_err(IntrisicError::JsonError)
+        }
+        #[cfg(feature = "json")]
+        Intrisic::FromJson => {
+            let [value] = match Box::<[_; 1]>::try_from(params) {
+                Ok(box [Value::String(s)]) => [s],
+                Ok(box [a]) => return Err(IntrisicError::JsonMustBeString(a)),
+                Err(box ref s) => {
+                    return Err(IntrisicError::WrongParamNum {
+                        called: Intrisic::FromJson,
+                        given: s.len(),
+                    })
+                }
+            };
+            serde_json::from_str(&value).map_err(IntrisicError::JsonError)
+        }
     }
 }
 
@@ -174,6 +209,8 @@ fn param_num<Injected>(intr: &Intrisic<Injected>) -> usize {
     match intr {
         Intrisic::Call => 2,
         Intrisic::ToString | Intrisic::Parse | Intrisic::ToNumber | Intrisic::ToList => 1,
+        #[cfg(feature = "json")]
+        Intrisic::ToJson | Intrisic::FromJson => 1,
         Intrisic::Sum | Intrisic::Join | Intrisic::Mult | Intrisic::Injected(_) => {
             panic!("These have no fixed param number")
         }

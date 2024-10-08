@@ -42,7 +42,7 @@ peg::parser! {
 
         /// A signed number
         pub rule number() -> ValueNumber
-            = n:$(['-']?['0'..='9']+) {? n.parse::<BigInt>().map(ValueNumber::new).or(Err("number")) }
+            = n:$(['-']?['0'..='9']+) {? n.parse::<BigInt>().map(ValueNumber).or(Err("number")) }
 
         /// A quoted string value
         pub rule string() -> ValueString

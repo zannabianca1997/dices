@@ -23,6 +23,7 @@ use super::{list::ValueList, number::ValueNumber, ToNumberError};
     Into,
 )]
 #[cfg_attr(feature = "bincode", derive(bincode::Decode, bincode::Encode,))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ValueBool(bool);
 impl ValueBool {
     pub const TRUE: Self = ValueBool(true);

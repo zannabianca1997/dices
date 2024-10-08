@@ -54,7 +54,7 @@ impl BinOp {
 #[cfg_attr(
     feature = "bincode",
     derive(bincode::Decode, bincode::Encode),
-    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr")
 )]
 pub struct ExpressionBinOp<InjectedIntrisic> {
     pub op: BinOp,

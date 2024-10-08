@@ -21,7 +21,7 @@ use super::{list::ValueList, ToNumberError, Value};
 #[cfg_attr(
     feature = "bincode",
     derive(bincode::Decode, bincode::Encode,),
-    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr")
 )]
 pub struct ValueClosure<InjectedIntrisic> {
     pub params: Box<[Box<IdentStr>]>,
@@ -77,5 +77,86 @@ where
             text
         };
         text.append(">")
+    }
+}
+
+#[cfg(feature = "serde")]
+mod serde {
+    use std::collections::BTreeMap;
+
+    use serde::{Deserialize, Serialize};
+    use serde_bytes::ByteBuf;
+
+    use super::ValueClosure;
+    use crate::{ident::IdentStr, intrisics::InjectedIntr, Value};
+
+    #[derive(Deserialize)]
+    #[serde(bound = "InjectedIntrisic: InjectedIntr", tag = "$type")]
+    enum Serialized<InjectedIntrisic> {
+        #[serde(rename = "closure")]
+        Nested {
+            #[serde(rename = "$params")]
+            params: Box<[Box<IdentStr>]>,
+            #[serde(rename = "$captures", default)]
+            captures: BTreeMap<Box<IdentStr>, Value<InjectedIntrisic>>,
+            #[serde(rename = "$body")]
+            body: ByteBuf,
+        },
+    }
+
+    #[derive(Serialize)]
+    #[serde(bound = "InjectedIntrisic: InjectedIntr", tag = "$type")]
+    enum BorrowedSerialized<'m, InjectedIntrisic> {
+        #[serde(rename = "closure")]
+        Nested {
+            #[serde(rename = "$params")]
+            params: &'m Box<[Box<IdentStr>]>,
+            #[serde(rename = "$captures", skip_serializing_if = "BTreeMap::is_empty")]
+            captures: &'m BTreeMap<Box<IdentStr>, Value<InjectedIntrisic>>,
+            #[serde(rename = "$body")]
+            body: ByteBuf,
+        },
+    }
+
+    impl<II> Serialize for ValueClosure<II>
+    where
+        II: InjectedIntr,
+    {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            BorrowedSerialized::Nested {
+                params: &self.params,
+                captures: &self.captures,
+                body: ByteBuf::from(
+                    bincode::encode_to_vec(&self.body, bincode::config::standard())
+                        .map_err(<S::Error as serde::ser::Error>::custom)?,
+                ),
+            }
+            .serialize(serializer)
+        }
+    }
+    impl<'de, II> Deserialize<'de> for ValueClosure<II>
+    where
+        II: InjectedIntr,
+    {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            let Serialized::Nested {
+                params,
+                captures,
+                body,
+            } = Deserialize::deserialize(deserializer)?;
+            Ok(Self {
+                params,
+                captures,
+                body: bincode::decode_from_slice(&body, bincode::config::standard())
+                    .map_err(<D::Error as serde::de::Error>::custom)?
+                    .0,
+            })
+        }
     }
 }

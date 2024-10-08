@@ -17,6 +17,7 @@ use super::{ToNumberError, ValueList};
     Hash,
 )]
 #[cfg_attr(feature = "bincode", derive(bincode::Decode, bincode::Encode,))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ValueNull;
 impl ValueNull {
     pub fn to_number(self) -> Result<super::ValueNumber, super::ToNumberError> {

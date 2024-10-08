@@ -14,6 +14,7 @@ pub fn is_valid_ident(s: &str) -> bool {
 /// A string that is guarantee to be a valid identifier (`r"(?:[a-zA-Z]|_+[a-zA-Z0-9])[_a-zA-Z0-9]*"`)
 #[derive(Debug, Display, AsRef, Deref, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[repr(transparent)]
 pub struct IdentStr(str);
 
@@ -98,6 +99,18 @@ impl<'de> bincode::BorrowDecode<'de> for &'de IdentStr {
         let decoded = bincode::BorrowDecode::borrow_decode(decoder)?;
         IdentStr::new(decoded).ok_or_else(|| {
             bincode::error::DecodeError::OtherString(format!("Invalid identifier {decoded}"))
+        })
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Box<IdentStr> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        IdentStr::new_boxed(serde::Deserialize::deserialize(deserializer)?).map_err(|err| {
+            <D::Error as serde::de::Error>::custom(format!("Invalid identifier: {err}"))
         })
     }
 }

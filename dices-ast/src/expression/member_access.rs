@@ -6,7 +6,7 @@ use super::Expression;
 #[cfg_attr(
     feature = "bincode",
     derive(bincode::Decode, bincode::Encode,),
-    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr")
 )]
 /// Access a member of a map or a list
 pub struct ExpressionMemberAccess<InjectedIntrisic> {

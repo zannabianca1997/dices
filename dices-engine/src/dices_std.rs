@@ -61,6 +61,16 @@ where
                 parse: Intrisic::Parse,
             }
     );
+    #[cfg(feature = "json")]
+    {
+        let conversions = dices_std
+            .get_mut("conversions")
+            .unwrap()
+            .as_map_mut()
+            .unwrap();
+        conversions.insert("to_json".into(), Intrisic::ToJson.into());
+        conversions.insert("from_json".into(), Intrisic::FromJson.into());
+    }
     // injecting the injected intrisics in the required places
     for intrisic in II::iter() {
         for path in intrisic.std_paths() {
