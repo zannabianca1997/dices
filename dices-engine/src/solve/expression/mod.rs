@@ -7,13 +7,13 @@ use nunny::NonEmpty;
 use dices_ast::{
     expression::{
         bin_ops::{BinOp, EvalOrder},
-        set::Receiver,
+        set::{MemberReceiver, Receiver},
         Expression, ExpressionBinOp, ExpressionCall, ExpressionList, ExpressionMap,
         ExpressionMemberAccess, ExpressionRef, ExpressionScope, ExpressionSet, ExpressionUnOp,
     },
     ident::IdentStr,
     intrisics::InjectedIntr,
-    value::{ToListError, ToNumberError, Value, ValueClosure, ValueNumber},
+    value::{ToListError, ToNumberError, Value, ValueClosure, ValueNull, ValueNumber},
 };
 pub use intrisics::IntrisicError;
 
@@ -276,7 +276,7 @@ where
                 if let Some(ch) = ch {
                     Ok(ch.clone())
                 } else {
-                    Err(SolveError::StringIndexOutOfRange {
+                    Err(SolveError::ListIndexOutOfRange {
                         idx: n.into(),
                         len: l.len(),
                     })
@@ -331,11 +331,44 @@ where
 
         match &self.receiver {
             Receiver::Ignore => (),
-            Receiver::Set(box v) => {
-                *context
-                    .vars_mut()
-                    .get_mut(v)
-                    .ok_or_else(|| SolveError::InvalidReference(v.to_owned()))? = value.clone();
+            Receiver::Set(MemberReceiver { root, indices }) => {
+                let indices: Vec<_> = indices
+                    .into_iter()
+                    .map(|index| index.solve(context))
+                    .try_collect()?;
+                let mut vars = context.vars_mut();
+                let mut destination = vars
+                    .get_mut(&root)
+                    .ok_or_else(|| SolveError::InvalidReference(root.to_owned()))?;
+                for index in indices {
+                    destination = match (destination, index) {
+                        (Value::List(l), n) => {
+                            let len = l.len();
+                            let n = n
+                                .to_number()
+                                .map_err(SolveError::StringIsIndexedByNumbers)?;
+                            let ch = if n >= ValueNumber::ZERO {
+                                usize::try_from(n.clone()).ok().and_then(|n| l.get_mut(n))
+                            } else {
+                                usize::try_from(n.clone() + ValueNumber::from(l.len()))
+                                    .ok()
+                                    .and_then(|n| l.get_mut(n))
+                            };
+                            if let Some(ch) = ch {
+                                Ok(ch)
+                            } else {
+                                Err(SolveError::ListIndexOutOfRange { idx: n.into(), len })
+                            }
+                        }
+                        (Value::Map(m), Value::String(s)) => {
+                            Ok(m.entry(s).or_insert(Value::Null(ValueNull)))
+                        }
+                        (Value::Map(_), idx) => Err(SolveError::MapIsIndexedByStrings(idx)),
+
+                        (accessed, _) => Err(SolveError::CannotIndex(accessed.clone())),
+                    }?;
+                }
+                *destination = value.clone();
             }
             Receiver::Let(box v) => context.vars_mut().let_(v.to_owned(), value.clone()),
         }

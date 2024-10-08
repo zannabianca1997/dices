@@ -37,3 +37,17 @@ If the index is known, one can index the map with the `.` notation.
 >>> x."complex key"
 true
 ```
+
+Index notation can also be used as the left hand of an assignement, enabling setting members to the map.
+```dices
+#>>> let x = <|answer: 42, "complex key": true|>;
+>>> x.answer = 76;
+>>> x
+<|answer: 76, "complex key": true|>
+>>> x."complex key" = false;
+>>> x
+<|answer: 76, "complex key": false|>
+>>> x["new_member"] = 5;
+>>> x
+<|answer: 76, "complex key": false, new_member: 5|>
+```

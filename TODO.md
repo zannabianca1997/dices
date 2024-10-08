@@ -1,7 +1,5 @@
 # Language
 
-- Assign to member `x.a = ...`
-
 ## Intrisics
 
 - `serialize`: serialization of safe `Value`s (subset of `print`)
@@ -20,6 +18,12 @@
 
 - Write Lua bindings
 - Add the `LuaFunction` datatype
+
+## Docs
+
+## Tests
+
+- Extend test coverage
 
 # Server
 
