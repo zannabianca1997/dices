@@ -43,6 +43,13 @@ pub enum Intrisic<Injected> {
     /// Call its first parameter with the arguments given by the second, converted to a list
     Call,
 
+    /// Convert its param to a json string
+    #[cfg(feature = "json")]
+    ToJson,
+    /// Convert its param from a json string
+    #[cfg(feature = "json")]
+    FromJson,
+
     /// Injected intrisic
     ///
     /// Intrisics that came from the enviroment (files, printing, exiting the shell, etc)
@@ -64,6 +71,10 @@ where
             Self::ToString,
             Self::Parse,
             Self::Call,
+            #[cfg(feature = "json")]
+            Self::ToJson,
+            #[cfg(feature = "json")]
+            Self::FromJson,
         ]
         .into_iter()
         .chain(Injected::iter().into_iter().map(Self::Injected))
@@ -89,6 +100,10 @@ where
             Intrisic::Call => "call".into(),
             Intrisic::ToString => "to_string".into(),
             Intrisic::Parse => "parse".into(),
+            #[cfg(feature = "json")]
+            Intrisic::ToJson => "to_json".into(),
+            #[cfg(feature = "json")]
+            Intrisic::FromJson => "from_json".into(),
             Intrisic::Injected(injected) => injected.name(),
         }
     }
@@ -103,12 +118,28 @@ where
             "call" => Intrisic::Call,
             "to_string" => Intrisic::ToString,
             "parse" => Intrisic::Parse,
+            #[cfg(feature = "json")]
+            "to_json" => Intrisic::ToJson,
+            #[cfg(feature = "json")]
+            "from_json" => Intrisic::FromJson,
             _ => return Injected::named(name).map(Intrisic::Injected),
         })
     }
 }
 
-pub trait InjectedIntr: Sized + Clone {
+#[cfg(test)]
+#[test]
+fn all_names_roundtrip() {
+    for intrisic in Intrisic::<NoInjectedIntrisics>::iter() {
+        let name = intrisic.name();
+        let named = Intrisic::<NoInjectedIntrisics>::named(&name).expect(&format!(
+            "Intrisic `{intrisic:?}` gave `{name}` as name, but `named` did not recognize it"
+        ));
+        assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip")
+    }
+}
+
+pub trait InjectedIntr: Sized + Clone + 'static {
     /// The data used by the injected intrisics
     type Data;
     /// The error type given by calling this intrisic
@@ -197,7 +228,7 @@ impl InjectedIntr for NoInjectedIntrisics {
 #[cfg(feature = "bincode")]
 impl<II> bincode::Encode for Intrisic<II>
 where
-    II: InjectedIntr + 'static,
+    II: InjectedIntr,
 {
     fn encode<E: bincode::enc::Encoder>(
         &self,
@@ -210,7 +241,7 @@ where
 #[cfg(feature = "bincode")]
 impl<II> bincode::Decode for Intrisic<II>
 where
-    II: InjectedIntr + 'static,
+    II: InjectedIntr,
 {
     fn decode<D: bincode::de::Decoder>(
         decoder: &mut D,
@@ -225,7 +256,7 @@ where
 #[cfg(feature = "bincode")]
 impl<'de, II> bincode::BorrowDecode<'de> for Intrisic<II>
 where
-    II: InjectedIntr + 'static,
+    II: InjectedIntr,
 {
     fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
         decoder: &mut D,
@@ -234,5 +265,41 @@ where
         Self::named(&*name).ok_or_else(|| {
             bincode::error::DecodeError::OtherString(format!("Unknow intrisic {name}"))
         })
+    }
+}
+
+#[cfg(feature = "serde")]
+mod serde {
+    use std::borrow::Cow;
+
+    use serde::{Deserialize, Serialize};
+
+    use super::Intrisic;
+    use crate::intrisics::InjectedIntr;
+
+    impl<II> Serialize for Intrisic<II>
+    where
+        II: InjectedIntr,
+    {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            self.name().serialize(serializer)
+        }
+    }
+    impl<'de, II> Deserialize<'de> for Intrisic<II>
+    where
+        II: InjectedIntr,
+    {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            let name = Cow::<str>::deserialize(deserializer)?;
+            Self::named(&name).ok_or_else(|| {
+                <D::Error as serde::de::Error>::custom(format!("Unknow intrisic {name}"))
+            })
+        }
     }
 }

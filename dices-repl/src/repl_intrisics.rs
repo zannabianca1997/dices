@@ -172,3 +172,17 @@ fn help_for_help_exist() {
 fn man_has_repl_intrisics() {
     dices_man::std_library_is_represented::<REPLIntrisics>()
 }
+
+#[cfg(test)]
+#[test]
+fn all_names_roundtrip() {
+    use dices_ast::intrisics::Intrisic;
+
+    for intrisic in Intrisic::<REPLIntrisics>::iter() {
+        let name = intrisic.name();
+        let named = Intrisic::<REPLIntrisics>::named(&name).expect(&format!(
+            "Intrisic `{intrisic:?}` gave `{name}` as name, but `named` did not recognize it"
+        ));
+        assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip")
+    }
+}

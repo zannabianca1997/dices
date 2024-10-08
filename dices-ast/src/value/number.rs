@@ -37,14 +37,10 @@ use super::list::ValueList;
 #[mul(forward)]
 #[rem(forward)]
 #[div(forward)]
-pub struct ValueNumber(BigInt);
+pub struct ValueNumber(pub(super) BigInt);
 
 impl ValueNumber {
     pub const ZERO: Self = ValueNumber(BigInt::ZERO);
-
-    pub(crate) fn new(value: BigInt) -> Self {
-        Self(value)
-    }
 
     pub fn to_number(self) -> Result<ValueNumber, super::ToNumberError> {
         Ok(self)
@@ -182,8 +178,63 @@ impl bincode::Decode for ValueNumber {
     fn decode<D: bincode::de::Decoder>(
         decoder: &mut D,
     ) -> Result<Self, bincode::error::DecodeError> {
-        Vec::decode(decoder).map(|digits| Self::new(BigInt::from_signed_bytes_le(&digits)))
+        Vec::decode(decoder).map(|digits| Self(BigInt::from_signed_bytes_le(&digits)))
     }
 }
 #[cfg(feature = "bincode")]
 bincode::impl_borrow_decode! {ValueNumber}
+
+#[cfg(feature = "serde")]
+mod serde {
+
+    use num_bigint::{BigInt, Sign};
+    use serde::{Deserialize, Serialize};
+    use serde_bytes::ByteBuf;
+
+    use super::ValueNumber;
+
+    #[derive(Deserialize, Serialize)]
+    #[serde(tag = "$type")]
+    enum Serialized {
+        #[serde(rename = "number")]
+        Nested {
+            #[serde(rename = "$sign")]
+            sign: Sign,
+            #[serde(rename = "$bytes")]
+            bytes: ByteBuf,
+        },
+        #[serde(untagged)]
+        Small(i64),
+    }
+
+    impl Serialize for ValueNumber {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            match i64::try_from(&self.0) {
+                Ok(small) => Serialized::Small(small),
+                Err(_) => {
+                    let (sign, bytes) = self.0.to_bytes_le();
+                    Serialized::Nested {
+                        sign,
+                        bytes: ByteBuf::from(bytes),
+                    }
+                }
+            }
+            .serialize(serializer)
+        }
+    }
+    impl<'de> Deserialize<'de> for ValueNumber {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            let value = match Serialized::deserialize(deserializer)? {
+                Serialized::Nested { sign, bytes } => BigInt::from_bytes_le(sign, &*bytes),
+                Serialized::Small(small) => small.into(),
+            };
+            Ok(ValueNumber(value))
+        }
+    }
+}

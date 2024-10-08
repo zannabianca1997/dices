@@ -19,7 +19,7 @@ pub enum UnOp {
 #[cfg_attr(
     feature = "bincode",
     derive(bincode::Decode, bincode::Encode,),
-    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr + 'static")
+    bincode(bounds = "InjectedIntrisic: crate::intrisics::InjectedIntr")
 )]
 pub struct ExpressionUnOp<InjectedIntrisic> {
     pub op: UnOp,

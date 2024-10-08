@@ -20,7 +20,7 @@ pub use intrisics::IntrisicError;
 
 use crate::solve::Solvable;
 
-#[derive(Debug, Display, Error, Clone)]
+#[derive(Debug, Display, Error)]
 pub enum SolveError<InjectedIntrisic: InjectedIntr> {
     #[display("The number of repeats must be a number")]
     RepeatTimesNotANumber(#[error(source)] ToNumberError),

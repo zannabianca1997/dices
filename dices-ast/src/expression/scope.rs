@@ -30,7 +30,7 @@ impl<InjectedIntrisic> ExpressionScope<InjectedIntrisic> {
 #[cfg(feature = "bincode")]
 impl<InjectedIntrisic> bincode::Encode for ExpressionScope<InjectedIntrisic>
 where
-    InjectedIntrisic: crate::intrisics::InjectedIntr + 'static,
+    InjectedIntrisic: crate::intrisics::InjectedIntr,
 {
     fn encode<E: bincode::enc::Encoder>(
         &self,
@@ -43,7 +43,7 @@ where
 #[cfg(feature = "bincode")]
 impl<InjectedIntrisic> bincode::Decode for ExpressionScope<InjectedIntrisic>
 where
-    InjectedIntrisic: crate::intrisics::InjectedIntr + 'static,
+    InjectedIntrisic: crate::intrisics::InjectedIntr,
 {
     fn decode<D: bincode::de::Decoder>(
         decoder: &mut D,
@@ -59,7 +59,7 @@ where
 #[cfg(feature = "bincode")]
 impl<'de, InjectedIntrisic> bincode::BorrowDecode<'de> for ExpressionScope<InjectedIntrisic>
 where
-    InjectedIntrisic: crate::intrisics::InjectedIntr + 'static,
+    InjectedIntrisic: crate::intrisics::InjectedIntr,
 {
     fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
         decoder: &mut D,

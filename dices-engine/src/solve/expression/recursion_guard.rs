@@ -21,7 +21,7 @@ use dices_ast::intrisics::InjectedIntr;
 
 use super::IntrisicError;
 
-#[derive(AsRef, AsMut, From, Clone, Copy, Constructor)]
+#[derive(AsRef, AsMut, From, Constructor)]
 #[repr(transparent)]
 pub struct RecursionGuard<T>(pub T);
 

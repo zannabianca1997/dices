@@ -23,8 +23,13 @@ use super::Value;
 )]
 #[cfg_attr(
     feature = "bincode",
-    derive(bincode::Decode, bincode::Encode,),
-    bincode(bounds = "InjectedIntrisic: InjectedIntr + 'static")
+    derive(bincode::Decode, bincode::Encode),
+    bincode(bounds = "InjectedIntrisic: InjectedIntr")
+)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(bound = "InjectedIntrisic: InjectedIntr")
 )]
 pub struct ValueList<InjectedIntrisic>(Box<[Value<InjectedIntrisic>]>);
 impl<InjectedIntrisic> ValueList<InjectedIntrisic> {

@@ -25,9 +25,9 @@ use super::{ToListError, ToNumberError, ValueList, ValueNumber};
 #[cfg_attr(
     feature = "bincode",
     derive(bincode::Decode, bincode::Encode),
-    bincode(bounds = "Injected: crate::intrisics::InjectedIntr + 'static")
+    bincode(bounds = "Injected: crate::intrisics::InjectedIntr")
 )]
-pub struct ValueIntrisic<Injected>(Intrisic<Injected>);
+pub struct ValueIntrisic<Injected>(pub Intrisic<Injected>);
 
 impl<Injected: InjectedIntr> Display for ValueIntrisic<Injected> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -56,5 +56,58 @@ where
             .text("<intrisic `")
             .append(self.0.name())
             .append("`>")
+    }
+}
+
+#[cfg(feature = "serde")]
+mod serde {
+
+    use serde::{Deserialize, Serialize};
+
+    use super::ValueIntrisic;
+    use crate::intrisics::{InjectedIntr, Intrisic};
+
+    #[derive(Deserialize)]
+    #[serde(bound = "II: crate::intrisics::InjectedIntr", tag = "$type")]
+    enum Serialized<II> {
+        #[serde(rename = "intrisic")]
+        Nested {
+            #[serde(rename = "$intrisic")]
+            intrisic: Intrisic<II>,
+        },
+    }
+
+    #[derive(Serialize)]
+    #[serde(bound = "II: crate::intrisics::InjectedIntr", tag = "$type")]
+    enum BorrowedSerialized<'m, II> {
+        #[serde(rename = "intrisic")]
+        Nested {
+            #[serde(rename = "$intrisic")]
+            intrisic: &'m Intrisic<II>,
+        },
+    }
+
+    impl<II> Serialize for ValueIntrisic<II>
+    where
+        II: InjectedIntr,
+    {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            BorrowedSerialized::Nested { intrisic: &self.0 }.serialize(serializer)
+        }
+    }
+    impl<'de, II> Deserialize<'de> for ValueIntrisic<II>
+    where
+        II: InjectedIntr,
+    {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            let Serialized::Nested { intrisic: name } = Deserialize::deserialize(deserializer)?;
+            Ok(Self(name))
+        }
     }
 }

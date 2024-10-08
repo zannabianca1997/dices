@@ -21,9 +21,9 @@ use super::{list::ValueList, string::ValueString, Value};
 #[cfg_attr(
     feature = "bincode",
     derive(bincode::Decode, bincode::Encode,),
-    bincode(bounds = "InjectedIntrisic: InjectedIntr + 'static")
+    bincode(bounds = "InjectedIntrisic: InjectedIntr")
 )]
-pub struct ValueMap<InjectedIntrisic>(BTreeMap<ValueString, Value<InjectedIntrisic>>);
+pub struct ValueMap<InjectedIntrisic>(pub(super) BTreeMap<ValueString, Value<InjectedIntrisic>>);
 impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
     pub fn new() -> Self {
         Self(BTreeMap::new())
@@ -139,5 +139,69 @@ impl<InjectedIntrisic> IntoIterator for ValueMap<InjectedIntrisic> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
+    }
+}
+
+#[cfg(feature = "serde")]
+mod serde {
+    use std::collections::BTreeMap;
+
+    use serde::{Deserialize, Serialize};
+
+    use super::ValueMap;
+    use crate::{intrisics::InjectedIntr, value::ValueString, Value};
+
+    #[derive(Deserialize)]
+    #[serde(bound = "InjectedIntrisic: InjectedIntr", tag = "$type")]
+    enum Serialized<InjectedIntrisic> {
+        #[serde(rename = "map")]
+        Nested {
+            #[serde(rename = "$content")]
+            content: BTreeMap<ValueString, Value<InjectedIntrisic>>,
+        },
+        #[serde(untagged)]
+        Flattened(BTreeMap<ValueString, Value<InjectedIntrisic>>),
+    }
+
+    #[derive(Serialize)]
+    #[serde(bound = "InjectedIntrisic: InjectedIntr", tag = "$type")]
+    enum BorrowedSerialized<'m, InjectedIntrisic> {
+        #[serde(rename = "map")]
+        Nested {
+            #[serde(rename = "$content")]
+            content: &'m BTreeMap<ValueString, Value<InjectedIntrisic>>,
+        },
+        #[serde(untagged)]
+        Flattened(&'m BTreeMap<ValueString, Value<InjectedIntrisic>>),
+    }
+
+    impl<II> Serialize for ValueMap<II>
+    where
+        II: InjectedIntr,
+    {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            if self.contains("$type") {
+                BorrowedSerialized::Nested { content: &self.0 }
+            } else {
+                BorrowedSerialized::Flattened(&self.0)
+            }
+            .serialize(serializer)
+        }
+    }
+    impl<'de, II> Deserialize<'de> for ValueMap<II>
+    where
+        II: InjectedIntr,
+    {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            let (Serialized::Nested { content } | Serialized::Flattened(content)) =
+                Serialized::deserialize(deserializer)?;
+            Ok(Self(content))
+        }
     }
 }
