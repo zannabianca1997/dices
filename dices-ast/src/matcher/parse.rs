@@ -26,6 +26,7 @@ peg::parser! {
                     } else {
                         Matcher::Exact(v)
                     } }
+                    / "_" { Matcher::Any }
                     / "(" _ m:matcher() _ ")" { m }
                 ) {a}
                 --

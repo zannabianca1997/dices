@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use either::Either::{Left, Right};
 use nunny::NonEmpty;
 use peg::{error::ParseError, str::LineCol};
+use set::MemberReceiver;
 
 use crate::{
     expression::{bin_ops::BinOp, un_ops::UnOp, *},
@@ -91,10 +92,17 @@ peg::parser! {
             / expected!("expression")
 
         // -- LHS
-        rule receiver() -> Receiver
+        rule receiver<InjectedIntrisic>() -> Receiver<InjectedIntrisic>
          = "_"               { Receiver::Ignore }
          / "let" _ i:ident() { Receiver::Let(i.to_owned()) }
-         / i:ident()         { Receiver::Set(i.to_owned()) }
+         / i:ident() indices:(
+            _ "." _ e:(
+                i:ident()    { Value::String((**i).into())}
+                / s:string() { Value::String(s) }
+                / n:number() { Value::Number(n) }
+            ) { Expression::Const(e) }
+            /  _ "[" _ e:expr() _ "]" { e }
+         ) *        { Receiver::Set(MemberReceiver::new(i.to_owned(), indices)) }
 
         // --- SCALARS ---
 

@@ -6,7 +6,7 @@ use itertools::Itertools;
 use dices_ast::{
     expression::{
         bin_ops::{BinOp, EvalOrder},
-        set::Receiver,
+        set::{MemberReceiver, Receiver},
         un_ops::UnOp,
         Expression, ExpressionClosure,
     },
@@ -73,24 +73,6 @@ impl<'e> VarUse<'e> {
     fn of<InjectedIntrisic>(
         expr: &'e Expression<InjectedIntrisic>,
     ) -> Result<Self, VarUseCalcError> {
-        fn maybe_concat<'e>(
-            a: Result<VarUse<'e>, VarUseCalcError>,
-            b: Result<VarUse<'e>, VarUseCalcError>,
-        ) -> Result<VarUse<'e>, VarUseCalcError> {
-            match (a, b) {
-                (Ok(a), Ok(b)) => Ok(a.concat(b)),
-                // merge the two problems if compatibles
-                (
-                    Err(VarUseCalcError::ConditionalLet { vars: vars_a }),
-                    Err(VarUseCalcError::ConditionalLet { vars: vars_b }),
-                ) => Err(VarUseCalcError::ConditionalLet {
-                    vars: vars_a.into_iter().chain(vars_b).collect(),
-                }),
-                // return one of the two problems
-                (Err(err), _) | (_, Err(err)) => Err(err),
-            }
-        }
-
         Ok(match expr {
             // const expression do not interact with the variables
             Expression::Const(_) => Self::none(),
@@ -156,14 +138,14 @@ impl<'e> VarUse<'e> {
                 .map(VarUse::of)
                 .tree_reduce(maybe_concat)
                 .transpose()?
-                .unwrap_or_else(|| unreachable!("The scope should be non empty"))
+                .expect("The scope should be non empty")
                 .scoped(),
             Expression::Set(s) => {
                 Self::concat(
                     // first, the value is calculated
                     Self::of(&s.value)?,
                     // then, the receiver act
-                    Self::receiving(&s.receiver),
+                    Self::receiving(&s.receiver)?,
                 )
             }
             Expression::Ref(s) => Self::reads(&s.name),
@@ -249,12 +231,41 @@ impl<'e> VarUse<'e> {
     }
 
     /// Calculate the variable use of a receiver
-    fn receiving(receiver: &'e Receiver) -> Self {
-        match receiver {
+    fn receiving<II>(receiver: &'e Receiver<II>) -> Result<Self, VarUseCalcError> {
+        Ok(match receiver {
             Receiver::Ignore => Self::none(),
-            Receiver::Set(box var) => Self::sets(var),
+            Receiver::Set(MemberReceiver {
+                root: box root,
+                indices,
+            }) if indices.is_empty() => Self::sets(root),
+            Receiver::Set(MemberReceiver {
+                root: box root,
+                indices,
+            }) => once(Ok(Self::reads(root)))
+                .chain(indices.into_iter().map(Self::of))
+                .chain(once(Ok(Self::sets(root))))
+                .tree_reduce(maybe_concat)
+                .transpose()?
+                .expect("The iterator cannot be empty"),
             Receiver::Let(box var) => Self::lets(var),
-        }
+        })
+    }
+}
+fn maybe_concat<'e>(
+    a: Result<VarUse<'e>, VarUseCalcError>,
+    b: Result<VarUse<'e>, VarUseCalcError>,
+) -> Result<VarUse<'e>, VarUseCalcError> {
+    match (a, b) {
+        (Ok(a), Ok(b)) => Ok(a.concat(b)),
+        // merge the two problems if compatibles
+        (
+            Err(VarUseCalcError::ConditionalLet { vars: vars_a }),
+            Err(VarUseCalcError::ConditionalLet { vars: vars_b }),
+        ) => Err(VarUseCalcError::ConditionalLet {
+            vars: vars_a.into_iter().chain(vars_b).collect(),
+        }),
+        // return one of the two problems
+        (Err(err), _) | (_, Err(err)) => Err(err),
     }
 }
 

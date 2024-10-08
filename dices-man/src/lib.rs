@@ -286,6 +286,10 @@ impl ManTopicContent {
             }
         }
     }
+
+    pub fn is_page(&self) -> bool {
+        matches!(self, Self::Page(_))
+    }
 }
 
 /// Create the index of a page
@@ -421,7 +425,6 @@ mod tests;
 
 /// Check if the std library is fully documented
 #[cfg(any(feature = "test_std_handle", test))]
-
 pub fn std_library_is_represented<InjectedIntrisic: dices_ast::intrisics::InjectedIntr>() {
     assert!(
         search("std").is_some(),
@@ -432,16 +435,18 @@ pub fn std_library_is_represented<InjectedIntrisic: dices_ast::intrisics::Inject
         dices_engine::dices_std::<InjectedIntrisic>(),
     )];
     while let Some((path, map)) = paths.pop() {
-        // Do not check inside those path, as they contains only things that are contained elsewhere
-        if path.starts_with("std/prelude") || path.starts_with("std/intrisics") {
-            continue;
-        }
         // iter throught the map
         for (name, value) in map {
             let path = path.clone() + "/" + &*name;
             // check it is documented
-            assert!(search(&*path).is_some(), "The topic {path} is missing");
-            // if a map, recurst
+            let Some(topic) = search(&*path) else {
+                panic!("The topic {path} is missing");
+            };
+            // do not recurse if a page is expaining the whole map
+            if topic.is_page() {
+                continue;
+            }
+            // if a map, recurse
             if let Value::Map(map) = value {
                 paths.push((path, map))
             }

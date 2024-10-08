@@ -27,6 +27,9 @@ use super::{list::ValueList, string::ValueString, Value};
     bincode(bounds = "InjectedIntrisic: InjectedIntr")
 )]
 pub struct ValueMap<InjectedIntrisic>(pub(super) BTreeMap<ValueString, Value<InjectedIntrisic>>);
+type Entry<'m, InjectedIntrisic> =
+    std::collections::btree_map::Entry<'m, ValueString, Value<InjectedIntrisic>>;
+
 impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
     pub fn new() -> Self {
         Self(BTreeMap::new())
@@ -78,6 +81,10 @@ impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
 
     pub fn contains(&self, key: &str) -> bool {
         self.0.contains_key(key)
+    }
+
+    pub fn entry(&mut self, s: ValueString) -> Entry<InjectedIntrisic> {
+        self.0.entry(s)
     }
 }
 impl ValueMap<NoInjectedIntrisics> {

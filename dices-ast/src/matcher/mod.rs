@@ -14,6 +14,8 @@ pub enum Matcher<InjectedIntrisic> {
     And(Box<[Matcher<InjectedIntrisic>; 2]>),
     Or(Box<[Matcher<InjectedIntrisic>; 2]>),
     Not(Box<Matcher<InjectedIntrisic>>),
+    Any,
+    None,
 }
 impl<InjectedIntrisic> Matcher<InjectedIntrisic> {
     pub fn is_match(&self, v: &Value<InjectedIntrisic>) -> bool
@@ -62,6 +64,8 @@ impl<InjectedIntrisic> Matcher<InjectedIntrisic> {
             Matcher::And(box [a, b]) => a.is_match(v) && b.is_match(v),
             Matcher::Or(box [a, b]) => a.is_match(v) || b.is_match(v),
             Matcher::Not(box a) => !a.is_match(v),
+            Matcher::Any => true,
+            Matcher::None => false,
         }
     }
 }
