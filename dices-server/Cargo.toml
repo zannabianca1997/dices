@@ -1,0 +1,19 @@
+[package]
+name = "dices-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7", features = ["macros", "tracing"] }
+derive_more = { version = "1.0", features = ["constructor", "from"] }
+dices-ast = { path = "../dices-ast", features = ["rand", "bincode"] }
+dices-engine = { path = "../dices-engine" }
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.40", features = ["full"] }
+tower = { version = "0.5.1", features = ["tracing"] }
+axum-macros = { version = "0.3.0-rc.3" }
+clap = { version = "4.5.20", features = ["derive"] }
+tracing = "0.1.40"
+figment = { version = "0.10.19", features = ["env", "toml"] }
+tracing-subscriber = "0.3.18"
+tower-http = { version = "0.6.1", features = ["trace"] }

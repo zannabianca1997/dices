@@ -13,6 +13,7 @@ use rand::{Rng, SeedableRng};
 use dices_ast::{
     ident::IdentStr,
     intrisics::{InjectedIntr, NoInjectedIntrisics},
+    version::Version,
     Expression, Value,
 };
 
@@ -249,3 +250,9 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
 
 pub trait DicesRng: Rng + SeedableRng + Serialize + DeserializeOwned {}
 impl<T> DicesRng for T where T: Rng + SeedableRng + Serialize + DeserializeOwned {}
+
+pub const VERSION: Version = Version::new(
+    env!("CARGO_PKG_VERSION_MAJOR"),
+    env!("CARGO_PKG_VERSION_MINOR"),
+    env!("CARGO_PKG_VERSION_PATCH"),
+);
