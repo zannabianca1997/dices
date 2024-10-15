@@ -7,10 +7,10 @@ use derive_more::derive::{Display, Error, From};
 use dices_server::{App, Config};
 use figment::{
     providers::{Env, Format, Serialized, Toml},
-    Figment, Provider,
+    Figment,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{instrument, level_filters::LevelFilter};
+use tracing::level_filters::LevelFilter;
 
 #[derive(Debug, Parser)]
 struct CLI {

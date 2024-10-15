@@ -1,12 +1,19 @@
+#![feature(lazy_cell)]
+
 use axum::Router;
 use derive_more::derive::{Constructor, Display, Error, From};
-use dices_ast::version::Version;
+use dices_version::Version;
 use serde::{Deserialize, Serialize};
 use tokio::{net::TcpListener, signal};
 use tower_http::trace::TraceLayer;
-use tracing::{info_span, instrument, Instrument};
+use tracing::instrument;
+use utoipa::openapi::{Contact, Info, License, OpenApi, OpenApiBuilder};
+use utoipa_swagger_ui::SwaggerUi;
 
-mod common;
+mod sessions;
+mod user;
+mod version;
+const DOMAINS: &[Domain] = &[version::DOMAIN, sessions::DOMAIN, user::DOMAIN];
 
 pub const VERSION: Version = Version::new(
     env!("CARGO_PKG_VERSION_MAJOR"),
@@ -55,11 +62,18 @@ pub struct App {
 
 impl App {
     pub fn new(config: Config) -> Result<Self, BuildError> {
+        let mut global_router = Router::new()
+            .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", openapi()));
+        for Domain {
+            name, version, api, ..
+        } in DOMAINS
+        {
+            global_router = global_router.nest(&format!("/api/v{version}/{name}"), api())
+        }
+        global_router = global_router.layer(TraceLayer::new_for_http());
         Ok(Self {
             config,
-            router: Router::new()
-                .merge(common::router())
-                .layer(TraceLayer::new_for_http()),
+            router: global_router,
         })
     }
 
@@ -90,6 +104,60 @@ impl App {
         tracing::info!("Exiting...");
         Ok(())
     }
+}
+
+fn openapi() -> utoipa::openapi::OpenApi {
+    let mut open_api = OpenApiBuilder::new()
+        .info(
+            Info::builder()
+                .title("Dices Server")
+                .description(Some("A server to run instances of `dices`"))
+                .license(Some(License::new("MIT")))
+                .contact(Some(
+                    Contact::builder()
+                        .name(Some("zannabianca1997"))
+                        .email(Some("zannabianca199712@gmail.com"))
+                        .url(Some("https://github.com/zannabianca1997/dices"))
+                        .build(),
+                ))
+                .version(env!("CARGO_PKG_VERSION")),
+        )
+        .build();
+    for Domain {
+        name,
+        version,
+        api_docs,
+        ..
+    } in DOMAINS
+    {
+        let mut other = api_docs();
+        other.paths.paths.iter_mut().for_each(|(_, path_item)| {
+            let update_tags = |operation: Option<&mut utoipa::openapi::path::Operation>| {
+                if let Some(operation) = operation {
+                    let operation_tags = operation.tags.get_or_insert(Vec::new());
+                    operation_tags.push(name.to_string());
+                }
+            };
+
+            update_tags(path_item.get.as_mut());
+            update_tags(path_item.put.as_mut());
+            update_tags(path_item.post.as_mut());
+            update_tags(path_item.delete.as_mut());
+            update_tags(path_item.options.as_mut());
+            update_tags(path_item.head.as_mut());
+            update_tags(path_item.patch.as_mut());
+            update_tags(path_item.trace.as_mut());
+        });
+        open_api = open_api.nest(format!("/api/v{version}/{name}"), other)
+    }
+    open_api
+}
+
+struct Domain {
+    name: &'static str,
+    version: u16,
+    api: fn() -> Router<AppState>,
+    api_docs: fn() -> OpenApi,
 }
 
 #[instrument]

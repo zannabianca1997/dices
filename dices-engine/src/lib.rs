@@ -7,13 +7,13 @@
 
 use std::borrow::Cow;
 
+use dices_version::Version;
 use nunny::NonEmpty;
 use rand::{Rng, SeedableRng};
 
 use dices_ast::{
     ident::IdentStr,
     intrisics::{InjectedIntr, NoInjectedIntrisics},
-    version::Version,
     Expression, Value,
 };
 

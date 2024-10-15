@@ -2,6 +2,9 @@
 name = "dices-server"
 version = "0.1.0"
 edition = "2021"
+authors = ["zannabianca1997 <zannabianca199712@gmail.com>"]
+description = "A server to run instances of `dices`"
+license = "MIT"
 
 [dependencies]
 axum = { version = "0.7", features = ["macros", "tracing"] }
@@ -10,10 +13,23 @@ dices-ast = { path = "../dices-ast", features = ["rand", "bincode"] }
 dices-engine = { path = "../dices-engine" }
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.40", features = ["full"] }
-tower = { version = "0.5.1", features = ["tracing"] }
-axum-macros = { version = "0.3.0-rc.3" }
+tower = { version = "0.5", features = ["tracing"] }
+axum-macros = { version = "0.4" }
 clap = { version = "4.5.20", features = ["derive"] }
-tracing = "0.1.40"
-figment = { version = "0.10.19", features = ["env", "toml"] }
-tracing-subscriber = "0.3.18"
-tower-http = { version = "0.6.1", features = ["trace"] }
+tracing = "0.1"
+figment = { version = "0.10", features = ["env", "toml"] }
+tracing-subscriber = "0.3"
+tower-http = { version = "0.6", features = ["trace"] }
+diesel = { version = "2.2", features = ["postgres"] }
+utoipa = { version = "5.0.0", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "8.0.0", features = ["axum"] }
+dices-version = { path = "../dices-version", features = ["serde", "utoipa"] }
+uuid = { version = "1.10.0", features = [
+    "v4",
+    "fast-rng",
+    "macro-diagnostics",
+    "serde",
+] }
+chrono = { version = "0.4.38", features = ["serde"] }
+argon2 = "0.5.3"
+jwt = "0.16.0"

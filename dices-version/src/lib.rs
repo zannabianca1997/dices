@@ -1,5 +1,3 @@
-//! Versioning of the AST
-
 use derive_more::derive::{Display, Error};
 pub use konst::{primitive::parse_u16, unwrap_ctx};
 
@@ -7,6 +5,7 @@ pub use konst::{primitive::parse_u16, unwrap_ctx};
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct Version {
     pub major: u16,
     pub minor: u16,
