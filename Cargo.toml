@@ -1,3 +1,3 @@
 [workspace]
-members = ["dices-ast", "dices-engine", "dices-man", "dices-mantest", "dices-repl", "dices-server"]
+members = ["dices-ast", "dices-engine", "dices-man", "dices-mantest", "dices-repl", "dices-server", "dices-version"]
 resolver = "2"

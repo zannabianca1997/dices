@@ -32,7 +32,7 @@ macro_rules! std {
 }
 
 fn version_value<II>() -> Value<II> {
-    dices_ast::value::serde::serialize_to_value(dices_ast::version::VERSION)
+    dices_ast::value::serde::serialize_to_value(dices_ast::VERSION)
         .expect("Version should be serializable to a value")
 }
 
