@@ -1,12 +1,12 @@
-#![feature(lazy_cell)]
-
 use axum::Router;
-use derive_more::derive::{Constructor, Display, Error, From};
+use derive_more::derive::{Constructor, Debug, Display, Error, From};
 use dices_version::Version;
+use sea_orm::{Database, DatabaseConnection, DbErr};
 use serde::{Deserialize, Serialize};
 use tokio::{net::TcpListener, signal};
 use tower_http::trace::TraceLayer;
-use tracing::instrument;
+use tracing::{instrument, Instrument, Span};
+use tracing_subscriber::field::display;
 use utoipa::openapi::{Contact, Info, License, OpenApi, OpenApiBuilder};
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -22,15 +22,22 @@ pub const VERSION: Version = Version::new(
 );
 
 /// Config of the server
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct Config {
-    addr: String,
+    address: String,
+    #[cfg_attr(not(debug_assertions), debug(skip))]
+    database_url: String,
+}
+/// Default configs of the server
+#[derive(Debug, Serialize)]
+pub struct DefaultConfig {
+    address: String,
 }
 
-impl Default for Config {
+impl Default for DefaultConfig {
     fn default() -> Self {
         Self {
-            addr: String::from("0.0.0.0:8080"),
+            address: String::from("0.0.0.0:8080"),
         }
     }
 }
@@ -49,11 +56,25 @@ pub enum FatalError {
     },
     #[display("Fatal io error while serving")]
     IOError(std::io::Error),
+    #[display("Fatal database error")]
+    DbErr(DbErr),
 }
 
 /// Global state of the app
-#[derive(Debug, Constructor, Serialize, Deserialize, Clone)]
-struct AppState {}
+#[derive(Debug, Clone)]
+struct AppState {
+    database: DatabaseConnection,
+}
+impl AppState {
+    #[instrument(name = "creating-appstate")]
+    async fn new(config: &Config) -> Result<Self, DbErr> {
+        tracing::info!("Connecting to the db");
+        let database = Database::connect(&config.database_url)
+            .instrument(tracing::info_span!("initial-db-connection"))
+            .await?;
+        Ok(Self { database })
+    }
+}
 
 pub struct App {
     pub config: Config,
@@ -79,13 +100,14 @@ impl App {
 
     #[instrument(skip(self))]
     pub async fn serve(self) -> Result<(), FatalError> {
-        let Self {
-            config: Config { addr },
-            router,
-        } = self;
+        let Self { config, router } = self;
+        let addr = &config.address;
+        // Warning if this is a debug build
+        #[cfg(debug_assertions)]
+        tracing::warn!("This is a debug build. As such, it is slower and unsecure. Use a release build in production");
         // Creating the global appstate
-        tracing::debug!("Creating global app state.");
-        let router = router.with_state(AppState::new());
+        tracing::debug!("Creating global app state");
+        let router = router.with_state(AppState::new(&config).await?);
         // Bindind to the port
         tracing::debug!(addr, "Creating the listener");
         let listener =

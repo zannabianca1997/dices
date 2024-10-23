@@ -4,7 +4,7 @@ use std::{error::Report, io, path::PathBuf};
 
 use clap::{Args, Parser};
 use derive_more::derive::{Display, Error, From};
-use dices_server::{App, Config};
+use dices_server::{App, Config, DefaultConfig};
 use figment::{
     providers::{Env, Format, Serialized, Toml},
     Figment,
@@ -30,7 +30,12 @@ pub struct ConfigCli {
     /// The address to listen to
     #[serde(skip_serializing_if = "Option::is_none")]
     #[clap(long, short)]
-    addr: Option<String>,
+    address: Option<String>,
+
+    /// The database URL
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(long, short)]
+    database_url: Option<String>,
 
     /// The logging setups
     #[clap(flatten)]
@@ -146,7 +151,7 @@ fn make_figment(
         },
     }
     let mut config = Figment::new()
-        .merge(Serialized::defaults(Config::default()))
+        .merge(Serialized::defaults(DefaultConfig::default()))
         .merge(Serialized::defaults({
             #[derive(Serialize, Default)]
             struct Nested {
