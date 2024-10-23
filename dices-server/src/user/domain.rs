@@ -45,6 +45,10 @@ pub mod models {
         pub fn new() -> Self {
             Self(Uuid::new_v4())
         }
+
+        pub const fn as_bytes(&self) -> &uuid::Bytes {
+            self.0.as_bytes()
+        }
     }
 
     #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -83,7 +87,7 @@ pub mod models {
         }
 
         pub fn authenticate(&self, password: &str) -> Option<AutenticatedUser> {
-            check_password(self.id, self.password, password)
+            check_password(self.id, &self.password, password)
         }
     }
 
@@ -130,15 +134,16 @@ pub mod models {
 }
 
 mod security {
-    use std::mem::size_of;
-
-    use argon2::{Argon2, Params};
+    use argon2::{
+        password_hash::{Salt, SaltString},
+        Argon2, PasswordHasher as _, PasswordVerifier as _,
+    };
 
     use super::models::UserId;
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone)]
     #[repr(transparent)]
-    pub struct PasswordHash([u8; 32]);
+    pub struct PasswordHash(String);
 
     /// Represent a successfull autenticated user
     ///
@@ -154,34 +159,39 @@ mod security {
         }
     }
 
-    /// Generate the password hasher
-    ///
-    /// The params should be in the future readed from the db
-    fn hasher() -> Argon2<'static> {
-        Argon2::new(
-            argon2::Algorithm::Argon2id,
-            argon2::Version::V0x10,
-            Params::new(19 * 1024, 2, 1, Some(size_of::<PasswordHash>()))
-                .expect("The params should be valid"),
-        )
-    }
-
     /// Create a password hash to store safely passwords in the database
     pub(super) fn hash_password(id: UserId, password: &str) -> PasswordHash {
-        let mut hash = PasswordHash([0; size_of::<PasswordHash>()]);
-        hasher()
-            .hash_password_into(password.as_bytes(), id.as_ref().as_bytes(), &mut hash.0)
-            .expect("The hashing procedure should be infallible");
-        hash
+        PasswordHash(
+            Argon2::default()
+                .hash_password(
+                    password.as_bytes(),
+                    &SaltString::encode_b64(id.as_bytes())
+                        .expect("Uuids should be always able to be made into salts"),
+                )
+                .expect("Argon2 should be infallible")
+                .to_string(),
+        )
     }
 
     /// Check if a password matches the one in the db
     pub(super) fn check_password(
         id: UserId,
-        stored: PasswordHash,
+        stored: &PasswordHash,
         provided: &str,
     ) -> Option<AutenticatedUser> {
-        let hashed = hash_password(id, provided);
-        (hashed.0 == stored.0).then(|| AutenticatedUser { user_id: id })
+        argon2::PasswordHash::new(&stored.0)
+            .and_then(|hash| {
+                Argon2::default()
+                    .verify_password(provided.as_bytes(), &hash)
+                    .map(|_| Some(AutenticatedUser { user_id: id }))
+                    .or_else(|err| match err {
+                        argon2::password_hash::Error::Password => Ok(None),
+                        _ => Err(err),
+                    })
+            })
+            .unwrap_or_else(|err| {
+                tracing::error!("Error during password checking of user {id}: {err}");
+                None
+            })
     }
 }
