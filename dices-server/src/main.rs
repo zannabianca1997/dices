@@ -17,6 +17,9 @@ struct CLI {
     /// File for the default options for the server
     #[clap(long = "setup", short = 'S')]
     file_setup: Option<PathBuf>,
+    /// Enviroment variable file
+    #[clap(long)]
+    dot_env: Option<PathBuf>,
 
     #[clap(flatten)]
     cli_setup: ConfigCli,
@@ -47,6 +50,8 @@ enum MainError {
     Fatal(dices_server::FatalError),
     #[display("Cannot parse log level")]
     InvalidLogLevel(tracing_subscriber::filter::LevelParseError),
+    #[display("Error in loading .env file")]
+    DotEnv(dotenvy::Error),
 }
 
 fn main() -> Result<(), Report<MainError>> {
@@ -54,18 +59,20 @@ fn main() -> Result<(), Report<MainError>> {
 }
 
 fn main_impl() -> Result<(), MainError> {
-    let config = make_figment(CLI::parse());
-
+    // Load all configs
+    let config = make_figment(CLI::parse())?;
+    // Setup logging
     setup_logging(config.extract_inner("logging")?)?;
-
+    // Configure app
     let app = App::new(config.extract()?)?;
-
-    tokio::runtime::Builder::new_multi_thread()
+    // Build runtime
+    let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
-        .map_err(MainError::Runtime)?
-        .block_on(app.serve())?;
-
+        .map_err(MainError::Runtime)?;
+    // Serve the app
+    runtime.block_on(app.serve())?;
+    // Graceful exit
     Ok(())
 }
 
@@ -123,8 +130,21 @@ fn make_figment(
     CLI {
         file_setup,
         cli_setup,
+        dot_env,
     }: CLI,
-) -> Figment {
+) -> Result<Figment, MainError> {
+    // Load .env
+    match dot_env {
+        Some(dot_env) => match dotenvy::from_path(&dot_env) {
+            Ok(()) => (),
+            Err(err) => return Err(MainError::DotEnv(err)),
+        },
+        None => match dotenvy::dotenv() {
+            Ok(_) => (),
+            Err(err) if err.not_found() => (),
+            Err(err) => return Err(MainError::DotEnv(err)),
+        },
+    }
     let mut config = Figment::new()
         .merge(Serialized::defaults(Config::default()))
         .merge(Serialized::defaults({
@@ -138,7 +158,8 @@ fn make_figment(
     if let Some(file_setup) = file_setup {
         config = config.merge(Toml::file_exact(file_setup))
     }
-    config
+    config = config
         .merge(Env::prefixed("DICES_SERVER_"))
-        .merge(Serialized::defaults(cli_setup))
+        .merge(Serialized::defaults(cli_setup));
+    Ok(config)
 }
