@@ -33,3 +33,4 @@ uuid = { version = "1.10.0", features = [
 chrono = { version = "0.4.38", features = ["serde"] }
 argon2 = "0.5.3"
 jwt = "0.16.0"
+dotenvy = "0.15.7"
