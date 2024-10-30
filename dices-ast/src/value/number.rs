@@ -233,7 +233,7 @@ mod serde {
             D: serde::Deserializer<'de>,
         {
             let value = match Serialized::deserialize(deserializer)? {
-                Serialized::Nested { sign, bytes } => BigInt::from_bytes_le(sign, &*bytes),
+                Serialized::Nested { sign, bytes } => BigInt::from_bytes_le(sign, &bytes),
                 Serialized::Small(small) => small.into(),
             };
             Ok(ValueNumber(value))

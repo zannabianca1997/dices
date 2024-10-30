@@ -45,6 +45,11 @@ impl EngineBuilder<(), NoInjectedIntrisics> {
         }
     }
 }
+impl Default for EngineBuilder<(), NoInjectedIntrisics> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
     /// Add an RNG
     pub fn with_rng<NewRNG>(self, rng: NewRNG) -> EngineBuilder<NewRNG, InjectedIntrisic> {
@@ -180,7 +185,6 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
     pub fn new() -> Self
     where
         RNG: SeedableRng,
-        InjectedIntrisic: Clone,
         InjectedIntrisic::Data: Default,
     {
         EngineBuilder::new()
@@ -245,6 +249,15 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
 
     pub fn injected_intrisics_data_mut(&mut self) -> &mut <InjectedIntrisic as InjectedIntr>::Data {
         self.context.injected_intrisics_data_mut()
+    }
+}
+
+impl<RNG: SeedableRng, InjectedIntrisic: InjectedIntr> Default for Engine<RNG, InjectedIntrisic>
+where
+    InjectedIntrisic::Data: Default,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 

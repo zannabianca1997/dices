@@ -1,13 +1,10 @@
-use std::{
-    error::Error,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher as _, PasswordVerifier as _};
 use axum::{
     async_trait,
-    extract::{FromRef, FromRequest, FromRequestParts},
-    http::{self, request::Parts},
+    extract::{FromRef, FromRequestParts},
+    http::request::Parts,
 };
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},

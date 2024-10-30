@@ -226,7 +226,8 @@ fn openapi() -> utoipa::openapi::OpenApi {
                 .version(env!("CARGO_PKG_VERSION")),
         )
         .build();
-    open_api.components.get_or_insert_default().add_security_scheme(
+    let components = open_api.components.get_or_insert_default();
+    components.add_security_scheme(
         "UserJWT",
         SecurityScheme::Http(
             HttpBuilder::new()

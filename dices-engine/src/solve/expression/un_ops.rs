@@ -20,11 +20,11 @@ where
             expression: box a,
         } = self;
         let a = a.solve(context)?;
-        Ok(match op {
+        (match op {
             UnOp::Plus => plus,
             UnOp::Neg => neg,
             UnOp::Dice => dice,
-        }(context, a)?)
+        }(context, a))
     }
 }
 

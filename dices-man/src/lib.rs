@@ -87,7 +87,7 @@ impl ManPage {
     fn ast_cache(&self) -> &AstCache {
         self.ast.get_or_init(|| {
             Box::new(AstCache {
-                ast: to_mdast(&self.content, &man_parse_options()).unwrap(),
+                ast: to_mdast(self.content, &man_parse_options()).unwrap(),
                 rendered: Mutex::new(HashMap::new()),
             })
         })
@@ -152,7 +152,7 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
         let doc_arena = pretty::Arena::<()>::new();
         let res_arena = typed_arena::Arena::with_capacity(code.len());
         let doc = doc_arena.intersperse(
-            (&*code).into_iter().filter_map(
+            code.iter().filter_map(
                 |CodeExamplePiece {
                      cmd:
                          CodeExampleCommand {
@@ -274,8 +274,8 @@ impl ManTopicContent {
 
             fn deref(&self) -> &Self::Target {
                 match self {
-                    RenderedRef::Page(p) => &p,
-                    RenderedRef::Index(i) => &i,
+                    RenderedRef::Page(p) => p,
+                    RenderedRef::Index(i) => i,
                 }
             }
         }
@@ -439,7 +439,7 @@ pub fn std_library_is_represented<InjectedIntrisic: dices_ast::intrisics::Inject
         for (name, value) in map {
             let path = path.clone() + "/" + &*name;
             // check it is documented
-            let Some(topic) = search(&*path) else {
+            let Some(topic) = search(&path) else {
                 panic!("The topic {path} is missing");
             };
             // do not recurse if a page is expaining the whole map

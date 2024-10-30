@@ -159,7 +159,7 @@ impl InjectedIntr for REPLIntrisics {
                 // the help intrisic never fails, at most fall on her help page itself
                 let topic = match &*params {
                     [] => "introduction",
-                    [Value::String(s)] => &*s,
+                    [Value::String(s)] => s,
                     _ => HELP_PAGE_FOR_HELP,
                 };
                 // search the manual. If absent, find the index.
@@ -174,7 +174,7 @@ impl InjectedIntr for REPLIntrisics {
                     ..Default::default()
                 });
                 // convert the content into a minimad text
-                let content = mdast2minimad::to_minimad(&*content)
+                let content = mdast2minimad::to_minimad(&content)
                     .expect("All help pages should be convertible");
                 // print it with the current skin
                 println!(
@@ -240,9 +240,11 @@ fn all_names_roundtrip() {
 
     for intrisic in Intrisic::<REPLIntrisics>::iter() {
         let name = intrisic.name();
-        let named = Intrisic::<REPLIntrisics>::named(&name).expect(&format!(
-            "Intrisic `{intrisic:?}` gave `{name}` as name, but `named` did not recognize it"
-        ));
+        let named = Intrisic::<REPLIntrisics>::named(name).unwrap_or_else(|| {
+            panic!(
+                "Intrisic `{intrisic:?}` gave `{name}` as name, but `named` did not recognize it"
+            )
+        });
         assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip")
     }
 }

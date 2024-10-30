@@ -33,7 +33,7 @@ impl IdentStr {
 
     /// Convert to this type with no checks
     ///
-    /// ## SAFETY
+    /// # Safety
     /// The user must check that `s` is a match for [`is_valid_ident`]
     pub unsafe fn new_unchecked(s: &str) -> &Self {
         &*(s as *const str as *const Self)
@@ -42,7 +42,7 @@ impl IdentStr {
     /// Check if the boxed string is a valid identifier, then convert the reference to
     /// a reference to this type.
     pub fn new_boxed(s: Box<str>) -> Result<Box<Self>, Box<str>> {
-        if !is_valid_ident(&*s) {
+        if !is_valid_ident(&s) {
             return Err(s);
         }
         Ok(unsafe {
@@ -53,7 +53,7 @@ impl IdentStr {
 
     /// Convert to this type with no checks
     ///
-    /// ## SAFETY
+    /// # Safety
     /// The user must check that `s` is a match for [`is_valid_ident`]
     pub unsafe fn new_boxed_unchecked(s: Box<str>) -> Box<Self> {
         Box::from_raw(Box::into_raw(s) as _)
