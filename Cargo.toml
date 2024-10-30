@@ -6,8 +6,7 @@ members = [
     "dices-mantest",
     "dices-repl",
     "dices-server",
-    "dices-server/migration",
-    "dices-server/entity",
+    "dices-server-migration",
     "dices-version",
 ]
 resolver = "2"

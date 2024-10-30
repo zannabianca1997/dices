@@ -1,13 +1,24 @@
 use axum::{
+    extract::State,
+    http::StatusCode,
     routing::{get, post},
     Json, Router,
 };
+use sea_orm::{DatabaseConnection, DbErr};
 use utoipa::OpenApi;
 
-use crate::AppState;
+use crate::{
+    commons::{ErrorResponse, ErrorResponseBuilder},
+    entities::user,
+    AppState, AuthKey, ErrorCodes,
+};
 
-use super::domain::models::{
-    LoginRequest, RefreshRequest, RefreshResponse, RegisterRequest, SignInResponse, User,
+use super::domain::{
+    models::{
+        LoginRequest, RefreshRequest, RefreshResponse, RegisterRequest, RegistrationError,
+        SignInResponse, User,
+    },
+    security::{generate_token, AutenticatedUser},
 };
 
 #[utoipa::path(
@@ -15,11 +26,17 @@ use super::domain::models::{
     path = "/login",
     description = "Login to the server",
     responses(
-        (status=200, description="The login completed with success", body = SignInResponse)
+        (status=StatusCode::OK, description="The login completed with success", body = SignInResponse),
+        (status=StatusCode::UNAUTHORIZED, description="The login info are wrong", body = ErrorResponse)
     )
 )]
-async fn login(login: Json<LoginRequest>) -> Json<SignInResponse> {
-    todo!()
+async fn login(
+    State(database): State<DatabaseConnection>,
+    State(auth_key): State<AuthKey>,
+    Json(login): Json<LoginRequest>,
+) -> Result<Json<SignInResponse>, ErrorResponse> {
+    let (user, auth) = User::login(&database, login).await?;
+    Ok(Json(SignInResponse::new(user, auth, auth_key)))
 }
 
 #[utoipa::path(
@@ -27,11 +44,21 @@ async fn login(login: Json<LoginRequest>) -> Json<SignInResponse> {
     path = "/register",
     description = "Register into the server",
     responses(
-        (status=200, description="The registration completed with success", body = SignInResponse)
+        (status=StatusCode::CREATED, description="The registration completed with success", body = SignInResponse),
+        (status=StatusCode::CONFLICT, description="The username already exist", body=ErrorResponse),
+        (status=StatusCode::BAD_REQUEST, description="The login informations are invalid", body=ErrorResponse)
     )
 )]
-async fn register(register: Json<RegisterRequest>) -> Json<SignInResponse> {
-    todo!()
+async fn register(
+    State(database): State<DatabaseConnection>,
+    State(auth_key): State<AuthKey>,
+    Json(register): Json<RegisterRequest>,
+) -> Result<(StatusCode, Json<SignInResponse>), ErrorResponse> {
+    let (user, auth) = User::new(&database, register).await?;
+    Ok((
+        StatusCode::CREATED,
+        Json(SignInResponse::new(user, auth, auth_key)),
+    ))
 }
 
 #[utoipa::path(
@@ -39,23 +66,42 @@ async fn register(register: Json<RegisterRequest>) -> Json<SignInResponse> {
     path = "/refresh",
     description = "Refresh the access token",
     responses(
-        (status=200, description="The refreshed access token", body = RefreshResponse)
-    )
+        (status=StatusCode::OK, description="The refreshed access token", body = RefreshResponse)
+    ),
+    security(("UserJWT" = []))
 )]
-async fn refresh(refresh: Json<RefreshRequest>) -> Json<RefreshResponse> {
-    todo!()
+async fn refresh(user: AutenticatedUser, State(auth_key): State<AuthKey>) -> Json<RefreshResponse> {
+    Json(RefreshResponse {
+        token: generate_token(user, auth_key),
+    })
 }
 
 #[utoipa::path(
     get,
-    path = "/",
+    path = "",
     description = "Get the info about the user logged in",
     responses(
-        (status=200, description="Data about the user", body = User)
-    )
+        (status=StatusCode::OK, description="Data about the user", body = User),
+        (status=StatusCode::GONE, description="The user was deleted", body = ErrorResponse)
+    ),
+    security(("UserJWT" = []))
 )]
-async fn info() -> Json<User> {
-    todo!()
+async fn info(
+    State(db): State<DatabaseConnection>,
+    user: AutenticatedUser,
+) -> Result<Json<User>, ErrorResponse> {
+    User::find_by_id(&db, user.id())
+        .await
+        .map_err(ErrorResponse::internal_server_error)
+        .and_then(|user_found| match user_found {
+            Some(user) => Ok(Json(user)),
+            None => Err(ErrorResponseBuilder::new()
+                .code(ErrorCodes::UserDeleted)
+                .http_code(StatusCode::GONE) // The user info requested are gone, as the user was deleted
+                .msg(format!("The user {} was deleted", user.id()))
+                .add("deleted_id", user.id())
+                .build()),
+        })
 }
 
 pub(super) fn router() -> Router<AppState> {
@@ -63,7 +109,7 @@ pub(super) fn router() -> Router<AppState> {
         .route("/", get(info))
         .route("/login", post(login))
         .route("/register", post(register))
-        .route("/refresh", post(register))
+        .route("/refresh", post(refresh))
 }
 
 #[derive(OpenApi)]

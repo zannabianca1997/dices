@@ -76,7 +76,11 @@ fn main_impl() -> Result<(), MainError> {
         .build()
         .map_err(MainError::Runtime)?;
     // Serve the app
-    runtime.block_on(app.serve())?;
+    runtime.block_on(async {
+        let app = app.build().await?;
+        app.await.map_err(MainError::Runtime)?;
+        Ok::<(), MainError>(())
+    })?;
     // Graceful exit
     Ok(())
 }
@@ -164,7 +168,7 @@ fn make_figment(
         config = config.merge(Toml::file_exact(file_setup))
     }
     config = config
-        .merge(Env::prefixed("DICES_SERVER_"))
+        .merge(Env::raw())
         .merge(Serialized::defaults(cli_setup));
     Ok(config)
 }
