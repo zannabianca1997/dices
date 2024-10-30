@@ -1,20 +1,14 @@
-use axum::response::IntoResponse;
 use chrono::{DateTime, Utc};
 use derive_more::derive::{AsRef, Debug, Display, From, Into};
-use jwt::{claims::SecondsSinceEpoch, token::Signed, Claims, Header, RegisteredClaims, Token};
+use jwt::claims::SecondsSinceEpoch;
 use sea_orm::{ConnectionTrait, DbErr};
 use serde::{Deserialize, Serialize};
-use serde_json::{to_value, Map};
-use utoipa::{
-    openapi::{schema, License},
-    ToSchema,
-};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
     commons::{ErrorCodes, ErrorResponse, ErrorResponseBuilder},
-    entities::user,
-    user::{domain::security, infrastructure},
+    user::domain::security,
     AuthKey,
 };
 
@@ -38,13 +32,6 @@ pub struct RegisterRequest {
     pub password: String,
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
-/// Request a new pair of token/refresh token
-pub struct RefreshRequest {
-    /// The refresh token
-    pub refresh_token: String,
-}
-
 #[derive(
     Debug,
     Display,
@@ -63,6 +50,12 @@ pub struct RefreshRequest {
 #[repr(transparent)]
 /// An ID uniquely identifying a user
 pub struct UserId(Uuid);
+
+impl Default for UserId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl UserId {
     pub fn new() -> Self {

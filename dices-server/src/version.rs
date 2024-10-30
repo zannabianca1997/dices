@@ -38,10 +38,10 @@ async fn version_engine() -> Json<Version> {
 }
 
 pub fn router<S: Clone + Send + Sync + 'static>() -> Router<S> {
-    return Router::new()
+    Router::new()
         .route("/", get(version_server))
         .route("/ast", get(version_ast))
-        .route("/engine", get(version_engine));
+        .route("/engine", get(version_engine))
 }
 
 #[derive(OpenApi)]

@@ -1,4 +1,4 @@
-use std::{net::Shutdown, time::Duration};
+use std::time::Duration;
 
 use axum_test::TestServer;
 use dices_server::{App, Config};
@@ -16,6 +16,7 @@ pub struct Infrastructure {
     shutdown: Sender<()>,
     pub server: TestServer,
 }
+#[allow(unused)]
 impl Infrastructure {
     pub async fn up() -> Self {
         let db = db().await;

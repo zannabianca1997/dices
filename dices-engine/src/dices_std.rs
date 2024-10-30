@@ -90,7 +90,7 @@ where
                 if !map.contains(part) {
                     map.insert((&**part).into(), ValueMap::new().into());
                 }
-                map = match map.get_mut(&*part).unwrap() {
+                map = match map.get_mut(part).unwrap() {
                     Value::Map(map) => map,
                     _ => panic!("Clash in injecting the intrisics in the std library"),
                 }

@@ -170,7 +170,7 @@ impl<'de, II: InjectedIntr> Deserializer<'de> for Value<II> {
         V: serde::de::Visitor<'de>,
     {
         match self {
-            Value::String(value_string) => visitor.visit_str(&*value_string),
+            Value::String(value_string) => visitor.visit_str(&value_string),
             _ => Err(self.invalid_type(&visitor)),
         }
     }
@@ -529,9 +529,9 @@ impl<II> Value<II> {
                     Err(n) => n.into_original(),
                 };
                 if n < BigInt::ZERO {
-                    Unexpected::Other(&"big negative number")
+                    Unexpected::Other("big negative number")
                 } else {
-                    Unexpected::Other(&"big positive number")
+                    Unexpected::Other("big positive number")
                 }
             }
             Value::String(s) => Unexpected::Str(s),

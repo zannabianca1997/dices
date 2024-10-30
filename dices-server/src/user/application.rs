@@ -4,20 +4,16 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use sea_orm::{DatabaseConnection, DbErr};
+use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
 
 use crate::{
     commons::{ErrorResponse, ErrorResponseBuilder},
-    entities::user,
     AppState, AuthKey, ErrorCodes,
 };
 
 use super::domain::{
-    models::{
-        LoginRequest, RefreshRequest, RefreshResponse, RegisterRequest, RegistrationError,
-        SignInResponse, User,
-    },
+    models::{LoginRequest, RefreshResponse, RegisterRequest, SignInResponse, User},
     security::{generate_token, AutenticatedUser},
 };
 
@@ -115,13 +111,6 @@ pub(super) fn router() -> Router<AppState> {
 #[derive(OpenApi)]
 #[openapi(
     paths(login, register, refresh, info),
-    components(schemas(
-        LoginRequest,
-        RegisterRequest,
-        SignInResponse,
-        RefreshRequest,
-        RefreshResponse,
-        User
-    ))
+    components(schemas(LoginRequest, RegisterRequest, SignInResponse, RefreshResponse, User))
 )]
 pub(super) struct ApiDocs;

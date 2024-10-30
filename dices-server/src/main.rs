@@ -4,7 +4,7 @@ use std::{error::Report, io, path::PathBuf};
 
 use clap::{Args, Parser};
 use derive_more::derive::{Display, Error, From};
-use dices_server::{App, Config, DefaultConfig};
+use dices_server::{App, DefaultConfig};
 use figment::{
     providers::{Env, Format, Serialized, Toml},
     Figment,
@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use tracing::level_filters::LevelFilter;
 
 #[derive(Debug, Parser)]
-struct CLI {
+struct Cli {
     /// File for the default options for the server
     #[clap(long = "setup", short = 'S')]
     file_setup: Option<PathBuf>,
@@ -65,7 +65,7 @@ fn main() -> Result<(), Report<MainError>> {
 
 fn main_impl() -> Result<(), MainError> {
     // Load all configs
-    let config = make_figment(CLI::parse())?;
+    let config = make_figment(Cli::parse())?;
     // Setup logging
     setup_logging(config.extract_inner("logging")?)?;
     // Configure app
@@ -94,7 +94,7 @@ fn setup_logging(
     let subscriber = tracing_subscriber::fmt().with_max_level(
         level_filter
             .parse::<LevelFilter>()
-            .map_err(|err| MainError::InvalidLogLevel(err))?,
+            .map_err(MainError::InvalidLogLevel)?,
     );
     if pretty {
         tracing::subscriber::set_global_default(subscriber.pretty().finish())
@@ -136,15 +136,15 @@ impl Default for LoggingConfig {
 }
 
 fn make_figment(
-    CLI {
+    Cli {
         file_setup,
         cli_setup,
         dot_env,
-    }: CLI,
+    }: Cli,
 ) -> Result<Figment, MainError> {
     // Load .env
     match dot_env {
-        Some(dot_env) => match dotenvy::from_path(&dot_env) {
+        Some(dot_env) => match dotenvy::from_path(dot_env) {
             Ok(()) => (),
             Err(err) => return Err(MainError::DotEnv(err)),
         },

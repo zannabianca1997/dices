@@ -53,6 +53,10 @@ impl<InjectedIntrisic> ValueList<InjectedIntrisic> {
         self.0.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &Value<InjectedIntrisic>> {
         self.0.iter()
     }
