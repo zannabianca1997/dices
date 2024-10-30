@@ -5,10 +5,10 @@ use utoipa::OpenApi;
 
 #[utoipa::path(
     get,
-    path = "/", path="/server",
+    path = "/",
     description = "Get the version of the server",
     responses(
-        (status=200, description="The version of the server", body = Version)
+        (status=StatusCode::OK, description="The version of the server", body = Version)
     )
 )]
 async fn version_server() -> Json<Version> {
@@ -19,7 +19,7 @@ async fn version_server() -> Json<Version> {
     path="/ast",
     description = "Get the version of the ast used in the server",
     responses(
-        (status=200, description="The version of the ast used", body = Version)
+        (status=StatusCode::OK, description="The version of the ast used", body = Version)
     )
 )]
 async fn version_ast() -> Json<Version> {
@@ -30,7 +30,7 @@ async fn version_ast() -> Json<Version> {
     path = "/engine",
     description = "Get the version of the engine used in the server",
     responses(
-        (status=200, description="The version of the engine used", body = Version)
+        (status=StatusCode::OK, description="The version of the engine used", body = Version)
     )
 )]
 async fn version_engine() -> Json<Version> {
@@ -40,7 +40,6 @@ async fn version_engine() -> Json<Version> {
 pub fn router<S: Clone + Send + Sync + 'static>() -> Router<S> {
     return Router::new()
         .route("/", get(version_server))
-        .route("/server", get(version_server))
         .route("/ast", get(version_ast))
         .route("/engine", get(version_engine));
 }

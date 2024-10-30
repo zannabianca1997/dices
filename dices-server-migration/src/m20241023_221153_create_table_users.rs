@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
                     .table(User::Table)
                     .if_not_exists()
                     .col(
-                        uuid(User::Uuid)
+                        uuid(User::Id)
                             .primary_key()
                             .default(PgFunc::gen_random_uuid()),
                     )
@@ -57,7 +57,7 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 enum User {
     Table,
-    Uuid,
+    Id,
     Name,
     Password,
     CreatedAt,
