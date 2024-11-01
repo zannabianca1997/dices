@@ -19,7 +19,6 @@ impl MigrationTrait for Migration {
                     .col(
                         text(User::Name)
                             .unique_key()
-                            .not_null()
                             .check(
                                 Expr::col(User::Name)
                                     .not_like("% %")
@@ -28,34 +27,32 @@ impl MigrationTrait for Migration {
                             )
                             .check(Func::char_length(Expr::col(User::Name)).gt(0)),
                     )
-                    .col(text(User::Password).not_null())
+                    .col(text(User::Password))
                     .col(
                         timestamp_with_time_zone(User::CreatedAt)
-                            .not_null()
                             .default(Expr::current_timestamp())
                             .check(Expr::col(User::CreatedAt).lte(Expr::current_timestamp())),
                     )
                     .col(
                         timestamp_with_time_zone(User::LastAccess)
-                            .not_null()
                             .default(Expr::current_timestamp())
                             .check(Expr::col(User::LastAccess).lte(Expr::current_timestamp()))
                             .check(Expr::col(User::CreatedAt).lte(Expr::col(User::LastAccess))),
                     )
-                    .to_owned(),
+                    .take(),
             )
             .await
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(User::Table).to_owned())
+            .drop_table(Table::drop().table(User::Table).if_exists().take())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-enum User {
+pub(super) enum User {
     Table,
     Id,
     Name,
