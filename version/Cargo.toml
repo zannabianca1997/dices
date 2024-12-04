@@ -1,7 +1,9 @@
 [package]
 name = "dices-version"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
 
 [dependencies]
 bincode = { version = "2.0.0-rc.3", optional = true }
@@ -9,8 +11,3 @@ derive_more = { version = "1.0", features = ["display", "error"] }
 konst = { version = "0.3", default-features = false, features = ["parsing"] }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 utoipa = { version = "5.0.0", optional = true }
-
-[features]
-bincode = ["dep:bincode"]
-serde = ["dep:serde"]
-utoipa = ["dep:utoipa"]

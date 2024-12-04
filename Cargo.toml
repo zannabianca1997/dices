@@ -1,8 +1,16 @@
 [package]
 name = "dices"
-version = "0.1.0"
-edition = "2021"
 default-run = "dices"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[workspace.package]
+version = "3.1.0"
+edition = "2021"
+authors = ["zannabianca1997 <zannabianca199712@gmail.com>"]
+license = "MIT"
 
 [[bin]]
 name = "dices"

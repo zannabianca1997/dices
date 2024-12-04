@@ -137,10 +137,6 @@ impl User {
 
         Ok((user, authenticated))
     }
-
-    pub fn authenticate(&self, password: &str) -> Option<AutenticatedUser> {
-        check_password(self.id, &self.password, password)
-    }
 }
 
 #[derive(Debug, From)]
