@@ -54,7 +54,7 @@ impl From<User> for entities::user::Model {
 impl User {
     pub(super) async fn save(self, db: &impl ConnectionTrait) -> Result<(), DbErr> {
         let model: entities::user::Model = self.into();
-        entities::user::Entity::insert(model.into_active_model())
+        entities::prelude::User::insert(model.into_active_model())
             .exec(db)
             .await?;
         Ok(())
@@ -64,7 +64,7 @@ impl User {
         db: &impl ConnectionTrait,
         name: &str,
     ) -> Result<Option<Self>, DbErr> {
-        Ok(entities::user::Entity::find()
+        Ok(entities::prelude::User::find()
             .filter(entities::user::Column::Name.eq(name))
             .one(db)
             .await?
@@ -79,7 +79,7 @@ impl User {
         db: &impl ConnectionTrait,
         id: UserId,
     ) -> Result<Option<Self>, DbErr> {
-        Ok(entities::user::Entity::find_by_id(Uuid::from(id))
+        Ok(entities::prelude::User::find_by_id(Uuid::from(id))
             .one(db)
             .await?
             .map(Self::from))

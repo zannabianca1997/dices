@@ -70,11 +70,10 @@ impl MigrationTrait for Migration {
                             .on_update(ForeignKeyAction::Cascade)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
-                    .index(
+                    .primary_key(
                         Index::create()
                             .col(SessionUser::Session)
-                            .col(SessionUser::User)
-                            .unique(),
+                            .col(SessionUser::User),
                     )
                     .col(
                         ColumnDef::new_with_type(
