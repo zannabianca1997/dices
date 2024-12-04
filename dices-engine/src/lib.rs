@@ -169,8 +169,20 @@ impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
     }
 }
 
+#[derive(Debug)]
 pub struct Engine<RNG, InjectedIntrisic: InjectedIntr> {
     context: Context<RNG, InjectedIntrisic>,
+}
+
+impl<RNG: Clone, InjectedIntrisic: InjectedIntr + Clone> Clone for Engine<RNG, InjectedIntrisic>
+where
+    InjectedIntrisic::Data: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            context: self.context.clone(),
+        }
+    }
 }
 
 #[cfg(feature = "eval_str")]

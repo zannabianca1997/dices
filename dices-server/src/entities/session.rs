@@ -3,16 +3,17 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "user")]
+#[sea_orm(table_name = "session")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    #[sea_orm(column_type = "Text", unique)]
-    pub name: String,
     #[sea_orm(column_type = "Text")]
-    pub password: String,
+    pub name: String,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub description: Option<String>,
     pub created_at: DateTimeWithTimeZone,
-    pub last_access: DateTimeWithTimeZone,
+    #[sea_orm(column_type = "VarBinary(StringLen::None)", nullable)]
+    pub image: Option<Vec<u8>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -27,12 +28,12 @@ impl Related<super::session_user::Entity> for Entity {
     }
 }
 
-impl Related<super::session::Entity> for Entity {
+impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        super::session_user::Relation::Session.def()
+        super::session_user::Relation::User.def()
     }
     fn via() -> Option<RelationDef> {
-        Some(super::session_user::Relation::User.def().rev())
+        Some(super::session_user::Relation::Session.def().rev())
     }
 }
 

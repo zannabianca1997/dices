@@ -1,6 +1,7 @@
 //! Intrisics for the REPL
 
 use std::{
+    fmt::Debug,
     fs, io,
     path::Path,
     rc::Rc,
@@ -17,6 +18,7 @@ use termimad::{crossterm::terminal, MadSkin};
 
 use crate::{print_value, Graphic};
 
+#[derive(Debug, Clone)]
 pub struct Data {
     // stuff needed to visualize the elements
     graphic: Rc<Graphic>,
@@ -26,6 +28,7 @@ pub struct Data {
     quitted: Quitted,
 }
 
+#[derive(Debug, Clone)]
 pub enum Quitted {
     No,
     Yes(Value<REPLIntrisics>),
@@ -213,6 +216,12 @@ impl InjectedIntr for REPLIntrisics {
                 Ok(Value::Null(ValueNull))
             }
         }
+    }
+
+    fn data_debug_fmt(
+    ) -> std::option::Option<fn(&Self::Data, &mut std::fmt::Formatter<'_>) -> std::fmt::Result>
+    {
+        Some(Debug::fmt)
     }
 }
 

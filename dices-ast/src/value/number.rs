@@ -101,8 +101,15 @@ macro_rules! impl_floating_nums {
 impl_floating_nums! {f32 f64}
 
 impl Step for ValueNumber {
-    fn steps_between(start: &Self, end: &Self) -> Option<usize> {
-        (&end.0 - &start.0).try_into().ok()
+    fn steps_between(start: &Self, end: &Self) -> (usize, Option<usize>) {
+        if start > end {
+            return (0, None);
+        }
+        if let Ok(diff) = usize::try_from(&end.0 - &start.0) {
+            return (diff, Some(diff));
+        }
+        // difference overflows usize
+        return (usize::MAX, None);
     }
 
     fn forward_checked(start: Self, count: usize) -> Option<Self> {

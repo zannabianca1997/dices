@@ -1,4 +1,3 @@
-#![feature(option_get_or_insert_default)]
 #![feature(duration_constructors)]
 
 use std::{sync::Arc, time::Duration};
@@ -22,8 +21,11 @@ use utoipa::openapi::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-mod commons;
+// Allow unused import because the code there is generated from the database
+#[allow(unused_imports)]
 mod entities;
+
+mod commons;
 mod sessions;
 mod user;
 mod version;
