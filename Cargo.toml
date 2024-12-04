@@ -1,12 +1,43 @@
+[package]
+name = "dices"
+version = "0.1.0"
+edition = "2021"
+default-run = "dices"
+
+[[bin]]
+name = "dices"
+path = "repl/src/main.rs"
+required-features = ["repl"]
+
+[[bin]]
+name = "dices-server"
+path = "server/src/main.rs"
+required-features = ["server"]
+
+[[bin]]
+name = "dices-server-migration"
+path = "server/migration/src/main.rs"
+required-features = ["server"]
+
+[features]
+default = ["repl"]
+server = ["dep:dices-server", "dep:dices-server-migration"]
+repl = ["dep:dices-repl"]
+
+[dependencies]
+dices-repl = { path = "repl", optional = true }
+dices-server = { path = "server", optional = true }
+dices-server-migration = { path = "server/migration", optional = true }
+
 [workspace]
 members = [
-    "dices-ast",
-    "dices-engine",
-    "dices-man",
-    "dices-mantest",
-    "dices-repl",
-    "dices-server",
-    "dices-server-migration",
-    "dices-version",
+    "ast",
+    "engine",
+    "man",
+    "mantest",
+    "repl",
+    "server",
+    "server/migration",
+    "version",
 ]
 resolver = "2"

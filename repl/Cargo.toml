@@ -1,0 +1,36 @@
+[package]
+name = "dices-repl"
+version = "0.3.1"
+edition = "2021"
+authors = ["zannabianca1997 <zannabianca199712@gmail.com>"]
+description = "A `REPL` to communicate with a `dices` session"
+
+[[bin]]
+name = "dices"
+path = "src/main.rs"
+
+[dependencies]
+mdast2minimad = { git = "https://github.com/zannabianca1997/mdast2minimad.git" }
+dices-man = { path = "../man" }
+dices-engine = { path = "../engine", features = ["eval_str"] }
+dices-ast = { path = "../ast" }
+termimad = "0.30.0"
+clap = { version = "4.5.16", features = ["derive"] }
+reedline = "0.34.0"
+derive_more = { version = "1.0.0", features = [
+    "debug",
+    "display",
+    "error",
+    "from",
+] }
+atty = "0.2.14"
+chrono = "0.4.38"
+rand = "0.8.5"
+pretty = "0.12.3"
+serde = { version = "1.0.210", features = ["derive"] }
+figment = { version = "0.10.19", features = ["env", "toml"] }
+home = "0.5.9"
+rand_xoshiro = { version = "0.6.0", features = ["serde1"] }
+
+[dev-dependencies]
+dices-man = { path = "../man", features = ["test_std_handle"] }
