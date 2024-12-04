@@ -1277,7 +1277,6 @@ dependencies = [
  "argon2",
  "axum",
  "axum-extra",
- "axum-macros",
  "axum-test",
  "chrono",
  "clap",
