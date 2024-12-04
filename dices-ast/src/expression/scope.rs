@@ -36,7 +36,7 @@ where
         &self,
         encoder: &mut E,
     ) -> Result<(), bincode::error::EncodeError> {
-        let inner: &[Expression<InjectedIntrisic>] = &**self.0;
+        let inner: &[Expression<InjectedIntrisic>] = &self.0;
         inner.encode(encoder)
     }
 }

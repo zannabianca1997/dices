@@ -5,6 +5,10 @@ edition = "2021"
 authors = ["zannabianca1997 <zannabianca199712@gmail.com>"]
 description = "A `REPL` to communicate with a `dices` session"
 
+[[bin]]
+name = "dices"
+path = "src/main.rs"
+
 [dependencies]
 mdast2minimad = { git = "https://github.com/zannabianca1997/mdast2minimad.git" }
 dices-man = { path = "../dices-man" }

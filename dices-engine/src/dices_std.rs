@@ -32,7 +32,7 @@ macro_rules! std {
 }
 
 fn version_value<II>() -> Value<II> {
-    dices_ast::value::serde::serialize_to_value(dices_ast::version::VERSION)
+    dices_ast::value::serde::serialize_to_value(dices_ast::VERSION)
         .expect("Version should be serializable to a value")
 }
 
@@ -90,7 +90,7 @@ where
                 if !map.contains(part) {
                     map.insert((&**part).into(), ValueMap::new().into());
                 }
-                map = match map.get_mut(&*part).unwrap() {
+                map = match map.get_mut(part).unwrap() {
                     Value::Map(map) => map,
                     _ => panic!("Clash in injecting the intrisics in the std library"),
                 }

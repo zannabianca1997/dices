@@ -1,6 +1,6 @@
 //! Context essential to evaluate a `dices` expression
 
-use std::{collections::BTreeMap, mem};
+use std::{collections::BTreeMap, fmt::Debug, mem};
 
 use dices_ast::{ident::IdentStr, intrisics::InjectedIntr, value::Value};
 use nunny::NonEmpty;
@@ -14,6 +14,48 @@ pub struct Context<RNG, InjectedIntrisic: InjectedIntr> {
     rng: RNG,
     /// The data for the injected intrisics
     injected_intrisics_data: <InjectedIntrisic as InjectedIntr>::Data,
+}
+
+impl<RNG: std::fmt::Debug, InjectedIntrisic: InjectedIntr + std::fmt::Debug> std::fmt::Debug
+    for Context<RNG, InjectedIntrisic>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let debuggable_data: &dyn Debug = match InjectedIntrisic::data_debug_fmt() {
+            Some(debug_data_fn) => {
+                struct DebuggableDataWrapper<'d, II>(
+                    &'d II,
+                    fn(&II, &mut std::fmt::Formatter<'_>) -> std::fmt::Result,
+                );
+                impl<II> Debug for DebuggableDataWrapper<'_, II> {
+                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        (self.1)(self.0, f)
+                    }
+                }
+
+                &DebuggableDataWrapper(&self.injected_intrisics_data, debug_data_fn)
+            }
+            None => &"...",
+        };
+
+        f.debug_struct("Context")
+            .field("scopes", &self.scopes)
+            .field("rng", &self.rng)
+            .field("injected_intrisics_data", debuggable_data)
+            .finish()
+    }
+}
+
+impl<RNG: Clone, InjectedIntrisic: InjectedIntr + Clone> Clone for Context<RNG, InjectedIntrisic>
+where
+    <InjectedIntrisic as dices_ast::intrisics::InjectedIntr>::Data: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            scopes: self.scopes.clone(),
+            rng: self.rng.clone(),
+            injected_intrisics_data: self.injected_intrisics_data.clone(),
+        }
+    }
 }
 
 impl<RNG, InjectedIntrisic: InjectedIntr> Context<RNG, InjectedIntrisic> {

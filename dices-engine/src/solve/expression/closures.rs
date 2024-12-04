@@ -51,7 +51,7 @@ where
 
 #[derive(Debug, Clone, Display, Error)]
 pub enum VarUseCalcError {
-    #[display("The variable(s) `{}` are declared only in some paths", vars.into_iter().format("`, `"))]
+    #[display("The variable(s) `{}` are declared only in some paths", vars.iter().format("`, `"))]
     ConditionalLet { vars: HashSet<Box<IdentStr>> },
     #[display("Cannot calculate the variables captured in the closure")]
     CalculateCaptures(Box<VarUseCalcError>),
@@ -242,7 +242,7 @@ impl<'e> VarUse<'e> {
                 root: box root,
                 indices,
             }) => once(Ok(Self::reads(root)))
-                .chain(indices.into_iter().map(Self::of))
+                .chain(indices.iter().map(Self::of))
                 .chain(once(Ok(Self::sets(root))))
                 .tree_reduce(maybe_concat)
                 .transpose()?

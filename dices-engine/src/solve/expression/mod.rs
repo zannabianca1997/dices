@@ -257,7 +257,7 @@ where
                     Ok(Value::String(ch.to_string().into()))
                 } else {
                     Err(SolveError::StringIndexOutOfRange {
-                        idx: n.into(),
+                        idx: n,
                         len: s.chars().count(),
                     })
                 }
@@ -277,7 +277,7 @@ where
                     Ok(ch.clone())
                 } else {
                     Err(SolveError::ListIndexOutOfRange {
-                        idx: n.into(),
+                        idx: n,
                         len: l.len(),
                     })
                 }
@@ -301,7 +301,7 @@ impl<InjectedIntrisic: InjectedIntr> Solvable<InjectedIntrisic>
         &self,
         context: &mut crate::Context<R, InjectedIntrisic>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
-        context.scoped(|context| solve_multiple(&*self, context))
+        context.scoped(|context| solve_multiple(self, context))
     }
 }
 
@@ -333,12 +333,12 @@ where
             Receiver::Ignore => (),
             Receiver::Set(MemberReceiver { root, indices }) => {
                 let indices: Vec<_> = indices
-                    .into_iter()
+                    .iter()
                     .map(|index| index.solve(context))
                     .try_collect()?;
                 let mut vars = context.vars_mut();
                 let mut destination = vars
-                    .get_mut(&root)
+                    .get_mut(root)
                     .ok_or_else(|| SolveError::InvalidReference(root.to_owned()))?;
                 for index in indices {
                     destination = match (destination, index) {
@@ -357,7 +357,7 @@ where
                             if let Some(ch) = ch {
                                 Ok(ch)
                             } else {
-                                Err(SolveError::ListIndexOutOfRange { idx: n.into(), len })
+                                Err(SolveError::ListIndexOutOfRange { idx: n, len })
                             }
                         }
                         (Value::Map(m), Value::String(s)) => {

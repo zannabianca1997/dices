@@ -30,6 +30,12 @@ pub struct ValueMap<InjectedIntrisic>(pub(super) BTreeMap<ValueString, Value<Inj
 type Entry<'m, InjectedIntrisic> =
     std::collections::btree_map::Entry<'m, ValueString, Value<InjectedIntrisic>>;
 
+impl<InjectedIntrisic> Default for ValueMap<InjectedIntrisic> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
     pub fn new() -> Self {
         Self(BTreeMap::new())
@@ -49,6 +55,10 @@ impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&ValueString, &Value<InjectedIntrisic>)> {
@@ -104,7 +114,7 @@ impl<II: InjectedIntr> Display for ValueMap<II> {
         impl<II: InjectedIntr> Display for KeyValue<'_, II> {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let (idx, val) = self.0;
-                quoted_if_not_ident(&idx, f)?;
+                quoted_if_not_ident(idx, f)?;
                 write!(f, ": {val}")
             }
         }
@@ -131,7 +141,7 @@ where
                         }
                     }
                     allocator
-                        .text(QuoteIfNotIdent(&key).to_string())
+                        .text(QuoteIfNotIdent(key).to_string())
                         .append(":")
                         .append(allocator.space())
                         .append(value)

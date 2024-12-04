@@ -244,7 +244,7 @@ pub fn repl(
         // printing the result of the init command
         print_value(
             *graphic,
-            &*skin,
+            &skin,
             &value,
             interactive, // skip printing `null` if the console is interactive
         );
@@ -284,18 +284,18 @@ pub fn interactive_repl(
         let sig = line_editor.read_line(&ReplPrompt { graphic: *graphic })?;
         match sig {
             Signal::Success(line) => match engine.eval_str(&line) {
-                Ok(value) => print_value(*graphic, &*skin, &value, true),
+                Ok(value) => print_value(*graphic, &skin, &value, true),
                 Err(err) => {
                     // need to catch the quitting error
                     if let Quitted::Yes(value) = engine.injected_intrisics_data().quitted() {
                         // this is not an error, but the quitting signal
                         let _ = err;
                         // printing the value provided to the `quit` intrisic
-                        print_value(*graphic, &*skin, value, true);
+                        print_value(*graphic, &skin, value, true);
                         // stopping the REPL
                         break;
                     }
-                    print_err(*graphic, &*skin, err)
+                    print_err(*graphic, &skin, err)
                 }
             },
             Signal::CtrlD => {
@@ -318,18 +318,18 @@ pub fn detached_repl(
         let line = line?;
         println!("{}{}", graphic.prompt(), line);
         match engine.eval_str(&line) {
-            Ok(value) => print_value(*graphic, &*skin, &value, true),
+            Ok(value) => print_value(*graphic, &skin, &value, true),
             Err(err) => {
                 // need to catch the quitting error
                 if let Quitted::Yes(value) = engine.injected_intrisics_data().quitted() {
                     // this is not an error, but the quitting signal
                     let _ = err;
                     // printing the value provided to the `quit` intrisic
-                    print_value(*graphic, &*skin, value, true);
+                    print_value(*graphic, &skin, value, true);
                     // stopping the REPL
                     break;
                 }
-                print_err(*graphic, &*skin, err)
+                print_err(*graphic, &skin, err)
             }
         }
     }

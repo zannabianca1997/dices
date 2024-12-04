@@ -163,7 +163,7 @@ peg::parser! {
         /// Parse whitespaces, discarding them
         rule _ -> ()
         = quiet!{
-            ([' ' | '\t' | '\r' | '\n'])* { () }
+            ([' ' | '\t' | '\r' | '\n'])* {  }
         }
 
 
