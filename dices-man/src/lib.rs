@@ -132,7 +132,7 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
             nodes.extend(node.children_mut().into_iter().flatten());
             continue;
         };
-        if !lang.as_ref().is_some_and(|l| l == "dices") {
+        if lang.as_ref().is_none_or(|l| l != "dices") {
             // do not examine code that is not a `dices` code
             continue;
         }
