@@ -9,15 +9,11 @@ eval_str = ["dices-ast/parse_expression", "dep:either"]
 
 [dependencies]
 derive_more = { version = "1.0.0", features = ["debug", "constructor"] }
-dices-ast = { path = "../dices-ast", features = [
-    "parse_value",
-    "rand",
-    "serde",
-] }
+dices-ast = { path = "../ast", features = ["parse_value", "rand", "serde"] }
 itertools = "0.13.0"
 nunny = "0.2.1"
 rand = "0.8.5"
 either = { version = "1.13.0", optional = true }
 serde_json = "1.0.128"
 serde = "1.0.210"
-dices-version = { path = "../dices-version", features = ["serde"] }
+dices-version = { path = "../version", features = ["serde"] }

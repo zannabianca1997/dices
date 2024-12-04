@@ -1,12 +1,12 @@
 [workspace]
 members = [
-    "dices-ast",
-    "dices-engine",
-    "dices-man",
-    "dices-mantest",
-    "dices-repl",
-    "dices-server",
-    "dices-server-migration",
-    "dices-version",
+    "ast",
+    "engine",
+    "man",
+    "mantest",
+    "repl",
+    "server",
+    "server-migration",
+    "version",
 ]
 resolver = "2"
