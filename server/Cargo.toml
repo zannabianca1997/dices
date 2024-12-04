@@ -43,7 +43,7 @@ sea-orm = { version = "1.1.0", features = [
     "runtime-tokio-native-tls",
     "debug-print",
 ] }
-dices-server-migration = { path = "../server-migration" }
+dices-server-migration = { path = "./migration" }
 hmac = "0.12.1"
 sha2 = "0.10.8"
 rand = { version = "0.8.5", features = ["small_rng"] }
