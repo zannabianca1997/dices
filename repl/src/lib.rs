@@ -10,7 +10,8 @@ use std::{
 };
 
 use chrono::Local;
-use clap::{Parser, ValueEnum};
+pub use clap::Parser as ClapParser;
+use clap::ValueEnum;
 use derive_more::derive::{Debug, Display, Error, From};
 use dices_ast::value::{Value, ValueNull};
 use dices_engine::Engine;
@@ -25,7 +26,7 @@ use termimad::{terminal_size, Alignment, MadSkin};
 mod repl_intrisics;
 mod setup;
 
-#[derive(Debug, Clone, Parser)]
+#[derive(Debug, Clone, ClapParser)]
 #[command(name="dices", version, about, long_about = None)]
 pub struct ReplCli {
     /// File for the default options for the REPL

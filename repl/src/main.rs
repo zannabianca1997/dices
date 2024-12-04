@@ -2,8 +2,7 @@
 
 use std::error::Report;
 
-use clap::Parser;
-use dices_repl::{repl, ReplCli, ReplFatalError};
+use dices_repl::{repl, ClapParser, ReplCli, ReplFatalError};
 
 fn main() -> Result<(), Report<ReplFatalError>> {
     let args = ReplCli::parse();

@@ -13,8 +13,8 @@ use axum_extra::{
 use derive_more::derive::{From, Into};
 
 use crate::{
-    commons::{ErrorResponse, ErrorResponseBuilder},
-    AuthKey, ErrorCodes,
+    app::AuthKey,
+    domains::commons::{ErrorCodes, ErrorResponse, ErrorResponseBuilder},
 };
 
 use super::models::{UserClaims, UserId};
@@ -109,7 +109,7 @@ pub(crate) fn generate_token(auth: AutenticatedUser, auth_key: AuthKey) -> Strin
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    let expiration = (SystemTime::now() + auth_key.token_validity)
+    let expiration = (SystemTime::now() + auth_key.token_validity())
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();

@@ -1,3 +1,20 @@
+[package]
+name = "dices"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "dices"
+path = "repl/src/main.rs"
+
+# [[bin]]
+# name = "dices-server"
+# path = "server/src/main.rs"
+
+[dependencies]
+dices-repl = { path = "repl" }
+dices-server = { path = "server" }
+
 [workspace]
 members = [
     "ast",

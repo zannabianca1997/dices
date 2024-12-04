@@ -8,8 +8,8 @@ use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
 
 use crate::{
-    commons::{ErrorResponse, ErrorResponseBuilder},
-    AppState, AuthKey, ErrorCodes,
+    app::{AppState, AuthKey},
+    domains::commons::{ErrorCodes, ErrorResponse, ErrorResponseBuilder},
 };
 
 use super::domain::{

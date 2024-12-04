@@ -4,13 +4,14 @@ use std::{error::Report, io, path::PathBuf};
 
 use clap::{Args, Parser};
 use derive_more::derive::{Display, Error, From};
-use dices_server::{App, DefaultConfig};
 use figment::{
     providers::{Env, Format, Serialized, Toml},
     Figment,
 };
 use serde::{Deserialize, Serialize};
 use tracing::level_filters::LevelFilter;
+
+use dices_server::{App, DefaultConfig};
 
 #[derive(Debug, Parser)]
 struct Cli {
@@ -26,7 +27,7 @@ struct Cli {
 }
 /// Config of the server for the cli
 #[derive(Debug, Serialize, Args)]
-pub struct ConfigCli {
+struct ConfigCli {
     /// The address to listen to
     #[serde(skip_serializing_if = "Option::is_none")]
     #[clap(long, short)]
@@ -57,10 +58,6 @@ enum MainError {
     InvalidLogLevel(tracing_subscriber::filter::LevelParseError),
     #[display("Error in loading .env file")]
     DotEnv(dotenvy::Error),
-}
-
-fn main() -> Result<(), Report<MainError>> {
-    main_impl().map_err(|err| Report::new(err).pretty(true))
 }
 
 fn main_impl() -> Result<(), MainError> {
@@ -171,4 +168,8 @@ fn make_figment(
         .merge(Env::raw())
         .merge(Serialized::defaults(cli_setup));
     Ok(config)
+}
+
+fn main() -> Result<(), Report<MainError>> {
+    main_impl().map_err(|err| Report::new(err).pretty(true))
 }
