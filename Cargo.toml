@@ -6,7 +6,7 @@ members = [
     "mantest",
     "repl",
     "server",
-    "server-migration",
+    "server/migration",
     "version",
 ]
 resolver = "2"
