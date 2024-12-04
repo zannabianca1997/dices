@@ -1170,6 +1170,7 @@ version = "0.1.0"
 dependencies = [
  "dices-repl",
  "dices-server",
+ "dices-server-migration",
 ]
 
 [[package]]
