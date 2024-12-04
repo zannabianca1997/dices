@@ -1,8 +1,10 @@
 [package]
 name = "dices-mantest"
-version = "0.3.1"
-edition = "2021"
-authors = ["zannabianca1997 <zannabianca199712@gmail.com>"]
+description = "Run the example of the `dices` manual as tests"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
 
 [dev-dependencies]
 rand = "0.8.5"

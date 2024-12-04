@@ -1,8 +1,10 @@
 [package]
 name = "dices-server-migration"
-version = "0.1.0"
-edition = "2021"
-publish = false
+description = "Utility for migration of the database of a `dices` server"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
 
 [dependencies]
 async-std = { version = "1", features = ["attributes", "tokio1"] }
