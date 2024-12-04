@@ -151,9 +151,11 @@ where
 fn all_names_roundtrip() {
     for intrisic in Intrisic::<NoInjectedIntrisics>::iter() {
         let name = intrisic.name();
-        let named = Intrisic::<NoInjectedIntrisics>::named(&name).expect(&format!(
-            "Intrisic `{intrisic:?}` gave `{name}` as name, but `named` did not recognize it"
-        ));
+        let named = Intrisic::<NoInjectedIntrisics>::named(name).unwrap_or_else(|| {
+            panic!(
+                "Intrisic `{intrisic:?}` gave `{name}` as name, but `named` did not recognize it"
+            )
+        });
         assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip")
     }
 }
@@ -176,11 +178,16 @@ pub trait InjectedIntr: Sized + Clone + 'static + Hash {
         &[]
     }
     /// Call this intrisic
-    fn call<'d>(
+    fn call(
         &self,
         data: &mut Self::Data,
         params: Box<[Value<Self>]>,
     ) -> Result<Value<Self>, Self::Error>;
+    /// Return a function to debug the `Data` type, if possible
+    fn data_debug_fmt() -> Option<fn(&Self::Data, &mut std::fmt::Formatter<'_>) -> std::fmt::Result>
+    {
+        None
+    }
 }
 
 /// No injected intrisics
@@ -217,8 +224,8 @@ impl PartialEq for NoInjectedIntrisics {
 }
 impl Eq for NoInjectedIntrisics {}
 impl PartialOrd for NoInjectedIntrisics {
-    fn partial_cmp(&self, _: &Self) -> Option<std::cmp::Ordering> {
-        self.0
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 impl Ord for NoInjectedIntrisics {
@@ -255,6 +262,12 @@ impl InjectedIntr for NoInjectedIntrisics {
     fn named(_: &str) -> Option<Self> {
         None
     }
+
+    fn data_debug_fmt(
+    ) -> std::option::Option<fn(&Self::Data, &mut std::fmt::Formatter<'_>) -> std::fmt::Result>
+    {
+        Some(Debug::fmt)
+    }
 }
 
 #[cfg(feature = "bincode")]
@@ -279,7 +292,7 @@ where
         decoder: &mut D,
     ) -> Result<Self, bincode::error::DecodeError> {
         let name: Cow<str> = bincode::Decode::decode(decoder)?;
-        Self::named(&*name).ok_or_else(|| {
+        Self::named(&name).ok_or_else(|| {
             bincode::error::DecodeError::OtherString(format!("Unknow intrisic {name}"))
         })
     }
@@ -294,7 +307,7 @@ where
         decoder: &mut D,
     ) -> Result<Self, bincode::error::DecodeError> {
         let name: Cow<str> = bincode::BorrowDecode::borrow_decode(decoder)?;
-        Self::named(&*name).ok_or_else(|| {
+        Self::named(&name).ok_or_else(|| {
             bincode::error::DecodeError::OtherString(format!("Unknow intrisic {name}"))
         })
     }

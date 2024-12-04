@@ -74,7 +74,7 @@ enum BorrowedSerialized<'m, InjectedIntrisic> {
     #[serde(rename = "closure")]
     NestedClosure {
         #[serde(rename = "$params")]
-        params: &'m Box<[Box<IdentStr>]>,
+        params: &'m [Box<IdentStr>],
         #[serde(rename = "$captures", skip_serializing_if = "BTreeMap::is_empty")]
         captures: &'m BTreeMap<Box<IdentStr>, Value<InjectedIntrisic>>,
         #[serde(rename = "$body")]

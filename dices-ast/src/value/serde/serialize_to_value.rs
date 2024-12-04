@@ -313,10 +313,7 @@ impl Serializer for ValueSerializer {
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
         Ok(Value::List(
-            v.into_iter()
-                .copied()
-                .map(|b| Value::Number(b.into()))
-                .collect(),
+            v.iter().copied().map(|b| Value::Number(b.into())).collect(),
         ))
     }
 

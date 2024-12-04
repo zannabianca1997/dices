@@ -32,13 +32,13 @@ where
                 [a, b]
             }
             None => {
-                return Ok((match op {
+                return (match op {
                     BinOp::Repeat => repeats,
                     _ => unreachable!("The only special order should be `Repeat`"),
-                })(context, a, b)?);
+                })(context, a, b);
             }
         };
-        Ok(match op {
+        (match op {
             BinOp::Add => add,
             BinOp::Sub => sub,
             BinOp::Join => join,
@@ -50,7 +50,7 @@ where
             BinOp::KeepLow => keep_low,
             BinOp::RemoveHigh => remove_high,
             BinOp::RemoveLow => remove_low,
-        }(context, a, b)?)
+        }(context, a, b))
     }
 }
 
@@ -250,7 +250,7 @@ where
 }
 
 fn div<R, InjectedIntrisic>(
-    context: &mut crate::Context<R, InjectedIntrisic>,
+    _context: &mut crate::Context<R, InjectedIntrisic>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -261,14 +261,14 @@ where
         Value::List(mut l) => {
             for el in l.iter_mut() {
                 let a = mem::replace(el, ValueNull.into());
-                *el = div(context, a, b.clone())?;
+                *el = div(_context, a, b.clone())?;
             }
             Ok(l.into())
         }
         Value::Map(mut m) => {
             for (_, el) in m.iter_mut() {
                 let a = mem::replace(el, ValueNull.into());
-                *el = div(context, a, b.clone())?;
+                *el = div(_context, a, b.clone())?;
             }
             Ok(m.into())
         }
@@ -280,7 +280,7 @@ where
 }
 
 fn rem<R, InjectedIntrisic>(
-    context: &mut crate::Context<R, InjectedIntrisic>,
+    _context: &mut crate::Context<R, InjectedIntrisic>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -291,14 +291,14 @@ where
         Value::List(mut l) => {
             for el in l.iter_mut() {
                 let a = mem::replace(el, ValueNull.into());
-                *el = rem(context, a, b.clone())?;
+                *el = rem(_context, a, b.clone())?;
             }
             Ok(l.into())
         }
         Value::Map(mut m) => {
             for (_, el) in m.iter_mut() {
                 let a = mem::replace(el, ValueNull.into());
-                *el = rem(context, a, b.clone())?;
+                *el = rem(_context, a, b.clone())?;
             }
             Ok(m.into())
         }
@@ -320,7 +320,7 @@ where
     match (a, b) {
         (Value::String(s1), Value::String(s2)) => {
             let mut s1 = Box::<str>::from(s1).into_string();
-            s1.push_str(&*s2);
+            s1.push_str(&s2);
             Ok(ValueString::from(s1).into())
         }
         (Value::Map(mut m1), Value::Map(m2)) => {

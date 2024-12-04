@@ -201,7 +201,7 @@ peg::parser! {
                     [' ' | '\t' | '\r' | '\n']       // Whitespace
                     / "//" [^'\n']* (['\n'] / ![_])  // C-style line comment
                     / "/*" (!"*/" [_])* "*/"         // C-style block comment
-                )* { () }
+                )* {  }
             }
     }
 

@@ -7,6 +7,7 @@
 
 use std::borrow::Cow;
 
+use dices_version::Version;
 use nunny::NonEmpty;
 use rand::{Rng, SeedableRng};
 
@@ -42,6 +43,11 @@ impl EngineBuilder<(), NoInjectedIntrisics> {
             prelude: true,
             injected_intrisics_data: (),
         }
+    }
+}
+impl Default for EngineBuilder<(), NoInjectedIntrisics> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
@@ -163,8 +169,20 @@ impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
     }
 }
 
+#[derive(Debug)]
 pub struct Engine<RNG, InjectedIntrisic: InjectedIntr> {
     context: Context<RNG, InjectedIntrisic>,
+}
+
+impl<RNG: Clone, InjectedIntrisic: InjectedIntr + Clone> Clone for Engine<RNG, InjectedIntrisic>
+where
+    InjectedIntrisic::Data: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            context: self.context.clone(),
+        }
+    }
 }
 
 #[cfg(feature = "eval_str")]
@@ -179,7 +197,6 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
     pub fn new() -> Self
     where
         RNG: SeedableRng,
-        InjectedIntrisic: Clone,
         InjectedIntrisic::Data: Default,
     {
         EngineBuilder::new()
@@ -247,5 +264,20 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
     }
 }
 
+impl<RNG: SeedableRng, InjectedIntrisic: InjectedIntr> Default for Engine<RNG, InjectedIntrisic>
+where
+    InjectedIntrisic::Data: Default,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub trait DicesRng: Rng + SeedableRng + Serialize + DeserializeOwned {}
 impl<T> DicesRng for T where T: Rng + SeedableRng + Serialize + DeserializeOwned {}
+
+pub const VERSION: Version = Version::new(
+    env!("CARGO_PKG_VERSION_MAJOR"),
+    env!("CARGO_PKG_VERSION_MINOR"),
+    env!("CARGO_PKG_VERSION_PATCH"),
+);

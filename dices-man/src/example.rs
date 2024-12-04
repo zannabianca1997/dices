@@ -1,20 +1,22 @@
 //! Stuff to help parsing and making sense of code examples
 
-use std::{ ops::Deref, str::FromStr};
+use std::{ops::Deref, str::FromStr};
 
 use lazy_regex::{regex_captures, regex_if};
 use nunny::NonEmpty;
 
-use dices_ast::{Expression, intrisics::NoInjectedIntrisics, matcher::Matcher, parse_file, value::ValueNull};
+use dices_ast::{
+    intrisics::NoInjectedIntrisics, matcher::Matcher, parse_file, value::ValueNull, Expression,
+};
 
-#[derive(Debug,Clone,Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct CodeExample(Box<[CodeExamplePiece]>);
 
 impl Deref for CodeExample {
     type Target = [CodeExamplePiece];
 
     fn deref(&self) -> &Self::Target {
-       &*self.0
+        &self.0
     }
 }
 
@@ -22,11 +24,11 @@ impl FromStr for CodeExample {
     type Err = !;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-         // parse the test
-    let mut items = vec![];
-    let mut test = s.trim_start();
+        // parse the test
+        let mut items = vec![];
+        let mut test = s.trim_start();
 
-    while let Some((cmd, rest)) = regex_if!(
+        while let Some((cmd, rest)) = regex_if!(
         r"\A(?<full>[^\S\r\n]*>>>(?<start>.*)$(?<cont>(?:(?:\r\n|\n)^[^\S\r\n]*\.\.\..*$)*))"m,
         test,
         {
@@ -84,7 +86,7 @@ impl FromStr for CodeExample {
         let res = if res.starts_with('#') {
             for l in res
             .lines()
-            .filter(|l| 
+            .filter(|l|
                 !l
                 .trim()
                 .is_empty()
@@ -92,36 +94,34 @@ impl FromStr for CodeExample {
                 assert!(l.trim_start().starts_with('#'), "Inconsistent ignoring of result lines")
             }
             None
+        } else if res.is_empty() {
+            // empty result corresponds to empty values
+            Some(Matcher::Exact(ValueNull.into()))
         } else {
-            if res == "" {
-                // empty result corresponds to empty values
-                Some(Matcher::Exact(ValueNull.into()))
-            } else {
-                Some(res.parse().expect("The value must be a valid result matcher"))
-            }
+            Some(res.parse().expect("The value must be a valid result matcher"))
         };
         items.push(CodeExamplePiece {cmd, res})
     }
-    assert_eq!(test.trim(), "", "Cannot recognize command prompt");
+        assert_eq!(test.trim(), "", "Cannot recognize command prompt");
 
-    Ok(Self(items.into_boxed_slice()))
+        Ok(Self(items.into_boxed_slice()))
     }
 }
 
-#[derive(Debug,Clone,Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct CodeExamplePiece {
-   pub cmd: CodeExampleCommand,
-   pub res: Option<Matcher<NoInjectedIntrisics>>,
+    pub cmd: CodeExampleCommand,
+    pub res: Option<Matcher<NoInjectedIntrisics>>,
 }
 
-#[derive(Debug,Clone,Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct CodeExampleCommand {
     /// Do not check the result of this command
     ///
     /// Used to do setup stuff, as it is not printed
-   pub ignore: bool,
+    pub ignore: bool,
     /// The actual command
-   pub command: Box<NonEmpty<[Expression<NoInjectedIntrisics>]>>,
-   /// The source code of the command
-   pub src: String
+    pub command: Box<NonEmpty<[Expression<NoInjectedIntrisics>]>>,
+    /// The source code of the command
+    pub src: String,
 }
