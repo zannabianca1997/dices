@@ -109,7 +109,7 @@ impl Step for ValueNumber {
             return (diff, Some(diff));
         }
         // difference overflows usize
-        return (usize::MAX, None);
+        (usize::MAX, None)
     }
 
     fn forward_checked(start: Self, count: usize) -> Option<Self> {

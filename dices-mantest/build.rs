@@ -85,7 +85,7 @@ impl ManTests<'_, '_, ManPage> {
                 .filter_map(|t| t.strip_prefix("mantest:"))
                 .collect();
             // check that we need to run it as a doc: the language should be `dices` and the tag `mantest:ignore` should be missing
-            if !e.lang.as_ref().is_some_and(|l| l == "dices") || tags.contains(&"ignore") {
+            if e.lang.as_ref().is_none_or(|l| l != "dices") || tags.contains(&"ignore") {
                 return None;
             }
 

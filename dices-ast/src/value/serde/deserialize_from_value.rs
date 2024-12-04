@@ -634,7 +634,7 @@ impl<'de, II: InjectedIntr> VariantAccess<'de> for VariantDeserializer<II> {
     }
 }
 
-impl<'de> IntoDeserializer<'de, Error> for Value {
+impl IntoDeserializer<'_, Error> for Value {
     type Deserializer = Self;
 
     fn into_deserializer(self) -> Self::Deserializer {
