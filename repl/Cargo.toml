@@ -11,9 +11,9 @@ path = "src/main.rs"
 
 [dependencies]
 mdast2minimad = { git = "https://github.com/zannabianca1997/mdast2minimad.git" }
-dices-man = { path = "../dices-man" }
-dices-engine = { path = "../dices-engine", features = ["eval_str"] }
-dices-ast = { path = "../dices-ast" }
+dices-man = { path = "../man" }
+dices-engine = { path = "../engine", features = ["eval_str"] }
+dices-ast = { path = "../ast" }
 termimad = "0.30.0"
 clap = { version = "4.5.16", features = ["derive"] }
 reedline = "0.34.0"
@@ -33,4 +33,4 @@ home = "0.5.9"
 rand_xoshiro = { version = "0.6.0", features = ["serde1"] }
 
 [dev-dependencies]
-dices-man = { path = "../dices-man", features = ["test_std_handle"] }
+dices-man = { path = "../man", features = ["test_std_handle"] }

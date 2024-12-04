@@ -13,8 +13,8 @@ markdown = "1.0.0-alpha.20"
 nunny = "0.2.1"
 lazy-regex = "3.3.0"
 rand = "0.8.5"
-dices-engine = { path = "../dices-engine" }
-dices-ast = { path = "../dices-ast", features = [
+dices-engine = { path = "../engine" }
+dices-ast = { path = "../ast", features = [
     "matcher",
     "pretty",
     "parse_matcher",

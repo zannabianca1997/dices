@@ -54,4 +54,4 @@ enum-as-inner = "0.6.1"
 bincode = { version = "2.0.0-rc.3", optional = true }
 serde = { version = "1.0.210", features = ["derive"], optional = true }
 serde_bytes = { version = "0.11.15", optional = true }
-dices-version = { path = "../dices-version" }
+dices-version = { path = "../version" }
