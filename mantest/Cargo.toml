@@ -1,0 +1,21 @@
+[package]
+name = "dices-mantest"
+description = "Run the example of the `dices` manual as tests"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dev-dependencies]
+rand = "0.8.5"
+dices-engine = { path = "../engine" }
+dices-man = { path = "../man" }
+rand_xoshiro = { version = "0.6.0", features = ["serde1"] }
+
+[build-dependencies]
+markdown = "1.0.0-alpha.20"
+quote = "1.0.37"
+anyhow = "1.0.86"
+proc-macro2 = "1.0.86"
+dices-man = { path = "../man" }
+slug = "0.1.6"
