@@ -7,9 +7,11 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    commons::{ErrorCodes, ErrorResponse, ErrorResponseBuilder},
-    user::domain::security,
-    AuthKey,
+    app::AuthKey,
+    domains::{
+        commons::{ErrorCodes, ErrorResponse, ErrorResponseBuilder},
+        user::domain::security,
+    },
 };
 
 use super::security::{check_password, hash_password, AutenticatedUser, PasswordHash};

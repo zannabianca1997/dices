@@ -1,7 +1,9 @@
-use crate::Domain;
 use axum::{routing::get, Json, Router};
-use dices_version::Version;
 use utoipa::OpenApi;
+
+use dices_version::Version;
+
+use super::Domain;
 
 #[utoipa::path(
     get,
