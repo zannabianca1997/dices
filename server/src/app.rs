@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use axum::{extract::FromRef, serve::WithGracefulShutdown, Router};
 use derive_more::derive::{Constructor, Debug, Display, Error, From};
-use dices_server_migration::MigratorTrait;
+use dices_server_migration::{Migrator, MigratorTrait};
 use hmac::{Hmac, Mac};
 use jwt::{SigningAlgorithm, VerifyingAlgorithm};
 use rand::{thread_rng, Rng};
@@ -126,7 +126,7 @@ impl AppState {
             .instrument(tracing::info_span!("initial-db-connection"))
             .await?;
         tracing::info!("Applying eventual migrations to the database");
-        dices_server_migration::Migrator::up(&database, None)
+        Migrator::up(&database, None)
             .instrument(tracing::info_span!("apply-pending-migrations"))
             .await?;
         tracing::info!("Generating auth key");

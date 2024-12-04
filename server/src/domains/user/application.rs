@@ -9,7 +9,7 @@ use utoipa::OpenApi;
 
 use crate::{
     app::{AppState, AuthKey},
-    domains::commons::{ErrorCodes, ErrorResponse, ErrorResponseBuilder},
+    domains::commons::{ErrorCodes, ErrorResponse},
 };
 
 use super::domain::{
@@ -91,7 +91,7 @@ async fn info(
         .map_err(ErrorResponse::internal_server_error)
         .and_then(|user_found| match user_found {
             Some(user) => Ok(Json(user)),
-            None => Err(ErrorResponseBuilder::new()
+            None => Err(ErrorResponse::builder()
                 .code(ErrorCodes::UserDeleted)
                 .http_code(StatusCode::GONE) // The user info requested are gone, as the user was deleted
                 .msg(format!("The user {} was deleted", user.id()))
