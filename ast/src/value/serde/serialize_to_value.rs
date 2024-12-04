@@ -4,7 +4,7 @@
  * A lot of this code is heavily inspired (and in some part straight up copied) from
  * the eccellent work of [dtolnay](https://github.com/dtolnay) in his library `serde_json`
  */
-use std::{fmt::Display, marker::PhantomData};
+use std::fmt::Display;
 
 use derive_more::derive::{Display, Error, From};
 use serde::{
@@ -72,7 +72,7 @@ impl SerializeSeq for SerializeList {
     where
         T: ?Sized + Serialize,
     {
-        self.values.push(value.serialize(ValueSerializer::new())?);
+        self.values.push(value.serialize(ValueSerializer)?);
         Ok(())
     }
 
@@ -89,7 +89,7 @@ impl SerializeTuple for SerializeList {
     where
         T: ?Sized + Serialize,
     {
-        self.values.push(value.serialize(ValueSerializer::new())?);
+        self.values.push(value.serialize(ValueSerializer)?);
         Ok(())
     }
 
@@ -106,7 +106,7 @@ impl SerializeTupleStruct for SerializeList {
     where
         T: ?Sized + Serialize,
     {
-        self.values.push(value.serialize(ValueSerializer::new())?);
+        self.values.push(value.serialize(ValueSerializer)?);
         Ok(())
     }
 
@@ -123,7 +123,7 @@ impl SerializeTupleVariant for SerializeList {
     where
         T: ?Sized + Serialize,
     {
-        self.values.push(value.serialize(ValueSerializer::new())?);
+        self.values.push(value.serialize(ValueSerializer)?);
         Ok(())
     }
 
@@ -166,7 +166,7 @@ impl serde::ser::SerializeMap for SerializeMap {
         T: ?Sized + Serialize,
     {
         self.key = Some(
-            key.serialize(ValueSerializer::new())?
+            key.serialize(ValueSerializer)?
                 .into_string()
                 .map_err(Error::NonStringKey)?,
         );
@@ -178,8 +178,7 @@ impl serde::ser::SerializeMap for SerializeMap {
         T: ?Sized + Serialize,
     {
         let key = self.key.take().unwrap();
-        self.map
-            .insert(key, value.serialize(ValueSerializer::new())?);
+        self.map.insert(key, value.serialize(ValueSerializer)?);
         Ok(())
     }
     fn serialize_entry<K, V>(&mut self, key: &K, value: &V) -> Result<(), Self::Error>
@@ -188,10 +187,10 @@ impl serde::ser::SerializeMap for SerializeMap {
         V: ?Sized + Serialize,
     {
         self.map.insert(
-            key.serialize(ValueSerializer::new())?
+            key.serialize(ValueSerializer)?
                 .into_string()
                 .map_err(Error::NonStringKey)?,
-            value.serialize(ValueSerializer::new())?,
+            value.serialize(ValueSerializer)?,
         );
         Ok(())
     }
@@ -210,7 +209,7 @@ impl SerializeStruct for SerializeMap {
         T: ?Sized + Serialize,
     {
         self.map
-            .insert(key.into(), value.serialize(ValueSerializer::new())?);
+            .insert(key.into(), value.serialize(ValueSerializer)?);
         Ok(())
     }
 
@@ -227,7 +226,7 @@ impl SerializeStructVariant for SerializeMap {
         T: ?Sized + Serialize,
     {
         self.map
-            .insert(key.into(), value.serialize(ValueSerializer::new())?);
+            .insert(key.into(), value.serialize(ValueSerializer)?);
         Ok(())
     }
 
@@ -239,13 +238,8 @@ impl SerializeStructVariant for SerializeMap {
     }
 }
 
-struct ValueSerializer(PhantomData<fn() -> Value>);
-
-impl ValueSerializer {
-    fn new() -> Self {
-        Self(PhantomData)
-    }
-}
+/// Serializer that emits a `dices` value
+struct ValueSerializer;
 
 impl Serializer for ValueSerializer {
     type Ok = Value;
@@ -434,7 +428,7 @@ impl Serializer for ValueSerializer {
     {
         Ok(Value::List(
             iter.into_iter()
-                .map(|v| v.serialize(ValueSerializer::new()))
+                .map(|v| v.serialize(ValueSerializer))
                 .collect::<Result<_, _>>()?,
         ))
     }
@@ -449,10 +443,10 @@ impl Serializer for ValueSerializer {
             iter.into_iter()
                 .map(|(k, v)| -> Result<_, Self::Error> {
                     Ok((
-                        k.serialize(ValueSerializer::new())?
+                        k.serialize(ValueSerializer)?
                             .into_string()
                             .map_err(Error::NonStringKey)?,
-                        v.serialize(ValueSerializer::new())?,
+                        v.serialize(ValueSerializer)?,
                     ))
                 })
                 .collect::<Result<_, _>>()?,
@@ -474,7 +468,7 @@ impl Serializer for ValueSerializer {
 /// Serialize to a dices value
 pub fn serialize_to_value<T: Serialize, II>(value: T) -> Result<Value<II>, Error> {
     value
-        .serialize(ValueSerializer::new())
+        .serialize(ValueSerializer)
         .map(Value::with_arbitrary_injected_intrisics)
 }
 
