@@ -1,0 +1,59 @@
+[package]
+name = "dices-server"
+description = "A server to run instances of `dices`"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+axum = { version = "0.7", features = ["macros", "tracing"] }
+derive_more = { version = "1.0", features = ["constructor", "from"] }
+dices-ast = { path = "../ast", features = ["rand", "bincode"] }
+dices-engine = { path = "../engine" }
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.40", features = ["full"] }
+tower = { version = "0.5", features = ["tracing"] }
+clap = { version = "4.5.20", features = ["derive"] }
+tracing = "0.1"
+figment = { version = "0.10", features = ["env", "toml"] }
+tracing-subscriber = "0.3"
+tower-http = { version = "0.6", features = ["trace"] }
+utoipa = { version = "5.1.3", features = [
+    "axum_extras",
+    "chrono",
+    "uuid",
+    "repr",
+] }
+utoipa-swagger-ui = { version = "8.0.0", features = ["axum"] }
+dices-version = { path = "../version", features = ["serde", "utoipa"] }
+uuid = { version = "1.10.0", features = [
+    "v4",
+    "fast-rng",
+    "macro-diagnostics",
+    "serde",
+] }
+chrono = { version = "0.4.38", features = ["serde"] }
+argon2 = "0.5.3"
+jwt = "0.16.0"
+dotenvy = "0.15.7"
+sea-orm = { version = "1.1.0", features = [
+    "sqlx-postgres",
+    "runtime-tokio-native-tls",
+    "debug-print",
+] }
+dices-server-migration = { path = "./migration" }
+hmac = "0.12.1"
+sha2 = "0.10.8"
+rand = { version = "0.8.5", features = ["small_rng"] }
+serde_json = "1.0.132"
+serde_repr = "0.1.19"
+axum-extra = { version = "0.9.4", features = ["typed-header"] }
+
+[dev-dependencies]
+axum-test = "16.3.0"
+test-log = { version = "0.2.16", default-features = false, features = [
+    "color",
+    "trace",
+] }
+testcontainers-modules = { version = "0.11.3", features = ["postgres"] }
