@@ -1,4 +1,4 @@
-use std::{borrow::Cow, error::Error};
+use std::{borrow::Cow, error::Error, fmt::Display};
 
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::Serialize;
@@ -63,67 +63,94 @@ impl ErrorResponse {
         // log the error
         tracing::error!("Internal server error: {}", err);
         // return a opaque message
-        Self {
-            code: ErrorCodes::InternalServerError,
-            http_code: None,
-            msg: "Internal server error".into(),
-            additional: Default::default(),
-        }
+        Self::builder()
+            .code(ErrorCodes::InternalServerError)
+            .msg("Internal server error")
+            .build()
+    }
+
+    pub(crate) fn builder() -> ErrorResponseBuilder<(), ()> {
+        ErrorResponseBuilder::new()
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct ErrorResponseBuilder {
-    pub code: Option<ErrorCodes>,
-    pub http_code: Option<StatusCode>,
-    pub msg: Option<Cow<'static, str>>,
-    pub additional: serde_json::Map<String, serde_json::Value>,
+#[derive(Debug, Clone)]
+pub(crate) struct ErrorResponseBuilder<C, M> {
+    pub(crate) code: C,
+    pub(crate) http_code: Option<StatusCode>,
+    pub(crate) msg: M,
+    pub(crate) additional: serde_json::Map<String, serde_json::Value>,
 }
-impl ErrorResponseBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    pub fn code(self, code: ErrorCodes) -> Self {
+impl ErrorResponseBuilder<(), ()> {
+    fn new() -> Self {
         Self {
-            code: Some(code),
+            code: (),
+            http_code: None,
+            msg: (),
+            additional: serde_json::Map::new(),
+        }
+    }
+}
+impl<C, M> ErrorResponseBuilder<C, M> {
+    pub(crate) fn code(self, code: impl Into<ErrorCodes>) -> ErrorResponseBuilder<ErrorCodes, M> {
+        let Self {
+            code: _,
+            http_code,
+            msg,
+            additional,
+        } = self;
+        ErrorResponseBuilder {
+            code: code.into(),
+            http_code,
+            msg,
+            additional,
+        }
+    }
+    pub(crate) fn http_code(self, http_code: impl Into<StatusCode>) -> Self {
+        Self {
+            http_code: Some(http_code.into()),
             ..self
         }
     }
-    pub fn http_code(self, http_code: StatusCode) -> Self {
+    pub(crate) fn default_http_code(self) -> Self {
         Self {
-            http_code: Some(http_code),
+            http_code: None,
             ..self
         }
     }
-    pub fn msg<M: Into<Cow<'static, str>>>(self, msg: M) -> Self {
-        Self {
-            msg: Some(msg.into()),
-            ..self
+    pub(crate) fn msg(
+        self,
+        msg: impl Into<Cow<'static, str>>,
+    ) -> ErrorResponseBuilder<C, Cow<'static, str>> {
+        let Self {
+            code,
+            http_code,
+            msg: _,
+            additional,
+        } = self;
+        ErrorResponseBuilder {
+            code,
+            http_code,
+            msg: msg.into(),
+            additional,
         }
     }
-    pub fn add<K: Into<String>, V: Serialize>(mut self, key: K, value: V) -> Self {
+    pub(crate) fn add(mut self, key: impl Display, value: impl Serialize) -> Self {
         self.additional.insert(
-            key.into(),
+            key.to_string(),
             to_value(value).expect("Additional values serialization should be infallible"),
         );
         self
     }
-    pub fn build(self) -> ErrorResponse {
+}
+impl ErrorResponseBuilder<ErrorCodes, Cow<'static, str>> {
+    pub(crate) fn build(self) -> ErrorResponse {
         let Self {
-            code: Some(code),
+            code,
             http_code,
-            msg: Some(msg),
+            msg,
             additional,
-        } = self
-        else {
-            if self.code.is_none() {
-                panic!("The error code must be set!")
-            }
-            if self.msg.is_none() {
-                panic!("The message must be set")
-            }
-            unreachable!()
-        };
+        } = self;
         ErrorResponse {
             code,
             http_code,
