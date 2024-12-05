@@ -46,6 +46,24 @@ async fn register() {
 }
 
 #[test(tokio::test)]
+async fn duplicated_register_fail() {
+    let infrastructure = Infrastructure::up().await;
+    infrastructure.register("Zanna", "password").await.0;
+
+    infrastructure
+        .server
+        .post("/api/v1/user/register")
+        .json(&json!({
+            "username": "Zanna",
+            "password": "password"
+        }))
+        .expect_failure()
+        .await;
+
+    infrastructure.down().await;
+}
+
+#[test(tokio::test)]
 async fn login() {
     let infrastructure = Infrastructure::up().await;
     let id = infrastructure.register("Zanna", "password").await.0;

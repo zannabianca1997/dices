@@ -86,7 +86,7 @@ async fn info(
     State(db): State<DatabaseConnection>,
     user: AutenticatedUser,
 ) -> Result<Json<User>, ErrorResponse> {
-    User::find_by_id(&db, user.id())
+    User::find_by_id(&db, user.user_id())
         .await
         .map_err(ErrorResponse::internal_server_error)
         .and_then(|user_found| match user_found {
@@ -94,8 +94,8 @@ async fn info(
             None => Err(ErrorResponse::builder()
                 .code(ErrorCodes::UserDeleted)
                 .http_code(StatusCode::GONE) // The user info requested are gone, as the user was deleted
-                .msg(format!("The user {} was deleted", user.id()))
-                .add("deleted_id", user.id())
+                .msg(format!("The user {} was deleted", user.user_id()))
+                .add("deleted_id", user.user_id())
                 .build()),
         })
 }

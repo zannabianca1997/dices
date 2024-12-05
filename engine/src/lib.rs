@@ -170,6 +170,15 @@ impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
 }
 
 #[derive(Debug)]
+#[cfg_attr(
+    feature = "bincode",
+    derive(bincode::Encode, bincode::Decode),
+    bincode(
+        encode_bounds = "RNG: serde::Serialize, InjectedIntrisic: bincode::Encode, InjectedIntrisic::Data: bincode::Encode",
+        decode_bounds = "RNG: serde::de::DeserializeOwned, InjectedIntrisic: bincode::Decode, InjectedIntrisic::Data: bincode::Decode",
+        borrow_decode_bounds = "RNG: serde::Deserialize<'__de>, InjectedIntrisic: bincode::BorrowDecode<'__de>, InjectedIntrisic::Data: bincode::BorrowDecode<'__de>"
+    )
+)]
 pub struct Engine<RNG, InjectedIntrisic: InjectedIntr> {
     context: Context<RNG, InjectedIntrisic>,
 }
