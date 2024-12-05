@@ -1,11 +1,11 @@
 use std::ops::{Deref, DerefMut};
 
-use derive_more::derive::{From, Into};
+use derive_more::derive::Into;
 use nunny::NonEmpty;
 
 use super::Expression;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, From, Into)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Into)]
 pub struct ExpressionScope<InjectedIntrisic>(Box<NonEmpty<[Expression<InjectedIntrisic>]>>);
 
 impl<InjectedIntrisic> Deref for ExpressionScope<InjectedIntrisic> {

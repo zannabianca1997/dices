@@ -19,3 +19,35 @@ async fn version_server() {
 
     infrastructure.down().await;
 }
+
+#[test(tokio::test)]
+async fn version_engine() {
+    let infrastructure = common::Infrastructure::up().await;
+
+    let response = infrastructure
+        .server
+        .get("/api/v1/version/engine")
+        .expect_success()
+        .await;
+
+    response.assert_status_ok();
+    response.assert_json(&dices_engine::VERSION);
+
+    infrastructure.down().await;
+}
+
+#[test(tokio::test)]
+async fn version_ast() {
+    let infrastructure = common::Infrastructure::up().await;
+
+    let response = infrastructure
+        .server
+        .get("/api/v1/version/ast")
+        .expect_success()
+        .await;
+
+    response.assert_status_ok();
+    response.assert_json(&dices_ast::VERSION);
+
+    infrastructure.down().await;
+}

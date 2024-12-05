@@ -87,7 +87,7 @@ peg::parser! {
 
                 "(" _ e:expr() _ ")" { e }
 
-                "{" inner:scope_inner() "}" { Expression::Scope(inner.into()) }
+                "{" inner:scope_inner() "}" { Expression::Scope(ExpressionScope::new(inner)) }
             }
             / expected!("expression")
 

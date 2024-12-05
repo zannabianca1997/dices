@@ -14,7 +14,7 @@ use derive_more::derive::{From, Into};
 
 use crate::{
     app::AuthKey,
-    domains::commons::{ErrorCodes, ErrorResponse, ErrorResponseBuilder},
+    domains::commons::{ErrorCodes, ErrorResponse},
 };
 
 use super::models::{UserClaims, UserId};
@@ -50,7 +50,7 @@ where
         let Ok(auth_header) =
             TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state).await
         else {
-            return Err(ErrorResponseBuilder::new()
+            return Err(ErrorResponse::builder()
                 .code(ErrorCodes::InvalidAuthHeader)
                 .msg("The `Authorization` header is either missing or invalid")
                 .build());
@@ -129,7 +129,7 @@ fn check_token(token: &str, auth_key: AuthKey) -> Result<AutenticatedUser, Error
             if SystemTime::UNIX_EPOCH + Duration::from_secs(expiration) < SystemTime::now() =>
         {
             Err({
-                ErrorResponseBuilder::new()
+                ErrorResponse::builder()
                     .code(ErrorCodes::TokenExpired)
                     .msg("The provided bearer token is expired")
                     .add("provided_token", token)
@@ -143,7 +143,7 @@ fn check_token(token: &str, auth_key: AuthKey) -> Result<AutenticatedUser, Error
         }
         Err(err) => Err({
             tracing::debug!("Token {token} was refused for a serialization error: {err}");
-            ErrorResponseBuilder::new()
+            ErrorResponse::builder()
                 .code(ErrorCodes::InvalidToken)
                 .msg("The provided bearer token is invalid")
                 .add("provided_token", token)

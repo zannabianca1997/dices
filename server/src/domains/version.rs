@@ -7,7 +7,7 @@ use super::Domain;
 
 #[utoipa::path(
     get,
-    path = "/",
+    path = "",
     description = "Get the version of the server",
     responses(
         (status=StatusCode::OK, description="The version of the server", body = Version)

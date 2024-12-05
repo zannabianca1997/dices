@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::{
     app::AuthKey,
     domains::{
-        commons::{ErrorCodes, ErrorResponse, ErrorResponseBuilder},
+        commons::{ErrorCodes, ErrorResponse},
         user::domain::security,
     },
 };
@@ -151,17 +151,17 @@ pub enum RegistrationError {
 impl From<RegistrationError> for ErrorResponse {
     fn from(value: RegistrationError) -> Self {
         match value {
-            RegistrationError::BlankUsername => ErrorResponseBuilder::new()
+            RegistrationError::BlankUsername => ErrorResponse::builder()
                 .code(ErrorCodes::BlankUsername)
                 .msg("The username cannot be blank")
                 .build(),
-            RegistrationError::SpacesInUsername(username) => ErrorResponseBuilder::new()
+            RegistrationError::SpacesInUsername(username) => ErrorResponse::builder()
                 .code(ErrorCodes::UsernameHasSpaces)
                 .msg(format!("The username `{username}` contains blank spaces"))
                 .add("username", username)
                 .build(),
             RegistrationError::DbErr(db_err) => ErrorResponse::internal_server_error(db_err),
-            RegistrationError::UsernameTaken(username) => ErrorResponseBuilder::new()
+            RegistrationError::UsernameTaken(username) => ErrorResponse::builder()
                 .code(ErrorCodes::UsernameTaken)
                 .msg(format!("The username `{username}` is already taken"))
                 .add("username", username)
@@ -181,12 +181,12 @@ impl From<LoginError> for ErrorResponse {
     fn from(value: LoginError) -> Self {
         match value {
             LoginError::DbErr(db_err) => ErrorResponse::internal_server_error(db_err),
-            LoginError::UnknowUsername(username) => ErrorResponseBuilder::new()
+            LoginError::UnknowUsername(username) => ErrorResponse::builder()
                 .code(ErrorCodes::UnknowUsername)
                 .msg(format!("No user named `{username}`"))
                 .add("username", username)
                 .build(),
-            LoginError::WrongPassword => ErrorResponseBuilder::new()
+            LoginError::WrongPassword => ErrorResponse::builder()
                 .code(ErrorCodes::WrongPassword)
                 .msg("Wrong password")
                 .build(),
