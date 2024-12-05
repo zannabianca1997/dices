@@ -22,7 +22,7 @@ impl Infrastructure {
     pub async fn up() -> Self {
         let db = db().await;
         let connection_string = format!(
-            "postgres://dices_server:dices_server@{}:{}/dices_server",
+            "postgres://dices_server_test:dices_server_test@{}:{}/dices_server_test",
             db.get_host().await.unwrap(),
             db.get_host_port_ipv4(5432).await.unwrap()
         );
@@ -50,8 +50,8 @@ impl Infrastructure {
         drop(server);
         // stop the database
         db.stop().await.expect("Error in stopping postgres");
-        // drop the database container
-        drop(db);
+        // remove the database container
+        db.rm().await.expect("Error in removing the test container");
     }
 
     pub async fn register(&self, username: &str, password: &str) -> (Uuid, String) {
@@ -76,9 +76,9 @@ impl Infrastructure {
 async fn db() -> ContainerAsync<Postgres> {
     tracing::info!("Creating test database");
     Postgres::default()
-        .with_db_name("dices_server")
-        .with_user("dices_server")
-        .with_password("dices_server")
+        .with_db_name("dices_server_test")
+        .with_user("dices_server_test")
+        .with_password("dices_server_test")
         .with_tag("17.0-alpine3.20")
         .start()
         .await

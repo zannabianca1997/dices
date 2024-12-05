@@ -1,5 +1,5 @@
 use bincode::error::DecodeError;
-use sea_orm::{ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter};
+use sea_orm::{ConnectionTrait, DbErr, EntityTrait, IntoActiveModel};
 use uuid::Uuid;
 
 use crate::entities;
