@@ -61,29 +61,11 @@ impl Session {
             .await?;
         Ok(())
     }
-
-    pub(super) async fn find_by_name(
-        db: &impl ConnectionTrait,
-        name: &str,
-    ) -> Result<Option<Self>, DbErr> {
-        Ok(entities::prelude::Session::find()
-            .filter(entities::session::Column::Name.eq(name))
-            .one(db)
-            .await?
-            .map(|model| {
-                model.try_into().map_err(|err| DbErr::TryIntoErr {
-                    from: "entities::session::Model",
-                    into: "Session",
-                    source: Box::new(err),
-                })
-            })
-            .transpose()?)
-    }
     pub(super) async fn find_by_id(
         db: &impl ConnectionTrait,
         id: SessionId,
     ) -> Result<Option<Self>, DbErr> {
-        Ok(entities::prelude::Session::find_by_id(Uuid::from(id))
+        entities::prelude::Session::find_by_id(Uuid::from(id))
             .one(db)
             .await?
             .map(|model| {
@@ -93,6 +75,6 @@ impl Session {
                     source: Box::new(err),
                 })
             })
-            .transpose()?)
+            .transpose()
     }
 }
