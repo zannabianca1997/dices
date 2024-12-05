@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 #[repr(u8)]
 pub enum ErrorCodes {
     /*
-     * Genera codes
+     * General codes
      */
     InternalServerError = 0,
     /*
@@ -27,6 +27,10 @@ pub enum ErrorCodes {
     InvalidToken = 106,
     TokenExpired = 107,
     UserDeleted = 108,
+    /*
+     * Sessions
+     */
+    BlankSessionName = 200,
 }
 impl ErrorCodes {
     fn http(&self) -> StatusCode {
@@ -40,6 +44,7 @@ impl ErrorCodes {
             | ErrorCodes::InvalidToken => StatusCode::UNAUTHORIZED,
             ErrorCodes::TokenExpired => StatusCode::FORBIDDEN,
             ErrorCodes::UserDeleted => StatusCode::FORBIDDEN,
+            ErrorCodes::BlankSessionName => StatusCode::BAD_REQUEST,
         }
     }
 }

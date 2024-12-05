@@ -16,6 +16,63 @@ pub struct Context<RNG, InjectedIntrisic: InjectedIntr> {
     injected_intrisics_data: <InjectedIntrisic as InjectedIntr>::Data,
 }
 
+#[cfg(feature = "bincode")]
+impl<RNG, InjectedIntrisic: InjectedIntr> bincode::Encode for Context<RNG, InjectedIntrisic>
+where
+    RNG: serde::Serialize,
+    InjectedIntrisic: bincode::Encode,
+    InjectedIntrisic::Data: bincode::Encode,
+{
+    fn encode<E: bincode::enc::Encoder>(
+        &self,
+        encoder: &mut E,
+    ) -> core::result::Result<(), bincode::error::EncodeError> {
+        bincode::Encode::encode(self.scopes.as_slice(), encoder)?;
+        bincode::Encode::encode(&bincode::serde::Compat(&self.rng), encoder)?;
+        bincode::Encode::encode(&self.injected_intrisics_data, encoder)?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "bincode")]
+impl<RNG, InjectedIntrisic: InjectedIntr> bincode::Decode for Context<RNG, InjectedIntrisic>
+where
+    RNG: serde::de::DeserializeOwned,
+    InjectedIntrisic: bincode::Decode,
+    InjectedIntrisic::Data: bincode::Decode,
+{
+    fn decode<D: bincode::de::Decoder>(
+        decoder: &mut D,
+    ) -> core::result::Result<Self, bincode::error::DecodeError> {
+        Ok(Self {
+            scopes: NonEmpty::<Vec<_>>::new(bincode::Decode::decode(decoder)?)
+                .map_err(|_| bincode::error::DecodeError::Other("Empty scopes stack"))?,
+            rng: bincode::serde::Compat::decode(decoder)?.0,
+            injected_intrisics_data: bincode::Decode::decode(decoder)?,
+        })
+    }
+}
+
+#[cfg(feature = "bincode")]
+impl<'de, RNG, InjectedIntrisic: InjectedIntr> bincode::BorrowDecode<'de>
+    for Context<RNG, InjectedIntrisic>
+where
+    RNG: serde::de::Deserialize<'de>,
+    InjectedIntrisic: bincode::de::BorrowDecode<'de>,
+    InjectedIntrisic::Data: bincode::de::BorrowDecode<'de>,
+{
+    fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
+        decoder: &mut D,
+    ) -> core::result::Result<Self, bincode::error::DecodeError> {
+        Ok(Self {
+            scopes: NonEmpty::<Vec<_>>::new(bincode::BorrowDecode::borrow_decode(decoder)?)
+                .map_err(|_| bincode::error::DecodeError::Other("Empty scopes stack"))?,
+            rng: bincode::serde::BorrowCompat::borrow_decode(decoder)?.0,
+            injected_intrisics_data: bincode::BorrowDecode::borrow_decode(decoder)?,
+        })
+    }
+}
+
 impl<RNG: std::fmt::Debug, InjectedIntrisic: InjectedIntr + std::fmt::Debug> std::fmt::Debug
     for Context<RNG, InjectedIntrisic>
 {

@@ -1189,6 +1189,7 @@ dependencies = [
 name = "dices-engine"
 version = "3.1.0"
 dependencies = [
+ "bincode",
  "derive_more",
  "dices-ast",
  "dices-version",
@@ -1269,6 +1270,7 @@ dependencies = [
  "axum",
  "axum-extra",
  "axum-test",
+ "bincode",
  "chrono",
  "clap",
  "derive_more",
@@ -1281,6 +1283,7 @@ dependencies = [
  "hmac",
  "jwt",
  "rand",
+ "rand_xoshiro",
  "sea-orm",
  "serde",
  "serde_json",

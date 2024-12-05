@@ -194,6 +194,28 @@ pub trait InjectedIntr: Sized + Clone + 'static + Hash {
 #[derive(Clone, Copy)]
 pub struct NoInjectedIntrisics(!);
 
+#[cfg(feature = "bincode")]
+impl bincode::Decode for NoInjectedIntrisics {
+    fn decode<D: bincode::de::Decoder>(_: &mut D) -> Result<Self, bincode::error::DecodeError> {
+        Err(bincode::error::DecodeError::Other(
+            "Found intrisic inside a `NoInjectedIntrisics` value!",
+        ))
+    }
+}
+
+#[cfg(feature = "bincode")]
+impl bincode::Encode for NoInjectedIntrisics {
+    fn encode<E: bincode::enc::Encoder>(
+        &self,
+        _: &mut E,
+    ) -> Result<(), bincode::error::EncodeError> {
+        self.0
+    }
+}
+
+#[cfg(feature = "bincode")]
+bincode::impl_borrow_decode!(NoInjectedIntrisics);
+
 impl Deref for NoInjectedIntrisics {
     type Target = !;
 

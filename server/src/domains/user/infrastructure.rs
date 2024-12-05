@@ -1,7 +1,7 @@
 use chrono::Utc;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
-    QueryFilter, Set,
+    ActiveModelBehavior, ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DbErr,
+    EntityTrait, IntoActiveModel, PaginatorTrait, QueryFilter, Set,
 };
 use uuid::Uuid;
 
@@ -70,8 +70,22 @@ impl User {
             .await?
             .map(Into::into))
     }
-    pub(super) async fn update_last_access(self, db: &impl ConnectionTrait) -> Result<Self, DbErr> {
-        let mut user = entities::user::Model::from(self).into_active_model();
+    pub(super) async fn exist_by_name(
+        db: &impl ConnectionTrait,
+        name: &str,
+    ) -> Result<bool, DbErr> {
+        Ok(entities::prelude::User::find()
+            .filter(entities::user::Column::Name.eq(name))
+            .count(db)
+            .await?
+            != 0)
+    }
+    pub(super) async fn update_last_access(
+        &self,
+        db: &impl ConnectionTrait,
+    ) -> Result<Self, DbErr> {
+        let mut user = entities::user::ActiveModel::new();
+        user.id = ActiveValue::unchanged(self.id.into());
         user.last_access = Set(Utc::now().fixed_offset());
         user.update(db).await.map(Into::into)
     }

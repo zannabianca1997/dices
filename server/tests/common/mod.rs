@@ -11,6 +11,7 @@ use tokio::sync::oneshot::{self, Sender};
 use tracing::instrument;
 use uuid::Uuid;
 
+#[must_use]
 pub struct Infrastructure {
     pub db: ContainerAsync<Postgres>,
     shutdown: Sender<()>,
@@ -33,7 +34,7 @@ impl Infrastructure {
         }
     }
 
-    pub async fn down(self) {
+    pub async fn down(mut self) {
         let Self {
             db,
             server,

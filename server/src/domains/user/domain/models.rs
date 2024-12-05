@@ -99,19 +99,19 @@ impl User {
         if username.contains(char::is_whitespace) {
             return Err(RegistrationError::SpacesInUsername(username));
         }
-        if Self::find_by_name(db, &username).await?.is_some() {
+        if Self::exist_by_name(db, &username).await? {
             return Err(RegistrationError::UsernameTaken(username));
         }
 
         let id = UserId::new();
         let (password, authenticated) = hash_password(id, &password);
-        let created = Utc::now();
+        let created_at = Utc::now();
         let user = Self {
             id,
             username,
             password,
-            created_at: created,
-            last_access: created,
+            created_at,
+            last_access: created_at,
         };
 
         Ok(user
@@ -206,7 +206,7 @@ pub struct SignInResponse {
 }
 impl SignInResponse {
     pub fn new(user: User, auth: AutenticatedUser, auth_key: AuthKey) -> Self {
-        assert_eq!(user.id, auth.id());
+        assert_eq!(user.id, auth.user_id());
         let token = security::generate_token(auth, auth_key);
         Self { user, token }
     }

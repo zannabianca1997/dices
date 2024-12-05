@@ -6,6 +6,8 @@ mod application;
 mod domain;
 mod infrastructure;
 
+pub use domain::security::AutenticatedUser;
+
 pub const DOMAIN: Domain = Domain {
     name: "user",
     version: 1,

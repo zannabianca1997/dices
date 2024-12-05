@@ -32,7 +32,7 @@ pub struct AutenticatedUser {
 }
 
 impl AutenticatedUser {
-    pub fn id(&self) -> UserId {
+    pub fn user_id(&self) -> UserId {
         self.user_id
     }
 }
@@ -114,7 +114,7 @@ pub(crate) fn generate_token(auth: AutenticatedUser, auth_key: AuthKey) -> Strin
         .unwrap()
         .as_secs();
     let token_claims = UserClaims {
-        subject: auth.id(),
+        subject: auth.user_id(),
         expiration,
         issued_at,
     };
