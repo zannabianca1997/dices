@@ -48,7 +48,7 @@ async fn register() {
 #[test(tokio::test)]
 async fn duplicated_register_fail() {
     let infrastructure = Infrastructure::up().await;
-    infrastructure.register("Zanna", "password").await.0;
+    infrastructure.register("Zanna", "password").await;
 
     infrastructure
         .server
