@@ -29,23 +29,14 @@
 
 ## API
 
-- Plan the API
-
-## Auth
-
-- Create the `/auth` endpoints
-- Create the authentication classes
-- Create the user class
-
-## Database
-
-- Plan the database
+- Add the session querying
+- Add the game API
 
 # Client
 
-## Angular
+## JS
 
-- Setup the Angular project
+- Setup the JS project
 - Plan the UI
 
 ## Binding
