@@ -1,8 +1,9 @@
 #![feature(duration_constructors)]
-
-mod boot;
+#![feature(never_type)]
+#![feature(iterator_try_collect)]
 
 mod app;
+mod boot;
 mod domains;
 
 include!(env!("ENTITY_MODULE"));

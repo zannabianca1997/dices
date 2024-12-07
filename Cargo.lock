@@ -1316,6 +1316,7 @@ dependencies = [
  "dices-version",
  "dotenvy",
  "figment",
+ "futures",
  "hmac",
  "jwt",
  "rand",
@@ -1326,6 +1327,7 @@ dependencies = [
  "serde_json",
  "serde_repr",
  "sha2",
+ "strum",
  "test-log",
  "testcontainers-modules",
  "tokio",
@@ -4424,6 +4426,9 @@ name = "strum"
 version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
+dependencies = [
+ "strum_macros",
+]
 
 [[package]]
 name = "strum_macros"
