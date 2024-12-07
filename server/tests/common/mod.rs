@@ -1,7 +1,11 @@
+use std::future::Future;
+use std::panic::{resume_unwind, AssertUnwindSafe};
+use std::pin::Pin;
 use std::time::Duration;
 
 use axum_test::TestServer;
 use dices_server::{App, Config};
+use futures::FutureExt;
 use serde_json::{from_value, json, Value};
 use testcontainers_modules::{
     postgres::Postgres,
@@ -11,15 +15,36 @@ use tokio::sync::oneshot::{self, Sender};
 use tracing::instrument;
 use uuid::Uuid;
 
-#[must_use]
 pub struct Infrastructure {
-    pub db: ContainerAsync<Postgres>,
+    db: ContainerAsync<Postgres>,
     shutdown: Sender<()>,
-    pub server: TestServer,
+    server: TestServer,
 }
 #[allow(unused)]
 impl Infrastructure {
-    pub async fn up() -> Self {
+    /// Run a piece of code with the infrastructure running
+    ///
+    /// This is in a callback so the teardown code runs automatically at the end
+    pub async fn with<F, T>(callback: F) -> T
+    where
+        F: for<'c> FnOnce(&'c Self) -> Pin<Box<dyn Future<Output = T> + 'c>>,
+    {
+        let infrastructure = Self::up().await;
+
+        let res = AssertUnwindSafe(callback(&infrastructure))
+            .catch_unwind()
+            .await;
+
+        Self::down(infrastructure).await;
+
+        match res {
+            Ok(t) => t,
+            Err(e) => resume_unwind(e),
+        }
+    }
+
+    /// Pull up the infrastructure
+    async fn up() -> Self {
         let db = db().await;
         let connection_string = format!(
             "postgres://dices_server_test:dices_server_test@{}:{}/dices_server_test",
@@ -34,12 +59,13 @@ impl Infrastructure {
         }
     }
 
-    pub async fn down(mut self) {
+    /// Close the infrastructure
+    async fn down(infrastructure: Infrastructure) {
         let Self {
             db,
             server,
             shutdown,
-        } = self;
+        } = infrastructure;
         // sending shutdown signal
         shutdown.send(()).unwrap();
         // poll the server until is closed
@@ -52,6 +78,10 @@ impl Infrastructure {
         db.stop().await.expect("Error in stopping postgres");
         // remove the database container
         db.rm().await.expect("Error in removing the test container");
+    }
+
+    pub fn server(&self) -> &TestServer {
+        &self.server
     }
 
     pub async fn register(&self, username: &str, password: &str) -> (Uuid, String) {
@@ -69,6 +99,19 @@ impl Infrastructure {
             from_value(registration["user"]["id"].clone()).unwrap(),
             from_value(registration["token"].clone()).unwrap(),
         )
+    }
+    pub async fn create_session(&self, token: &str, name: &str) -> Uuid {
+        let session = self
+            .server
+            .post("/api/v1/sessions")
+            .authorization_bearer(token)
+            .json(&json!({
+                "name": name
+            }))
+            .expect_success()
+            .await
+            .json::<Value>();
+        from_value(session["id"].clone()).unwrap()
     }
 }
 

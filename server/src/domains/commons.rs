@@ -1,6 +1,7 @@
 use std::{borrow::Cow, error::Error, fmt::Display};
 
 use axum::{http::StatusCode, response::IntoResponse, Json};
+use sea_orm::DbErr;
 use serde::Serialize;
 use serde_json::to_value;
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -30,7 +31,11 @@ pub enum ErrorCodes {
     /*
      * Sessions
      */
-    BlankSessionName = 200,
+    SessionNotFound = 200,
+    UserNotMemberOfSession = 201,
+    BlankSessionName = 210,
+    CannotAddUserWithHigherRole = 220,
+    CannotSeeUserList = 221,
 }
 impl ErrorCodes {
     fn http(&self) -> StatusCode {
@@ -45,6 +50,10 @@ impl ErrorCodes {
             ErrorCodes::TokenExpired => StatusCode::FORBIDDEN,
             ErrorCodes::UserDeleted => StatusCode::FORBIDDEN,
             ErrorCodes::BlankSessionName => StatusCode::BAD_REQUEST,
+            ErrorCodes::SessionNotFound => StatusCode::NOT_FOUND,
+            ErrorCodes::CannotAddUserWithHigherRole
+            | ErrorCodes::UserNotMemberOfSession
+            | ErrorCodes::CannotSeeUserList => StatusCode::FORBIDDEN,
         }
     }
 }
@@ -57,7 +66,7 @@ pub struct ErrorResponse {
     /// Status code to overwrite the default one for this error
     #[serde(skip)]
     pub http_code: Option<StatusCode>,
-    /// A human readable message about the error
+    /// A human-readable message about the error
     pub msg: Cow<'static, str>,
     /// Additional info on the error
     #[serde(flatten)]
@@ -67,7 +76,7 @@ impl ErrorResponse {
     pub fn internal_server_error(err: impl Error) -> Self {
         // log the error
         tracing::error!("Internal server error: {}", err);
-        // return a opaque message
+        // return an opaque message
         Self::builder()
             .code(ErrorCodes::InternalServerError)
             .msg("Internal server error")
@@ -76,6 +85,16 @@ impl ErrorResponse {
 
     pub(crate) fn builder() -> ErrorResponseBuilder<(), ()> {
         ErrorResponseBuilder::new()
+    }
+}
+impl From<DbErr> for ErrorResponse {
+    fn from(value: DbErr) -> Self {
+        Self::internal_server_error(value)
+    }
+}
+impl From<!> for ErrorResponse {
+    fn from(value: !) -> Self {
+        value
     }
 }
 
@@ -97,7 +116,7 @@ impl ErrorResponseBuilder<(), ()> {
     }
 }
 impl<C, M> ErrorResponseBuilder<C, M> {
-    pub(crate) fn code(self, code: impl Into<ErrorCodes>) -> ErrorResponseBuilder<ErrorCodes, M> {
+    pub(crate) fn code<C2: Into<ErrorCodes>>(self, code: C2) -> ErrorResponseBuilder<C2, M> {
         let Self {
             code: _,
             http_code,
@@ -105,7 +124,7 @@ impl<C, M> ErrorResponseBuilder<C, M> {
             additional,
         } = self;
         ErrorResponseBuilder {
-            code: code.into(),
+            code,
             http_code,
             msg,
             additional,
@@ -123,10 +142,7 @@ impl<C, M> ErrorResponseBuilder<C, M> {
             ..self
         }
     }
-    pub(crate) fn msg(
-        self,
-        msg: impl Into<Cow<'static, str>>,
-    ) -> ErrorResponseBuilder<C, Cow<'static, str>> {
+    pub(crate) fn msg<M2: Into<Cow<'static, str>>>(self, msg: M2) -> ErrorResponseBuilder<C, M2> {
         let Self {
             code,
             http_code,
@@ -136,7 +152,7 @@ impl<C, M> ErrorResponseBuilder<C, M> {
         ErrorResponseBuilder {
             code,
             http_code,
-            msg: msg.into(),
+            msg,
             additional,
         }
     }
@@ -148,7 +164,7 @@ impl<C, M> ErrorResponseBuilder<C, M> {
         self
     }
 }
-impl ErrorResponseBuilder<ErrorCodes, Cow<'static, str>> {
+impl<C: Into<ErrorCodes>, M: Into<Cow<'static, str>>> ErrorResponseBuilder<C, M> {
     pub(crate) fn build(self) -> ErrorResponse {
         let Self {
             code,
@@ -157,9 +173,9 @@ impl ErrorResponseBuilder<ErrorCodes, Cow<'static, str>> {
             additional,
         } = self;
         ErrorResponse {
-            code,
+            code: code.into(),
             http_code,
-            msg,
+            msg: msg.into(),
             additional,
         }
     }
