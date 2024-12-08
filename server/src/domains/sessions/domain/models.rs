@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::domains::sessions::infrastructure::{
-    create, create_session_user, fetch_users, find_by_id, find_session_user,
+    create, create_session_user, fetch_users, find_all, find_by_id, find_session_user,
 };
 use crate::{
     domains::{
@@ -159,9 +159,19 @@ impl Session {
         id: SessionId,
         requester: AutenticatedUser,
     ) -> Result<Option<Session>, DbErr> {
-        Ok(find_by_id(db, id, requester)
+        Ok(find_by_id(db, id, requester.user_id())
             .await?
             .and_then(|(s, p)| p.role.can(Permission::GetData).then_some(s)))
+    }
+
+    pub(crate) async fn find_all(
+        db: &(impl ConnectionTrait + TransactionTrait),
+        requester: AutenticatedUser,
+    ) -> Result<impl Iterator<Item = Result<Session, SessionsGetNextError>>, DbErr> {
+        Ok(find_all(db, requester.user_id()).await?.filter_map(|r| {
+            r.map(|(s, p)| p.role.can(Permission::GetData).then_some(s))
+                .transpose()
+        }))
     }
 }
 
@@ -194,6 +204,17 @@ pub enum UsersGetNextError {}
 impl From<UsersGetNextError> for ErrorResponse {
     fn from(value: UsersGetNextError) -> Self {
         match value {}
+    }
+}
+#[derive(Debug, Display, From, Error)]
+pub enum SessionsGetNextError {
+    DbErr(DbErr),
+}
+impl From<SessionsGetNextError> for ErrorResponse {
+    fn from(value: SessionsGetNextError) -> Self {
+        match value {
+            SessionsGetNextError::DbErr(db_err) => db_err.into(),
+        }
     }
 }
 

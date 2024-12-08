@@ -55,6 +55,7 @@ strum = { version = "0.26.3", features = ["derive"] }
 
 [dev-dependencies]
 axum-test = "16.3.0"
+fnv = "1.0.7"
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
 test-log = { version = "0.2.16", default-features = false, features = [
     "color",

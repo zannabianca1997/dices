@@ -136,12 +136,6 @@ impl<C, M> ErrorResponseBuilder<C, M> {
             ..self
         }
     }
-    pub(crate) fn default_http_code(self) -> Self {
-        Self {
-            http_code: None,
-            ..self
-        }
-    }
     pub(crate) fn msg<M2: Into<Cow<'static, str>>>(self, msg: M2) -> ErrorResponseBuilder<C, M2> {
         let Self {
             code,
