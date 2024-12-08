@@ -33,6 +33,26 @@ async fn create(
 
 #[utoipa::path(
     get,
+    path = "",
+    description = "Get a list of sessions available",
+    responses(
+        (status=StatusCode::OK, description="The sessions found", body = [Session]),
+        (status=StatusCode::UNAUTHORIZED, description="Sessions can be queried only by authenticated users", body = ErrorResponse)
+    ),
+    security(("UserJWT" = []))
+)]
+async fn query_all(
+    State(database): State<DatabaseConnection>,
+    requester: AutenticatedUser,
+) -> Result<Json<Box<[Session]>>, ErrorResponse> {
+    let sessions = Session::find_all(&database, requester)
+        .await?
+        .try_collect()?;
+    Ok(Json(sessions))
+}
+
+#[utoipa::path(
+    get,
     path = "/{session-uuid}",
     description = "Get data about session",
     params(
@@ -61,6 +81,7 @@ async fn query(
         })
         .map(Json)
 }
+
 #[utoipa::path(
     get,
     path = "/{session-uuid}/users",
@@ -92,13 +113,14 @@ async fn query_users(
 pub(super) fn router() -> Router<AppState> {
     Router::new()
         .route("/", post(create))
+        .route("/", get(query_all))
         .route("/:session-uuid", get(query))
         .route("/:session-uuid/users", get(query_users))
 }
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(create, query, query_users),
+    paths(create, query_all, query, query_users),
     components(schemas(Session, SessionCreate, SessionUser))
 )]
 pub(super) struct ApiDocs;

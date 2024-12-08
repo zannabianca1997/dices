@@ -1316,6 +1316,7 @@ dependencies = [
  "dices-version",
  "dotenvy",
  "figment",
+ "fnv",
  "futures",
  "hmac",
  "jwt",

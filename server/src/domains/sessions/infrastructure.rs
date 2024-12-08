@@ -1,7 +1,8 @@
 use super::domain::models::{
-    Session, SessionId, SessionUser, UserRole, UsersGetError, UsersGetNextError,
+    Session, SessionId, SessionUser, SessionsGetNextError, UserRole, UsersGetError,
+    UsersGetNextError,
 };
-use crate::domains::user::{AutenticatedUser, UserId};
+use crate::domains::user::UserId;
 use crate::entities::{self};
 use chrono::Utc;
 use sea_orm::{
@@ -47,16 +48,17 @@ pub(super) async fn create(
 pub(super) async fn find_by_id(
     db: &impl ConnectionTrait,
     id: SessionId,
-    requester: AutenticatedUser,
+    requester: UserId,
 ) -> Result<Option<(Session, SessionUser)>, DbErr> {
     entities::prelude::Session::find_by_id(Uuid::from(id))
         .find_with_related(entities::prelude::SessionUser)
-        .filter(entities::session_user::Column::User.eq(*requester.user_id().as_ref()))
+        .filter(entities::session_user::Column::User.eq(*requester.as_ref()))
         .limit(1)
         .all(db)
         .await?
         .pop()
         .map(|(model, mut users)| {
+            debug_assert_eq!(users.len(), 1, "The query should fetch a single user");
             Ok((
                 model.try_into().map_err(|err| DbErr::TryIntoErr {
                     from: "entities::session::Model",
@@ -67,6 +69,28 @@ pub(super) async fn find_by_id(
             ))
         })
         .transpose()
+}
+pub(super) async fn find_all(
+    db: &(impl ConnectionTrait + TransactionTrait),
+    requester: UserId,
+) -> Result<impl Iterator<Item = Result<(Session, SessionUser), SessionsGetNextError>>, DbErr> {
+    Ok(entities::prelude::Session::find()
+        .find_with_related(entities::prelude::SessionUser)
+        .filter(entities::session_user::Column::User.eq(*requester.as_ref()))
+        .all(db)
+        .await?
+        .into_iter()
+        .map(|(model, mut users)| {
+            debug_assert_eq!(users.len(), 1, "The query should fetch a single user");
+            Ok((
+                model.try_into().map_err(|err| DbErr::TryIntoErr {
+                    from: "entities::session::Model",
+                    into: "Session",
+                    source: Box::new(err),
+                })?,
+                users.pop().unwrap().into(),
+            ))
+        }))
 }
 
 pub(super) async fn fetch_users(
