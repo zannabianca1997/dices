@@ -32,10 +32,10 @@ pub enum ErrorCodes {
      * Sessions
      */
     SessionNotFound = 200,
-    UserNotMemberOfSession = 201,
     BlankSessionName = 210,
     CannotAddUserWithHigherRole = 220,
     CannotSeeUserList = 221,
+    CannotDeleteSession = 222,
 }
 impl ErrorCodes {
     fn http(&self) -> StatusCode {
@@ -52,8 +52,8 @@ impl ErrorCodes {
             ErrorCodes::BlankSessionName => StatusCode::BAD_REQUEST,
             ErrorCodes::SessionNotFound => StatusCode::NOT_FOUND,
             ErrorCodes::CannotAddUserWithHigherRole
-            | ErrorCodes::UserNotMemberOfSession
-            | ErrorCodes::CannotSeeUserList => StatusCode::FORBIDDEN,
+            | ErrorCodes::CannotSeeUserList
+            | ErrorCodes::CannotDeleteSession => StatusCode::FORBIDDEN,
         }
     }
 }

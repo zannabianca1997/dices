@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::domains::sessions::infrastructure::{
-    create, create_session_user, fetch_users, find_all, find_by_id, find_session_user,
+    create, create_session_user, destroy, fetch_users, find_all, find_by_id, find_session_user,
 };
 use crate::{
     domains::{
@@ -134,20 +134,21 @@ impl Session {
     }
 
     pub(crate) async fn users(
-        &self,
         db: &(impl ConnectionTrait + TransactionTrait),
+        session_uuid: SessionId,
         requester: AutenticatedUser,
     ) -> Result<impl Iterator<Item = Result<SessionUser, UsersGetNextError>>, UsersGetError> {
         let db = db.begin().await?;
 
-        // Find if the requester is a member
-        let session_user = find_session_user(&db, self.id, requester.user_id())
+        let (session, user) = find_by_id(&db, session_uuid, requester.user_id())
             .await?
-            .ok_or_else(|| UsersGetError::NotInTheSession)?;
-        if !session_user.role.can(Permission::GetUsers) {
-            return Err(UsersGetError::CannotSeeUserList(session_user.role));
+            .ok_or_else(|| UsersGetError::SessionNotFound(session_uuid))?;
+
+        if !(user.role.can(Permission::GetUsers)) {
+            return Err(UsersGetError::CannotSeeUserList(user.role));
         }
-        let users = fetch_users(&db, &self).await?;
+
+        let users = fetch_users(&db, &session).await?;
 
         db.commit().await?;
 
@@ -173,20 +174,73 @@ impl Session {
                 .transpose()
         }))
     }
+
+    pub(crate) async fn delete(
+        db: &(impl ConnectionTrait + TransactionTrait),
+        session_uuid: SessionId,
+        requester: AutenticatedUser,
+    ) -> Result<(), DeleteSessionError> {
+        db.transaction(|db| {
+            Box::pin(async move {
+                let user = find_session_user(db, session_uuid, requester.user_id())
+                    .await?
+                    .ok_or_else(|| DeleteSessionError::SessionNotFound(session_uuid))?;
+
+                if !(user.role.can(Permission::Delete)) {
+                    return Err(DeleteSessionError::RoleCannotDelete(user.role));
+                }
+
+                destroy(db, session_uuid).await?;
+                Ok(())
+            })
+        })
+        .await
+        .map_err(|err| match err {
+            sea_orm::TransactionError::Connection(db_err) => db_err.into(),
+            sea_orm::TransactionError::Transaction(err) => err,
+        })
+    }
+}
+
+#[derive(Debug, Display, From, Error)]
+pub enum DeleteSessionError {
+    SessionNotFound(#[error(not(source))] SessionId),
+    DbErr(DbErr),
+    RoleCannotDelete(#[error(not(source))] UserRole),
+}
+impl From<DeleteSessionError> for ErrorResponse {
+    fn from(value: DeleteSessionError) -> Self {
+        match value {
+            DeleteSessionError::SessionNotFound(session_uuid) => ErrorResponse::builder()
+                .code(ErrorCodes::SessionNotFound)
+                .msg(format!("The session {session_uuid} does not exist"))
+                .add("uuid", session_uuid)
+                .build(),
+            DeleteSessionError::DbErr(db_err) => db_err.into(),
+            DeleteSessionError::RoleCannotDelete(user_role) => ErrorResponse::builder()
+                .code(ErrorCodes::CannotDeleteSession)
+                .msg(format!(
+                    "Users with role {user_role} cannot delete sessions"
+                ))
+                .add("user_role", user_role)
+                .build(),
+        }
+    }
 }
 
 #[derive(Debug, Display, From, Error)]
 pub enum UsersGetError {
-    NotInTheSession,
+    SessionNotFound(#[error(not(source))] SessionId),
     CannotSeeUserList(#[error(not(source))] UserRole),
     DbErr(DbErr),
 }
 impl From<UsersGetError> for ErrorResponse {
     fn from(value: UsersGetError) -> Self {
         match value {
-            UsersGetError::NotInTheSession => ErrorResponse::builder()
-                .code(ErrorCodes::UserNotMemberOfSession)
-                .msg("The user is not part of this session")
+            UsersGetError::SessionNotFound(session_uuid) => ErrorResponse::builder()
+                .code(ErrorCodes::SessionNotFound)
+                .msg(format!("The session {session_uuid} does not exist"))
+                .add("uuid", session_uuid)
                 .build(),
             UsersGetError::CannotSeeUserList(role) => ErrorResponse::builder()
                 .code(ErrorCodes::CannotSeeUserList)
@@ -206,6 +260,7 @@ impl From<UsersGetNextError> for ErrorResponse {
         match value {}
     }
 }
+
 #[derive(Debug, Display, From, Error)]
 pub enum SessionsGetNextError {
     DbErr(DbErr),

@@ -255,14 +255,70 @@ async fn get_session_with_other_user_fail() {
             let session_uuid = infrastructure.create_session(&token, "Test Session").await;
             let other_token = infrastructure.register("Other", "pasword").await.1;
 
-            let response = infrastructure
+            infrastructure
                 .server()
                 .get(&format!("/api/v1/sessions/{session_uuid}"))
                 .authorization_bearer(other_token)
                 .expect_failure()
-                .await;
+                .await
+                .assert_status_not_found();
+        })
+    })
+    .await;
+}
 
-            response.assert_status_not_found();
+#[test(tokio::test)]
+async fn delete_session() {
+    Infrastructure::with(|infrastructure| {
+        Box::pin(async move {
+            let token = infrastructure.register("Zanna", "password").await.1;
+            let session_uuid = infrastructure.create_session(&token, "Test Session").await;
+
+            infrastructure
+                .server()
+                .delete(&format!("/api/v1/sessions/{session_uuid}"))
+                .authorization_bearer(&token)
+                .expect_success()
+                .await
+                .assert_status_ok();
+
+            infrastructure
+                .server()
+                .get(&format!("/api/v1/sessions/{session_uuid}"))
+                .authorization_bearer(token)
+                .expect_failure()
+                .await
+                .assert_status_not_found();
+        })
+    })
+    .await;
+}
+
+#[test(tokio::test)]
+async fn delete_session_with_other_fails() {
+    Infrastructure::with(|infrastructure| {
+        Box::pin(async move {
+            let token = infrastructure.register("Zanna", "password").await.1;
+            let session_uuid = infrastructure.create_session(&token, "Test Session").await;
+            let other_token = infrastructure
+                .register("EvilZanna", "evil4password")
+                .await
+                .1;
+
+            infrastructure
+                .server()
+                .delete(&format!("/api/v1/sessions/{session_uuid}"))
+                .authorization_bearer(&other_token)
+                .expect_failure()
+                .await
+                .assert_status_not_found();
+
+            infrastructure
+                .server()
+                .get(&format!("/api/v1/sessions/{session_uuid}"))
+                .authorization_bearer(token)
+                .expect_success()
+                .await;
         })
     })
     .await;
