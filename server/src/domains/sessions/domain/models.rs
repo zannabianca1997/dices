@@ -411,7 +411,7 @@ impl SessionUser {
             added_at: Utc::now(),
             last_access: None,
         };
-        create_session_user(new_user.clone(), db).await?;
+        create_session_user(new_user, db).await?;
         Ok(new_user)
     }
 }
