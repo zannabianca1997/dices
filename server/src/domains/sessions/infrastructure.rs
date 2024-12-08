@@ -92,6 +92,12 @@ pub(super) async fn find_all(
             ))
         }))
 }
+pub(super) async fn destroy(db: &impl ConnectionTrait, session: SessionId) -> Result<(), DbErr> {
+    entities::prelude::Session::delete_by_id(*session.as_ref())
+        .exec(db)
+        .await?;
+    Ok(())
+}
 
 pub(super) async fn fetch_users(
     db: &impl ConnectionTrait,

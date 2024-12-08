@@ -1,5 +1,5 @@
 use axum::extract::Path;
-use axum::routing::get;
+use axum::routing::{delete, get};
 use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
 use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
@@ -83,6 +83,29 @@ async fn query(
 }
 
 #[utoipa::path(
+    delete,
+    path = "/{session-uuid}",
+    description = "Delete a session",
+    params(
+        ("session-uuid" = SessionId, description="UUID of the session", format=Uuid),
+    ),
+    responses(
+        (status=StatusCode::OK, description="The session was deleted"),
+        (status=StatusCode::UNAUTHORIZED, description="Sessions can be deleted only by authenticated users", body = ErrorResponse),
+        (status=StatusCode::FORBIDDEN, description="User has not the role needed to delete the session", body = ErrorResponse),
+        (status=StatusCode::NOT_FOUND, description="Session does not exist", body = ErrorResponse)
+    ),
+    security(("UserJWT" = []))
+)]
+async fn destroy(
+    State(database): State<DatabaseConnection>,
+    Path(session_uuid): Path<SessionId>,
+    requester: AutenticatedUser,
+) -> Result<(), ErrorResponse> {
+    Ok(Session::delete(&database, session_uuid, requester).await?)
+}
+
+#[utoipa::path(
     get,
     path = "/{session-uuid}/users",
     description = "Get the list of users in this session",
@@ -101,10 +124,7 @@ async fn query_users(
     Path(session_uuid): Path<SessionId>,
     requester: AutenticatedUser,
 ) -> Result<Json<Box<[SessionUser]>>, ErrorResponse> {
-    let users = query(State(database.clone()), Path(session_uuid), requester)
-        .await?
-        .0
-        .users(&database, requester)
+    let users = Session::users(&database, session_uuid, requester)
         .await?
         .try_collect()?;
     Ok(Json(users))
@@ -115,12 +135,13 @@ pub(super) fn router() -> Router<AppState> {
         .route("/", post(create))
         .route("/", get(query_all))
         .route("/:session-uuid", get(query))
+        .route("/:session-uuid", delete(destroy))
         .route("/:session-uuid/users", get(query_users))
 }
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(create, query_all, query, query_users),
+    paths(create, query_all, destroy, query, query_users),
     components(schemas(Session, SessionCreate, SessionUser))
 )]
 pub(super) struct ApiDocs;
