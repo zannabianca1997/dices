@@ -48,9 +48,9 @@ async fn create(
 async fn query(
     State(database): State<DatabaseConnection>,
     Path(session_uuid): Path<SessionId>,
-    _: AutenticatedUser,
+    requester: AutenticatedUser,
 ) -> Result<Json<Session>, ErrorResponse> {
-    Session::find_by_id(&database, session_uuid)
+    Session::find_by_id(&database, session_uuid, requester)
         .await?
         .ok_or_else(|| {
             ErrorResponse::builder()
