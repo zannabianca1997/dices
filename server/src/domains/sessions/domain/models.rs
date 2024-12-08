@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::domains::sessions::infrastructure::{
+    create, create_session_user, fetch_users, find_by_id, find_session_user,
+};
 use crate::{
     domains::{
         commons::ErrorResponse,
@@ -125,7 +128,7 @@ impl Session {
             image: None,
         };
 
-        session.clone().create(db, creator.user_id()).await?;
+        create(session.clone(), db, creator.user_id()).await?;
 
         Ok(session)
     }
@@ -138,17 +141,27 @@ impl Session {
         let db = db.begin().await?;
 
         // Find if the requester is a member
-        let session_user = SessionUser::find(&db, self.id, requester.user_id())
+        let session_user = find_session_user(&db, self.id, requester.user_id())
             .await?
             .ok_or_else(|| UsersGetError::NotInTheSession)?;
         if !session_user.role.can(Permission::GetUsers) {
             return Err(UsersGetError::CannotSeeUserList(session_user.role));
         }
-        let users = self.fetch_users(&db).await?;
+        let users = fetch_users(&db, &self).await?;
 
         db.commit().await?;
 
         Ok(users)
+    }
+
+    pub(crate) async fn find_by_id(
+        db: &impl ConnectionTrait,
+        id: SessionId,
+        requester: AutenticatedUser,
+    ) -> Result<Option<Session>, DbErr> {
+        Ok(find_by_id(db, id, requester)
+            .await?
+            .and_then(|(s, p)| p.role.can(Permission::GetData).then_some(s)))
     }
 }
 
@@ -305,7 +318,6 @@ impl SessionUser {
     pub async fn add_new(
         &self,
         db: &impl ConnectionTrait,
-        session: SessionId,
         user: UserId,
         JoinSession { role }: JoinSession,
     ) -> Result<Self, UserAddError> {
@@ -317,13 +329,13 @@ impl SessionUser {
         }
 
         let new_user = Self {
-            session,
+            session: self.session,
             user,
             role,
             added_at: Utc::now(),
             last_access: None,
         };
-        new_user.create(db).await?;
+        create_session_user(new_user.clone(), db).await?;
         Ok(new_user)
     }
 }

@@ -119,3 +119,24 @@ async fn get_session() {
     })
     .await;
 }
+
+#[test(tokio::test)]
+async fn get_session_with_other_user_fail() {
+    Infrastructure::with(|infrastructure| {
+        Box::pin(async move {
+            let token = infrastructure.register("Zanna", "password").await.1;
+            let session_uuid = infrastructure.create_session(&token, "Test Session").await;
+            let other_token = infrastructure.register("Other", "pasword").await.1;
+
+            let response = infrastructure
+                .server()
+                .get(&format!("/api/v1/sessions/{session_uuid}"))
+                .authorization_bearer(other_token)
+                .expect_failure()
+                .await;
+
+            response.assert_status_not_found();
+        })
+    })
+    .await;
+}
