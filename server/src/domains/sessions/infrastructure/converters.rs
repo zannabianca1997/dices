@@ -15,7 +15,6 @@ impl TryFrom<entities::session::Model> for Session {
             name,
             description,
             created_at,
-            image,
         }: entities::session::Model,
     ) -> Result<Self, Self::Error> {
         Ok(Session {
@@ -23,10 +22,6 @@ impl TryFrom<entities::session::Model> for Session {
             name,
             description,
             created_at: created_at.to_utc(),
-            image: image
-                .map(|bytes| bincode::decode_from_slice(&bytes, bincode::config::standard()))
-                .transpose()?
-                .map(|(i, _)| i),
         })
     }
 }
@@ -38,7 +33,6 @@ impl From<Session> for entities::session::Model {
             name,
             description,
             created_at,
-            image,
         }: Session,
     ) -> Self {
         Self {
@@ -46,10 +40,6 @@ impl From<Session> for entities::session::Model {
             name,
             description,
             created_at: created_at.fixed_offset(),
-            image: image
-                .map(|image| bincode::encode_to_vec(image, bincode::config::standard()))
-                .transpose()
-                .expect("The engine should be always encodable"),
         }
     }
 }
