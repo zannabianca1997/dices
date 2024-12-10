@@ -1,8 +1,6 @@
 use chrono::{DateTime, Utc};
 use derive_more::derive::{AsRef, Display, From, Into};
 use derive_more::Error;
-use dices_ast::intrisics::NoInjectedIntrisics;
-use rand_xoshiro::Xoshiro256PlusPlus;
 use sea_orm::{ConnectionTrait, DbErr, EnumIter, TransactionTrait};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -96,16 +94,12 @@ impl From<UserAddError> for ErrorResponse {
     }
 }
 
-type ServerRNG = Xoshiro256PlusPlus;
-
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct Session {
     pub id: SessionId,
     pub name: String,
     pub description: Option<String>,
     pub created_at: DateTime<Utc>,
-    #[serde(skip)]
-    pub image: Option<dices_engine::Engine<ServerRNG, NoInjectedIntrisics>>,
 }
 impl Session {
     pub async fn new(
@@ -125,7 +119,6 @@ impl Session {
             name,
             created_at,
             description,
-            image: None,
         };
 
         create(session.clone(), db, creator.user_id()).await?;

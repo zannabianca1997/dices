@@ -10,14 +10,17 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(User::Table)
+                    .comment("Registered users of the `dices` server")
                     .if_not_exists()
                     .col(
                         uuid(User::Id)
+                            .comment("UUID of the user")
                             .primary_key()
                             .default(PgFunc::gen_random_uuid()),
                     )
                     .col(
                         text(User::Name)
+                            .comment("User's unique name, disallowing spaces")
                             .unique_key()
                             .check(
                                 Expr::col(User::Name)
@@ -27,14 +30,16 @@ impl MigrationTrait for Migration {
                             )
                             .check(Func::char_length(Expr::col(User::Name)).gt(0)),
                     )
-                    .col(text(User::Password))
+                    .col(text(User::Password).comment("Hashed representation of the user's password"))
                     .col(
                         timestamp_with_time_zone(User::CreatedAt)
+                            .comment("Timestamp marking when the user was created, defaults to the current time")
                             .default(Expr::current_timestamp())
                             .check(Expr::col(User::CreatedAt).lte(Expr::current_timestamp())),
                     )
                     .col(
                         timestamp_with_time_zone(User::LastAccess)
+                            .comment("Timestamp of the user's most recent access, defaults to the current time")
                             .default(Expr::current_timestamp())
                             .check(Expr::col(User::LastAccess).lte(Expr::current_timestamp()))
                             .check(Expr::col(User::CreatedAt).lte(Expr::col(User::LastAccess))),

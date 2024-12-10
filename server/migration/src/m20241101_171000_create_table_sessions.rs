@@ -13,14 +13,17 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(Session::Table)
+                    .comment("Sessions at which users can connect to play `dices`")
                     .if_not_exists()
                     .col(
                         uuid(Session::Id)
+                            .comment("UUID of the session")
                             .primary_key()
                             .default(PgFunc::gen_random_uuid()),
                     )
                     .col(
                         text(Session::Name)
+                            .comment("Short, unique name for the session, disallowing leading and trailing whitespace characters, and newlines")
                             .check(
                                 Expr::col(Session::Name)
                                     .not_like(" %")
@@ -31,13 +34,16 @@ impl MigrationTrait for Migration {
                             .check(Expr::col(Session::Name).not_like("%\n%"))
                             .check(Func::char_length(Expr::col(Session::Name)).gt(0)),
                     )
-                    .col(text_null(Session::Description))
+                    .col(
+                        text_null(Session::Description)
+                            .comment("Optional detailed description of the session"),
+                    )
                     .col(
                         timestamp_with_time_zone(Session::CreatedAt)
+                            .comment("Timestamp marking when the session was created, defaults to the current time")
                             .default(Expr::current_timestamp())
                             .check(Expr::col(Session::CreatedAt).lte(Expr::current_timestamp())),
                     )
-                    .col(binary_null(Session::Image))
                     .take(),
             )
             .await?;
@@ -53,8 +59,9 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(SessionUser::Table)
+                    .comment("Links of users to sessions they have joined, with roles and timestamps for activity tracking")
                     .if_not_exists()
-                    .col(uuid(SessionUser::Session))
+                    .col(uuid(SessionUser::Session).comment("Identifier of the session the user joined"))
                     .foreign_key(
                         ForeignKey::create()
                             .to(Session::Table, Session::Id)
@@ -62,7 +69,7 @@ impl MigrationTrait for Migration {
                             .on_update(ForeignKeyAction::Cascade)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
-                    .col(uuid(SessionUser::User))
+                    .col(uuid(SessionUser::User).comment("Identifier of the user joining the session"))
                     .foreign_key(
                         ForeignKey::create()
                             .to(User::Table, User::Id)
@@ -81,15 +88,18 @@ impl MigrationTrait for Migration {
                             ColumnType::custom(UserRole::Table.to_string()),
                         )
                         .not_null()
+                        .comment("Role assigned to the user within the session")
                         .take(),
                     )
                     .col(
                         timestamp_with_time_zone(SessionUser::AddedAt)
+                            .comment("Timestamp marking when the user was added to the session, defaults to the current time")
                             .default(Expr::current_timestamp())
                             .check(Expr::col(SessionUser::AddedAt).lte(Expr::current_timestamp())),
                     )
                     .col(
                         timestamp_with_time_zone_null(SessionUser::LastAccess)
+                            .comment("Timestamp of the user's most recent interaction with the session, must be after they were added")
                             .check(
                                 Expr::col(SessionUser::LastAccess).lte(Expr::current_timestamp()),
                             )
@@ -119,13 +129,12 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum Session {
+pub enum Session {
     Table,
     Id,
     Name,
     Description,
     CreatedAt,
-    Image,
 }
 
 #[derive(DeriveIden)]
