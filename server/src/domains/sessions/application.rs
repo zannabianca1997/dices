@@ -1,147 +1,67 @@
-use axum::extract::Path;
-use axum::routing::{delete, get};
-use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
-use sea_orm::DatabaseConnection;
+use axum::routing::get;
+use axum::Router;
 use utoipa::OpenApi;
 
-use super::domain::models::{Session, SessionCreate, SessionId, SessionUser};
-use crate::{
-    app::AppState,
-    domains::{commons::ErrorResponse, user::AutenticatedUser},
-    ErrorCodes,
-};
+use super::domain::models::{Session, SessionUser};
+use crate::app::AppState;
+use crate::domains::sessions::domain::models::SessionCreate;
 
-#[utoipa::path(
-    post,
-    path = "",
-    description = "Create a session",
-    responses(
-        (status=StatusCode::CREATED, description="The session was created", body = Session),
-        (status=StatusCode::BAD_REQUEST, description="The creation data were wrong or incomplete", body = ErrorResponse),
-        (status=StatusCode::UNAUTHORIZED, description="A session can be created only by authenticated users", body = ErrorResponse)
-    ),
-    security(("UserJWT" = []))
-)]
-async fn create(
-    State(database): State<DatabaseConnection>,
-    user: AutenticatedUser,
-    Json(session_create): Json<SessionCreate>,
-) -> Result<(StatusCode, Json<Session>), ErrorResponse> {
-    let session = Session::new(&database, session_create, user).await?;
-    Ok((StatusCode::CREATED, Json(session)))
-}
+mod sessions;
+mod users;
 
-#[utoipa::path(
-    get,
-    path = "",
-    description = "Get a list of sessions available",
-    responses(
-        (status=StatusCode::OK, description="The sessions found", body = [Session]),
-        (status=StatusCode::UNAUTHORIZED, description="Sessions can be queried only by authenticated users", body = ErrorResponse)
-    ),
-    security(("UserJWT" = []))
-)]
-async fn query_all(
-    State(database): State<DatabaseConnection>,
-    requester: AutenticatedUser,
-) -> Result<Json<Box<[Session]>>, ErrorResponse> {
-    let sessions = Session::find_all(&database, requester)
-        .await?
-        .try_collect()?;
-    Ok(Json(sessions))
-}
+mod commands {
+    use axum::{extract::State, Json};
+    use dices_ast::intrisics::NoInjectedIntrisics;
+    use sea_orm::DatabaseConnection;
 
-#[utoipa::path(
-    get,
-    path = "/{session-uuid}",
-    description = "Get data about session",
-    params(
-        ("session-uuid" = SessionId, description="UUID of the session", format=Uuid),
-    ),
-    responses(
-        (status=StatusCode::OK, description="The session found", body = Session),
-        (status=StatusCode::UNAUTHORIZED, description="Sessions can be queried only by authenticated users", body = ErrorResponse),
-        (status=StatusCode::NOT_FOUND, description="Session does not exist", body = ErrorResponse)
-    ),
-    security(("UserJWT" = []))
-)]
-async fn query(
-    State(database): State<DatabaseConnection>,
-    Path(session_uuid): Path<SessionId>,
-    requester: AutenticatedUser,
-) -> Result<Json<Session>, ErrorResponse> {
-    Session::find_by_id(&database, session_uuid, requester)
-        .await?
-        .ok_or_else(|| {
-            ErrorResponse::builder()
-                .code(ErrorCodes::SessionNotFound)
-                .msg(format!("The session {session_uuid} does not exist"))
-                .add("uuid", session_uuid)
-                .build()
-        })
-        .map(Json)
-}
+    use crate::domains::{
+        commons::ErrorResponse, sessions::domain::models::SessionCreate, user::AutenticatedUser,
+    };
 
-#[utoipa::path(
-    delete,
-    path = "/{session-uuid}",
-    description = "Delete a session",
-    params(
-        ("session-uuid" = SessionId, description="UUID of the session", format=Uuid),
-    ),
-    responses(
-        (status=StatusCode::OK, description="The session was deleted"),
-        (status=StatusCode::UNAUTHORIZED, description="Sessions can be deleted only by authenticated users", body = ErrorResponse),
-        (status=StatusCode::FORBIDDEN, description="User has not the role needed to delete the session", body = ErrorResponse),
-        (status=StatusCode::NOT_FOUND, description="Session does not exist", body = ErrorResponse)
-    ),
-    security(("UserJWT" = []))
-)]
-async fn destroy(
-    State(database): State<DatabaseConnection>,
-    Path(session_uuid): Path<SessionId>,
-    requester: AutenticatedUser,
-) -> Result<(), ErrorResponse> {
-    Ok(Session::delete(&database, session_uuid, requester).await?)
-}
-
-#[utoipa::path(
-    get,
-    path = "/{session-uuid}/users",
-    description = "Get the list of users in this session",
-    params(
-        ("session-uuid" = SessionId, description="UUID of the session", format=Uuid),
-    ),
-    responses(
-        (status=StatusCode::OK, description="The users found", body = [SessionUser]),
-        (status=StatusCode::UNAUTHORIZED, description="Sessions can be queried only by authenticated users", body = ErrorResponse),
-        (status=StatusCode::NOT_FOUND, description="Session does not exist", body = ErrorResponse)
-    ),
-    security(("UserJWT" = []))
-)]
-async fn query_users(
-    State(database): State<DatabaseConnection>,
-    Path(session_uuid): Path<SessionId>,
-    requester: AutenticatedUser,
-) -> Result<Json<Box<[SessionUser]>>, ErrorResponse> {
-    let users = Session::users(&database, session_uuid, requester)
-        .await?
-        .try_collect()?;
-    Ok(Json(users))
+    #[utoipa::path(
+        post,
+        path = "/commands",
+        description = "Execute a command",
+        request_body(
+            description = "A serialized `dices` expression"
+        ),
+        responses(
+            (status=StatusCode::OK, description="The command ran successfully", body = dices_ast::Value),
+            (status=StatusCode::BAD_REQUEST, description="The command could not be serialized", body = ErrorResponse),
+            (status=StatusCode::UNAUTHORIZED, description="A session can be created only by authenticated users", body = ErrorResponse),
+            (status=StatusCode::UNAUTHORIZED, description="Sessions can be queried only by authenticated users", body = ErrorResponse),
+            (status=StatusCode::NOT_FOUND, description="Session does not exist", body = ErrorResponse)
+        ),
+        security(("UserJWT" = []))
+    )]
+    pub(crate) async fn post_new(
+        State(database): State<DatabaseConnection>,
+        user: AutenticatedUser,
+        Json(session_create): Json<dices_ast::Expression<NoInjectedIntrisics>>,
+    ) -> Result<Json<dices_ast::Value>, ErrorResponse> {
+        todo!()
+    }
 }
 
 pub(super) fn router() -> Router<AppState> {
     Router::new()
-        .route("/", post(create))
-        .route("/", get(query_all))
-        .route("/:session-uuid", get(query))
-        .route("/:session-uuid", delete(destroy))
-        .route("/:session-uuid/users", get(query_users))
+        .route("/", get(sessions::get_all).post(sessions::post_new))
+        .route(
+            "/:session-uuid",
+            get(sessions::get).delete(sessions::delete),
+        )
+        .route("/:session-uuid/users", get(users::get_all))
 }
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(create, query_all, destroy, query, query_users),
+    paths(
+        sessions::get_all,
+        sessions::post_new,
+        sessions::get,
+        sessions::delete,
+        users::get_all
+    ),
     components(schemas(Session, SessionCreate, SessionUser))
 )]
 pub(super) struct ApiDocs;
