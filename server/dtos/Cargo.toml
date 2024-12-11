@@ -1,0 +1,12 @@
+[package]
+name = "dices-server-dtos"
+description = "Data structures for the server API"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { version = "1.0.216", features = ["derive"] }
+dices-server-entities = { path = "../entities" }
+serde_with = { version = "3.11.0", features = ["chrono", "json"] }
