@@ -1,0 +1,11 @@
+[package]
+name = "dices-server-entities"
+description = "Entity definition for the dices server"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+sea-orm = "1.1.2"
+serde = { version = "1.0.216", features = ["derive"] }
