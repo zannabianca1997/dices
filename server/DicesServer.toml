@@ -1,0 +1,11 @@
+socket = "localhost:8080"
+conn = "postgres://dices_server:dices_server@localhost:5432/dices_server"
+
+[auth]
+token_validity = 3600
+
+[logging.layer.console]
+formatter = "pretty"
+
+[logging.filter.root]
+level = "debug"
