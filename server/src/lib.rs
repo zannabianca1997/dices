@@ -74,13 +74,22 @@ pub async fn main(
 
     // Run the app
     let Config {
-        serve: ServeConfig {
-            app: app_config,
-            socket,
-        },
+        serve:
+            ServeConfig {
+                app: app_config,
+                socket,
+                banner,
+            },
         logging: _,
     } = config;
+
+    if banner {
+        banner::banner();
+    }
+
     app::App::build(app_config).await?.serve(socket).await?;
 
     Ok(log_guard)
 }
+
+pub mod banner;

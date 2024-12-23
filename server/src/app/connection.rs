@@ -1,8 +1,4 @@
-use std::{
-    borrow::Cow,
-    net::{IpAddr, Ipv4Addr},
-    time::Duration,
-};
+use std::{borrow::Cow, net::Ipv4Addr, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, skip_serializing_none, DisplayFromStr, DurationSeconds};
@@ -32,8 +28,8 @@ impl From<ConnectOptions> for sea_orm::ConnectOptions {
 fn default_values() -> String {
     String::from("dices_server")
 }
-fn default_ip() -> IpAddr {
-    IpAddr::V4(Ipv4Addr::LOCALHOST)
+fn default_host() -> String {
+    Ipv4Addr::LOCALHOST.to_string()
 }
 fn default_port() -> u16 {
     5432
@@ -51,8 +47,8 @@ pub enum UrlOrParts {
         username: String,
         #[serde(default = "default_values")]
         password: String,
-        #[serde(default = "default_ip")]
-        ip: IpAddr,
+        #[serde(default = "default_host")]
+        host: String,
         #[serde(default = "default_port")]
         port: u16,
         #[serde(default = "default_values")]
@@ -64,7 +60,7 @@ impl Default for UrlOrParts {
         Self::Parts {
             username: default_values(),
             password: default_values(),
-            ip: default_ip(),
+            host: default_host(),
             port: default_port(),
             database: default_values(),
         }
@@ -77,10 +73,10 @@ impl UrlOrParts {
             UrlOrParts::Parts {
                 username,
                 password,
-                ip,
+                host,
                 port,
                 database,
-            } => format!("postgres:{username}:{password}@{ip}:{port}/{database}"),
+            } => format!("postgres://{username}:{password}@{host}:{port}/{database}"),
         }
     }
 }

@@ -20,9 +20,9 @@ pub struct AppConfig {
     pub auth: AuthConfig,
 
     /// Config of the database connection
-    pub conn: ConnectOptions,
+    pub db: ConnectOptions,
 }
-#[derive(Debug, Deserialize, Default, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 /// Configuration of the app for serving it
 pub struct ServeConfig {
     /// Config of the app
@@ -31,6 +31,19 @@ pub struct ServeConfig {
 
     /// Socket address
     pub socket: SocketConfig,
+
+    /// Show the starting banner
+    pub banner: bool,
+}
+
+impl Default for ServeConfig {
+    fn default() -> Self {
+        Self {
+            app: Default::default(),
+            socket: Default::default(),
+            banner: true,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -81,11 +94,15 @@ pub struct App {
 
 impl App {
     /// Build the app as a router
-    pub async fn build(AppConfig { auth, conn }: AppConfig) -> Result<Self, BuildError> {
+    pub async fn build(AppConfig { auth, db: conn }: AppConfig) -> Result<Self, BuildError> {
+        #[cfg(debug_assertions)]
+        tracing::warn!("This is a debug build, and it's not safe to run in production");
+
         let auth_key = AuthKey::new(auth);
 
         tracing::info!("Connecting to the database");
         let database_connection = Database::connect(conn).await?;
+        tracing::debug!("Database connection estabilished");
 
         Ok(Self {
             auth_key,

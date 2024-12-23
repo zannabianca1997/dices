@@ -1,0 +1,12 @@
+# Dev configs to run a local version
+
+socket = "localhost:8080"
+
+[db]
+host = "localhost"
+
+[auth]
+token_validity = 3600
+
+[logging.filter.root]
+level = "debug"

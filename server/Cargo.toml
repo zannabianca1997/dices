@@ -46,3 +46,5 @@ clap = { version = "4.5.23", features = ["derive"] }
 either = { version = "1.13.0", features = ["serde"] }
 futures = { version = "0.3.31", default-features = false, features = ["async-await", "std"] }
 toml = "0.8.19"
+dotenv = "0.15.0"
+const_format = "0.2.34"
