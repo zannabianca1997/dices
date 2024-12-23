@@ -11,12 +11,12 @@ use serde_with::{serde_as, skip_serializing_none, DisplayFromStr, DurationSecond
 #[serde(untagged)]
 pub enum ConnectOptions {
     Url(String),
-    Large(ConnectOptionsLarge),
+    Large(Box<ConnectOptionsLarge>),
 }
 
 impl Default for ConnectOptions {
     fn default() -> Self {
-        Self::Large(ConnectOptionsLarge::default())
+        Self::Large(Default::default())
     }
 }
 
@@ -24,7 +24,7 @@ impl From<ConnectOptions> for sea_orm::ConnectOptions {
     fn from(value: ConnectOptions) -> Self {
         match value {
             ConnectOptions::Url(url) => sea_orm::ConnectOptions::new(url),
-            ConnectOptions::Large(connect_options_large) => connect_options_large.into(),
+            ConnectOptions::Large(connect_options_large) => (*connect_options_large).into(),
         }
     }
 }

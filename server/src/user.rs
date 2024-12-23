@@ -1,5 +1,4 @@
 use axum::{
-    body::Body,
     debug_handler,
     extract::State,
     routing::{get, post},
@@ -15,8 +14,8 @@ use dices_server_auth::{
     check_password, hash_password, new_token, Autenticated, AuthKey, CheckPasswordError,
 };
 use dices_server_dtos::user::{
-    token::UserToken, SigninError, SignupError, UserGetError, UserLoginResponseDto, UserQueryDto,
-    UserSigninDto, UserSignupDto, UserSignupResponseDto, UserUpdateDto,
+    SigninError, SignupError, UserGetError, UserLoginResponseDto, UserQueryDto, UserSigninDto,
+    UserSignupDto, UserSignupResponseDto, UserUpdateDto,
 };
 use dices_server_entities::user::{self, UserId};
 
@@ -37,7 +36,7 @@ async fn signup(
         name.to_owned()
     };
 
-    let id = UserId::new();
+    let id = UserId::gen();
 
     let (auth_id, password) = hash_password(id, &password);
 
