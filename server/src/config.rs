@@ -36,6 +36,12 @@ pub struct ConfigArgs {
     #[clap(long)]
     /// Do not search for the default config file
     no_default_config_file: bool,
+    #[clap(long)]
+    /// Do not load enviroment variables
+    no_env: bool,
+    #[clap(long)]
+    /// Do not use defaults, load every config from other sources
+    no_defaults: bool,
 
     #[clap(short = 'C')]
     /// Command line configuration
@@ -86,17 +92,30 @@ impl Provider for ConfigArgs {
 /// Build the figment from the multiple configuration sources
 fn figment(config_args: ConfigArgs) -> Figment {
     // First, the defaults values
-    let mut figment = Figment::from(Serialized::defaults(Config::default()));
-    // Then the config file
+    let mut figment = if !config_args.no_defaults {
+        Figment::from(Serialized::defaults(Config::default()))
+    } else {
+        Figment::new()
+    };
+    // Then the default config file
+    if !config_args.no_default_config_file {
+        figment = figment.merge(Toml::file("DicesServer.toml"))
+    }
+    // Then the one provided by the user
     if let Some(config_file) = &config_args.config_file {
         figment = figment.merge(Toml::file_exact(config_file))
-    } else if !config_args.no_default_config_file {
-        figment = figment.merge(Toml::file("./DicesServer.toml"))
     }
     // Then, the enviroment variables and the arguments
-    figment
-        .merge(Env::raw().split("__").global())
-        .merge(config_args)
+    if !config_args.no_env {
+        dotenv::dotenv().map(|_| ()).unwrap_or_else(|err| {
+            if !err.not_found() {
+                eprintln!("Cannot open `.env` to load enviroment variable: {err}")
+            }
+        });
+        figment = figment.merge(Env::raw().split("__").global())
+    }
+    // Finally the cli arguments
+    figment.merge(config_args)
 }
 
 pub fn configure(config_args: ConfigArgs) -> figment::Result<Config> {
