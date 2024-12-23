@@ -1,20 +1,16 @@
 use std::{future::Future, io};
 
-use axum::{extract::FromRef, routing::IntoMakeService, Router};
-use futures::{join, try_join, FutureExt, TryFutureExt};
+use axum::{extract::FromRef, Router};
 use sea_orm::{Database, DbErr};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use dices_server_auth::{AuthConfig, AuthKey};
-use dices_server_migration::{sea_orm::DatabaseConnection, Migrator};
+use dices_server_migration::sea_orm::DatabaseConnection;
 
 mod connection;
 pub use connection::ConnectOptions;
-use tokio::{
-    net::{unix::SocketAddr, TcpListener, ToSocketAddrs},
-    signal,
-};
+use tokio::{net::TcpListener, signal};
 use tower_http::trace::TraceLayer;
 
 #[derive(Debug, Deserialize, Default, Serialize)]
