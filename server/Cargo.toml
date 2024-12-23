@@ -8,6 +8,41 @@ license.workspace = true
 
 [dependencies]
 dices-engine = { path = "../engine" }
-dices-server-migration = { path = "./migration" }
-dices-server-entities = { path = "./entities" }
-dices-server-dtos = { path = "./dtos" }
+
+dices-server-migration = { path = "migration" }
+dices-server-entities = { path = "entities" }
+dices-server-dtos = { path = "dtos" }
+dices-server-auth = { path = "auth" }
+
+axum = { version = "0.7", features = ["macros", "tracing"] }
+sea-orm = { version = "1.1.0", features = [
+    "sqlx-postgres",
+    "runtime-tokio-native-tls",
+    "debug-print",
+] }
+serde = { version = "1.0.216", features = ["derive"] }
+figment = { version = "0.10.19", features = ["toml", "env"] }
+thiserror = "2.0.9"
+serde_with = "3.11.0"
+log = "0.4.22"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6.2", features = ["trace"] }
+tracing-config = { version = "0.1" }
+tracing = { version = "0.1", features = [
+    "max_level_trace",
+    "release_max_level_trace",
+] }
+tracing-subscriber = { version = "0.3", features = [
+    "chrono",
+    "registry",
+    "env-filter",
+    "fmt",
+    "ansi",
+    "json",
+] }
+tracing-appender = { version = "0.2" }
+atty = "0.2.14"
+clap = { version = "4.5.23", features = ["derive"] }
+either = { version = "1.13.0", features = ["serde"] }
+futures = { version = "0.3.31", default-features = false, features = ["async-await", "std"] }
+toml = "0.8.19"

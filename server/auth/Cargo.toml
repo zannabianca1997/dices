@@ -1,0 +1,26 @@
+[package]
+name = "dices-server-auth"
+description = "Authentication flow for the `dices` server"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+dices-server-entities = { path = "../entities" }
+dices-server-dtos = { path = "../dtos" }
+
+sea-orm = "1.1.2"
+hmac = "0.12.1"
+sha2 = "0.10.8"
+rand = "0.8.5"
+argon2 = "0.5.3"
+axum = "0.7"
+axum-extra = { version = "0.9.4", features = ["typed-header"] }
+thiserror = "2.0.9"
+derive_more = { version = "1.0.0", features = ["from"] }
+serde = { version = "1.0.216", features = ["derive"] }
+chrono = "0.4.39"
+tracing = "0.1.41"
+jwt = "0.16.0"
+serde_with = "3.11.0"

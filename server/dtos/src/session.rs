@@ -1,13 +1,21 @@
+use axum::extract::{
+    rejection::{JsonRejection, PathRejection},
+    FromRequest, FromRequestParts,
+};
 use dices_server_entities::session::SessionId;
 use serde::Deserialize;
 
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+use crate::errors::ErrorResponse;
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, FromRequest)]
+#[from_request(via(axum::Json), rejection(ErrorResponse<JsonRejection>))]
 pub struct SessionCreateDto {
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, FromRequest)]
+#[from_request(via(axum::Json), rejection(ErrorResponse<JsonRejection>))]
 pub struct SessionUpdateDto {
     #[serde(default)]
     pub name: Option<String>,
@@ -15,7 +23,8 @@ pub struct SessionUpdateDto {
     pub description: Option<Option<String>>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, FromRequestParts)]
+#[from_request(via(axum::extract::Path), rejection(ErrorResponse<PathRejection>))]
 pub struct SessionPathData {
     #[serde(rename = "session", alias = "session-id")]
     pub id: SessionId,

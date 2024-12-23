@@ -7,5 +7,10 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-sea-orm = "1.1.2"
+sea-orm = { version = "1.1.0", features = ["sqlx-postgres"] }
 serde = { version = "1.0.216", features = ["derive"] }
+derive_more = { version = "1.0.0", default-features = false, features = [
+    "from",
+    "into",
+] }
+uuid = { version = "1.11.0", features = ["fast-rng", "v4"] }
