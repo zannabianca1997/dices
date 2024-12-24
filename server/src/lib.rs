@@ -1,16 +1,28 @@
 use std::{io, path::PathBuf};
 
-use app::ServeConfig;
 use clap::Parser;
-use config::{Config, ConfigArgs};
+use config::ConfigArgs;
+use dices_version::Version;
 use thiserror::Error;
 use tokio::fs;
 use tracing_config::config::ArcMutexGuard;
 
-mod app;
-mod config;
+pub use dices_server_auth as auth;
+pub use dices_server_dtos as dtos;
+pub use dices_server_entities as entities;
+pub use dices_server_migration as migration;
+
+pub mod app;
+mod banner;
+pub mod config;
 mod logging;
+
 mod user;
+mod version;
+
+pub use app::{App, AppConfig, ServeConfig};
+pub use banner::banner;
+pub use config::Config;
 
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None)]
@@ -20,9 +32,9 @@ pub struct CliArgs {
     /// Emit the configs to a file and exit.
     ///
     /// If no other arguments is given, this will create an example config.
-    example_config: Option<PathBuf>,
+    pub example_config: Option<PathBuf>,
     #[clap(flatten)]
-    config: ConfigArgs,
+    pub config: ConfigArgs,
 }
 
 #[derive(Debug, Error)]
@@ -92,4 +104,8 @@ pub async fn main(
     Ok(log_guard)
 }
 
-pub mod banner;
+pub const VERSION: Version = Version::new(
+    env!("CARGO_PKG_VERSION_MAJOR"),
+    env!("CARGO_PKG_VERSION_MINOR"),
+    env!("CARGO_PKG_VERSION_PATCH"),
+);

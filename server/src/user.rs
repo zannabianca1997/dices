@@ -7,7 +7,8 @@ use axum::{
 use sea_orm::{
     ActiveModelTrait,
     ActiveValue::{self, NotSet},
-    ColumnTrait as _, DatabaseConnection, DeleteResult, EntityTrait, QueryFilter as _, Set,
+    ColumnTrait as _, DatabaseConnection, DeleteResult, EntityTrait, PaginatorTrait,
+    QueryFilter as _, Set,
 };
 
 use dices_server_auth::{
@@ -33,7 +34,7 @@ async fn signup(
         if name.chars().any(char::is_whitespace) {
             return Err(SignupError::WhitespacesInUsername);
         }
-        name.to_owned()
+        name
     };
 
     let id = UserId::gen();
@@ -42,19 +43,25 @@ async fn signup(
 
     let user = user::ActiveModel {
         id: ActiveValue::Set(id),
-        name: ActiveValue::Set(name),
+        name: ActiveValue::Set(name.to_owned()),
         password: ActiveValue::Set(password),
         ..Default::default()
     };
 
     let user = match user.insert(&db).await {
         Ok(inserted) => inserted,
-        Err(err) => match err {
-            dices_server_migration::DbErr::RecordNotInserted => {
-                return Err(SignupError::UserAlreadyExist)
+        Err(err) => {
+            // check if it's a collision
+            if dices_server_entities::prelude::User::find()
+                .filter(dices_server_entities::user::Column::Name.eq(name))
+                .count(&db)
+                .await?
+                == 1
+            {
+                return Err(SignupError::UserAlreadyExist);
             }
-            err => return Err(SignupError::DbErr(err)),
-        },
+            return Err(err.into());
+        }
     };
 
     let token = new_token(auth_id, auth_key);
@@ -67,7 +74,7 @@ async fn signin(
     State(auth_key): State<AuthKey>,
     State(db): State<DatabaseConnection>,
     UserSigninDto { name, password }: UserSigninDto,
-) -> Result<UserSignupResponseDto, SigninError> {
+) -> Result<UserLoginResponseDto, SigninError> {
     let user = match dices_server_entities::prelude::User::find()
         .filter(dices_server_entities::user::Column::Name.eq(name))
         .one(&db)
@@ -85,7 +92,7 @@ async fn signin(
 
     let token = new_token(auth_id, auth_key);
 
-    Ok(UserSignupResponseDto(UserLoginResponseDto { token, user }))
+    Ok(UserLoginResponseDto { token, user })
 }
 
 #[debug_handler(state = crate::app::App)]

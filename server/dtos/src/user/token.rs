@@ -1,3 +1,5 @@
+use std::{borrow::Cow, fmt::Display};
+
 use axum::{async_trait, extract::FromRequestParts};
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
@@ -6,7 +8,7 @@ use axum_extra::{
 };
 use derive_more::derive::From;
 use http::request::Parts;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use thiserror::Error;
 
@@ -23,6 +25,25 @@ impl Serialize for UserToken {
         self.0.token().serialize(serializer)
     }
 }
+impl<'de> Deserialize<'de> for UserToken {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(UserToken(
+            Authorization::bearer(&<Cow<str>>::deserialize(deserializer)?).map_err(|err| {
+                <D::Error as serde::de::Error>::custom(format!("invalid bearer token {}", err))
+            })?,
+        ))
+    }
+}
+
+impl Display for UserToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.token().fmt(f)
+    }
+}
+
 impl PartialEq for UserToken {
     fn eq(&self, other: &Self) -> bool {
         self.0.token() == other.0.token()
