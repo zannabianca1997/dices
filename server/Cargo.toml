@@ -7,29 +7,36 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+# Dices components
 dices-engine = { path = "../engine" }
 dices-ast = { path = "../ast" }
 dices-version = { path = "../version" }
 
+# Server parts
 dices-server-migration = { path = "migration" }
 dices-server-entities = { path = "entities" }
 dices-server-dtos = { path = "dtos" }
 dices-server-auth = { path = "auth" }
 
+# Runtime
+tokio = { version = "1", features = ["full"] }
 axum = { version = "0.7", features = ["macros", "tracing"] }
-sea-orm = { version = "1.1.0", features = [
+tower-http = { version = "0.6", features = ["trace"] }
+futures = { version = "0.3", default-features = false, features = [
+    "async-await",
+    "std",
+] }
+sea-orm = { version = "1.1", features = [
     "sqlx-postgres",
     "runtime-tokio-native-tls",
     "debug-print",
 ] }
-serde = { version = "1.0.216", features = ["derive"] }
-figment = { version = "0.10.19", features = ["toml", "env"] }
-thiserror = "2.0.9"
-serde_with = "3.11.0"
-log = "0.4.22"
-tokio = { version = "1", features = ["full"] }
-tower-http = { version = "0.6.2", features = ["trace"] }
-tracing-config = { version = "0.1" }
+
+# Conversions
+serde = { version = "1.0", features = ["derive"] }
+serde_with = "3.11"
+
+# Logging
 tracing = { version = "0.1", features = [
     "max_level_trace",
     "release_max_level_trace",
@@ -43,24 +50,36 @@ tracing-subscriber = { version = "0.3", features = [
     "json",
 ] }
 tracing-appender = { version = "0.2" }
-atty = "0.2.14"
-clap = { version = "4.5.23", features = ["derive"] }
-either = { version = "1.13.0", features = ["serde"] }
-futures = { version = "0.3.31", default-features = false, features = [
-    "async-await",
-    "std",
-] }
-toml = "0.8.19"
-dotenv = "0.15.0"
-const_format = "0.2.34"
+
+# Configuration
+toml = "0.8"
+tracing-config = { version = "0.1" }
+figment = { version = "0.10", features = ["toml", "env"] }
+clap = { version = "4.5", features = ["derive"] }
+atty = "0.2"
+dotenv = "0.15"
+log = "0.4"                                                # Needed to configure sea-orm connection
+
+
+# Utils
+thiserror = "2.0"
+either = { version = "1.13", features = ["serde"] }
+const_format = "0.2"
+
+# OpenApi
+[dependencies.utoipa]
+version = "5.1"
+features = ["axum_extras", "chrono", "uuid", "repr"]
+optional = true
+
 
 [dev-dependencies]
-axum-test = "16.4.1"
-serde_json = "1.0.134"
-testcontainers-modules = { version = "0.11.4", features = ["postgres"] }
-uuid = "1.11.0"
-test-log = { version = "0.2.16", default-features = false, features = [
+axum-test = "16.4"
+serde_json = "1.0"
+testcontainers-modules = { version = "0.11", features = ["postgres"] }
+uuid = "1.11"
+test-log = { version = "0.2", default-features = false, features = [
     "color",
     "trace",
 ] }
-fnv = "1.0.7"
+fnv = "1.0"

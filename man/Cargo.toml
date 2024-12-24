@@ -10,11 +10,11 @@ license.workspace = true
 test_std_handle = []
 
 [dependencies]
-phf = "0.11.2"
+phf = "0.11"
 markdown = "1.0.0-alpha.20"
-nunny = "0.2.1"
-lazy-regex = "3.3.0"
-rand = "0.8.5"
+nunny = "0.2"
+lazy-regex = "3.3"
+rand = "0.8"
 dices-engine = { path = "../engine" }
 dices-ast = { path = "../ast", features = [
     "matcher",
@@ -22,17 +22,17 @@ dices-ast = { path = "../ast", features = [
     "parse_matcher",
     "parse_expression",
 ] }
-pretty = "0.12.3"
-itertools = "0.13.0"
-typed-arena = "2.0.2"
+pretty = "0.12"
+itertools = "0.13"
+typed-arena = "2.0"
 mdast2minimad = { git = "https://github.com/zannabianca1997/mdast2minimad.git" }
-rand_xoshiro = { version = "0.6.0", features = ["serde1"] }
+rand_xoshiro = { version = "0.6", features = ["serde1"] }
 
 [build-dependencies]
-phf_codegen = "0.11.2"
-quote = "1.0.37"
-anyhow = "1.0.86"
-proc-macro2 = "1.0.86"
-serde = { version = "1.0.209", features = ["derive"] }
-lazy-regex = "3.3.0"
-serde_yaml = "0.9.34"
+phf_codegen = "0.11"
+quote = "1.0"
+anyhow = "1.0"
+proc-macro2 = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+lazy-regex = "3.3"
+serde_yaml = "0.9"
