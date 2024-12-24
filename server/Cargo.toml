@@ -8,6 +8,8 @@ license.workspace = true
 
 [dependencies]
 dices-engine = { path = "../engine" }
+dices-ast = { path = "../ast" }
+dices-version = { path = "../version" }
 
 dices-server-migration = { path = "migration" }
 dices-server-entities = { path = "entities" }
@@ -44,7 +46,21 @@ tracing-appender = { version = "0.2" }
 atty = "0.2.14"
 clap = { version = "4.5.23", features = ["derive"] }
 either = { version = "1.13.0", features = ["serde"] }
-futures = { version = "0.3.31", default-features = false, features = ["async-await", "std"] }
+futures = { version = "0.3.31", default-features = false, features = [
+    "async-await",
+    "std",
+] }
 toml = "0.8.19"
 dotenv = "0.15.0"
 const_format = "0.2.34"
+
+[dev-dependencies]
+axum-test = "16.4.1"
+serde_json = "1.0.134"
+testcontainers-modules = { version = "0.11.4", features = ["postgres"] }
+uuid = "1.11.0"
+test-log = { version = "0.2.16", default-features = false, features = [
+    "color",
+    "trace",
+] }
+fnv = "1.0.7"

@@ -4,14 +4,15 @@ use axum::{extract::FromRef, Router};
 use sea_orm::{Database, DbErr};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-
-use dices_server_auth::{AuthConfig, AuthKey};
-use dices_server_migration::sea_orm::DatabaseConnection;
-
-mod connection;
-pub use connection::ConnectOptions;
 use tokio::{net::TcpListener, signal};
 use tower_http::trace::TraceLayer;
+
+use dices_server_auth::{AuthConfig, AuthKey};
+use dices_server_migration::{sea_orm::DatabaseConnection, Migrator, MigratorTrait};
+
+mod connection;
+
+pub use connection::ConnectOptions;
 
 #[derive(Debug, Deserialize, Default, Serialize)]
 /// Configuration of the app
@@ -104,6 +105,10 @@ impl App {
         let database_connection = Database::connect(conn).await?;
         tracing::debug!("Database connection estabilished");
 
+        tracing::info!("Applying pending migration to the database");
+        Migrator::up(&database_connection, None).await?;
+        tracing::debug!("Database migration ended");
+
         Ok(Self {
             auth_key,
             database_connection,
@@ -111,12 +116,12 @@ impl App {
     }
 
     /// Serve the app with the given graceful shutdown
-    pub(crate) async fn serve_with_graceful_shutdown(
+    pub async fn serve_with_graceful_shutdown(
         self,
         socket: SocketConfig,
         shutdown: impl Future<Output = ()> + Send + 'static,
     ) -> Result<(), FatalError> {
-        let service = router().with_state(self).layer(TraceLayer::new_for_http());
+        let service = self.service();
 
         let tcp_listener = match socket {
             SocketConfig::Compact(socket) => TcpListener::bind(socket).await?,
@@ -129,8 +134,12 @@ impl App {
 
         Ok(())
     }
+
+    pub fn service(self) -> Router {
+        router().with_state(self).layer(TraceLayer::new_for_http())
+    }
     /// Serve the app until `Ctrl-C` or terminate signal
-    pub(crate) async fn serve(self, socket: SocketConfig) -> Result<(), FatalError> {
+    pub async fn serve(self, socket: SocketConfig) -> Result<(), FatalError> {
         self.serve_with_graceful_shutdown(socket, shutdown_signal())
             .await
     }
@@ -162,5 +171,7 @@ async fn shutdown_signal() {
 }
 
 fn router() -> Router<App> {
-    Router::new().nest("/user", super::user::router())
+    Router::new()
+        .nest("/user", super::user::router())
+        .nest("/version", super::version::router())
 }

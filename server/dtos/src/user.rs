@@ -67,7 +67,11 @@ pub enum SignupError {
     #[error("The user name cannot contain whitespaces")]
     WhitespacesInUsername,
     #[error("Database error")]
-    DbErr(#[source] DbErr),
+    DbErr(
+        #[source]
+        #[from]
+        DbErr,
+    ),
 }
 impl ServerError for SignupError {
     fn error_code(&self) -> crate::errors::ErrorCode {
