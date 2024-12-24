@@ -1312,6 +1312,7 @@ dependencies = [
  "tracing-appender",
  "tracing-config",
  "tracing-subscriber",
+ "utoipa",
  "uuid 1.11.0",
 ]
 
@@ -5026,7 +5027,9 @@ checksum = "564b03f8044ad6806bdc0d635e88be24967e785eef096df6b2636d2cc1e05d4b"
 dependencies = [
  "proc-macro2",
  "quote",
+ "regex",
  "syn 2.0.91",
+ "uuid 1.11.0",
 ]
 
 [[package]]

@@ -9,23 +9,17 @@ license.workspace = true
 [dependencies]
 dices-server-entities = { path = "../entities" }
 
-serde = { version = "1.0.216", features = ["derive"] }
-serde_with = { version = "3.11.0", features = [
-    "chrono",
-    "json",
-    "schemars_0_8",
-] }
-http = "1.2.0"
-serde_repr = "0.1.19"
-axum = { version = "0.7.9", features = ["json", "macros"] }
-schemars = { version = "0.8.21", features = ["chrono", "uuid"] }
-thiserror = "2.0.6"
-derive_more = { version = "1.0.0", default-features = false, features = [
-    "from",
-] }
-jwt = "0.16.0"
-axum-extra = { version = "0.9.4", features = ["typed-header"] }
-sea-orm = { version = "1.1.2", default-features = false }
-either = "1.13.0"
-tracing = "0.1.41"
-argon2 = { version = "0.5.3", default-features = false, features = ["std"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_with = { version = "3.11", features = ["chrono", "json", "schemars_0_8"] }
+http = "1.2"
+serde_repr = "0.1"
+axum = { version = "0.7", features = ["json", "macros"] }
+schemars = { version = "0.8", features = ["chrono", "uuid"] }
+thiserror = "2.0"
+derive_more = { version = "1.0", default-features = false, features = ["from"] }
+jwt = "0.16"
+axum-extra = { version = "0.9", features = ["typed-header"] }
+sea-orm = { version = "1.1", default-features = false }
+either = "1.13"
+tracing = "0.1"
+argon2 = { version = "0.5", default-features = false, features = ["std"] }
