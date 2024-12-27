@@ -6,12 +6,14 @@ use uuid::Uuid;
 use crate::infrastructure::Infrastructure;
 
 #[test(tokio::test)]
-async fn new_user_should_be_able_to_signup() {
+async fn user_should_be_able_to_signin() {
     Infrastructure::with(|infrastructure| {
         Box::pin(async move {
+            infrastructure.signup("user", "password").await;
+
             let response = infrastructure
                 .server()
-                .post("/user/signup")
+                .post("/auth/signin")
                 .json(&json!({
                     "name": "user",
                     "password": "password"
@@ -19,7 +21,7 @@ async fn new_user_should_be_able_to_signup() {
                 .expect_success()
                 .await;
 
-            response.assert_status(StatusCode::CREATED);
+            response.assert_status(StatusCode::OK);
 
             response.assert_json_contains(&json!({
                 "name": "user"
@@ -40,22 +42,22 @@ async fn new_user_should_be_able_to_signup() {
 }
 
 #[test(tokio::test)]
-async fn duplicate_names_should_not_be_allowed() {
+async fn wrong_password_should_be_refused() {
     Infrastructure::with(|infrastructure| {
         Box::pin(async move {
             infrastructure.signup("user", "password").await;
 
             let response = infrastructure
                 .server()
-                .post("/user/signup")
+                .post("/auth/signin")
                 .json(&json!({
                     "name": "user",
-                    "password": "password"
+                    "password": "wrong_password"
                 }))
                 .expect_failure()
                 .await;
 
-            response.assert_status(StatusCode::CONFLICT);
+            response.assert_status(StatusCode::UNAUTHORIZED);
         })
     })
     .await;
