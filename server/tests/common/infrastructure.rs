@@ -74,7 +74,7 @@ impl Infrastructure {
     pub async fn signup(&self, name: &str, password: &str) -> (Uuid, UserToken) {
         let mut response: serde_json::Value = self
             .server()
-            .post("/user/signup")
+            .post("/auth/signup")
             .json(&json!({
                 "name": name,
                 "password": password

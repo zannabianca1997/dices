@@ -38,7 +38,7 @@ async fn should_update_all() {
             // Check that we can enter with the new password
             infrastructure
                 .server()
-                .post("/user/signin")
+                .post("/auth/signin")
                 .json(&json!({
                     "name": "user2",
                     "password": "password2"
@@ -86,7 +86,7 @@ async fn should_update_name() {
             // Check that we can enter with the new password
             infrastructure
                 .server()
-                .post("/user/signin")
+                .post("/auth/signin")
                 .json(&json!({
                     "name": "user2",
                     "password": "password"
@@ -134,7 +134,7 @@ async fn should_update_password() {
             // Check that we can enter with the new password
             infrastructure
                 .server()
-                .post("/user/signin")
+                .post("/auth/signin")
                 .json(&json!({
                     "name": "user",
                     "password": "password2"

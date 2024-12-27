@@ -48,7 +48,7 @@ async fn cannot_signin_back() {
 
             let check = infrastructure
                 .server()
-                .post("/user/signin")
+                .post("/auth/signin")
                 .json(&json!({
                     "name": "user",
                     "password": "password"
@@ -77,7 +77,7 @@ async fn can_signup_again() {
 
             let check = infrastructure
                 .server()
-                .post("/user/signup")
+                .post("/auth/signup")
                 .json(&json!({
                     "name": "user",
                     "password": "password"
