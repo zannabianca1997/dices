@@ -1209,7 +1209,7 @@ checksum = "339544cc9e2c4dc3fc7149fd630c5f22263a4fdf18a98afd0075784968b5cf00"
 
 [[package]]
 name = "dices-ast"
-version = "3.1.0"
+version = "0.3.1"
 dependencies = [
  "bincode",
  "derive_more",
@@ -1230,7 +1230,7 @@ dependencies = [
 
 [[package]]
 name = "dices-engine"
-version = "3.1.0"
+version = "0.3.1"
 dependencies = [
  "bincode",
  "derive_more",
@@ -1246,7 +1246,7 @@ dependencies = [
 
 [[package]]
 name = "dices-man"
-version = "3.1.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "dices-ast",
@@ -1270,7 +1270,7 @@ dependencies = [
 
 [[package]]
 name = "dices-mantest"
-version = "3.1.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "dices-engine",
@@ -1285,7 +1285,7 @@ dependencies = [
 
 [[package]]
 name = "dices-repl"
-version = "3.1.0"
+version = "0.3.1"
 dependencies = [
  "atty",
  "chrono",
@@ -1307,7 +1307,7 @@ dependencies = [
 
 [[package]]
 name = "dices-server"
-version = "3.1.0"
+version = "0.3.1"
 dependencies = [
  "atty",
  "axum",
@@ -1349,7 +1349,7 @@ dependencies = [
 
 [[package]]
 name = "dices-server-auth"
-version = "3.1.0"
+version = "0.3.1"
 dependencies = [
  "argon2",
  "axum",
@@ -1372,7 +1372,7 @@ dependencies = [
 
 [[package]]
 name = "dices-server-dtos"
-version = "3.1.0"
+version = "0.3.1"
 dependencies = [
  "argon2",
  "axum",
@@ -1393,7 +1393,7 @@ dependencies = [
 
 [[package]]
 name = "dices-server-entities"
-version = "3.1.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "derive_more",
@@ -1405,7 +1405,7 @@ dependencies = [
 
 [[package]]
 name = "dices-server-migration"
-version = "3.1.0"
+version = "0.3.1"
 dependencies = [
  "async-std",
  "sea-orm-migration",
@@ -1413,7 +1413,7 @@ dependencies = [
 
 [[package]]
 name = "dices-version"
-version = "3.1.0"
+version = "0.3.1"
 dependencies = [
  "bincode",
  "derive_more",
