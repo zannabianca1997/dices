@@ -9,15 +9,14 @@ use argon2::{password_hash::SaltString, Argon2, PasswordHasher, PasswordVerifier
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
-    http::request::Parts,
+    http::{request::Parts, StatusCode},
+    response::IntoResponse,
+    Json,
 };
 use axum_extra::headers::Authorization;
 use chrono::{DateTime, Local};
 use derive_more::derive::From;
-use dices_server_dtos::{
-    errors::{ErrorCode, ErrorResponse, ServerError},
-    user::token::{AuthHeaderRejection, UserToken},
-};
+use dices_server_dtos::user::token::{AuthHeaderRejection, UserToken};
 use dices_server_entities::user::{PasswordHash, UserId};
 use jwt::{claims::SecondsSinceEpoch, SignWithKey as _, VerifyWithKey as _};
 use sea_orm::prelude::DateTimeWithTimeZone;
@@ -26,21 +25,32 @@ use thiserror::Error;
 
 use crate::{auth_key::AuthKey, Autenticated};
 
-#[derive(Debug, Error, From)]
+#[derive(Debug, Error, From, Serialize)]
+#[error("The token was received at {received_at}, but it expired at {expiration}")]
+pub struct ExpiredToken {
+    pub expiration: DateTimeWithTimeZone,
+    pub received_at: DateTimeWithTimeZone,
+}
+
+impl IntoResponse for ExpiredToken {
+    fn into_response(self) -> axum::response::Response {
+        (StatusCode::UNAUTHORIZED, Json(self)).into_response()
+    }
+}
+
+#[derive(Debug, Error, From, Serialize)]
 pub enum InvalidTokenError {
-    #[error("The token was received at {received_at}, but it expired at {expiration}")]
-    Expired {
-        expiration: DateTimeWithTimeZone,
-        received_at: DateTimeWithTimeZone,
-    },
+    #[error(transparent)]
+    Expired(ExpiredToken),
     #[error("The token is malformed")]
     Malformed,
 }
-impl ServerError for InvalidTokenError {
-    fn error_code(&self) -> ErrorCode {
+
+impl IntoResponse for InvalidTokenError {
+    fn into_response(self) -> axum::response::Response {
         match self {
-            InvalidTokenError::Expired { .. } => ErrorCode::ExpiredToken,
-            InvalidTokenError::Malformed => ErrorCode::MalformedToken,
+            InvalidTokenError::Expired(expired_token) => expired_token.into_response(),
+            InvalidTokenError::Malformed => (StatusCode::BAD_REQUEST, Json(self)).into_response(),
         }
     }
 }
@@ -63,14 +73,15 @@ pub enum UserClaimsRejection {
     #[error(transparent)]
     InvalidToken(InvalidTokenError),
 }
-impl ServerError for UserClaimsRejection {
-    fn error_code(&self) -> ErrorCode {
+
+impl IntoResponse for UserClaimsRejection {
+    fn into_response(self) -> axum::response::Response {
         match self {
             UserClaimsRejection::TokenRejection(auth_header_rejection) => {
-                auth_header_rejection.error_code()
+                auth_header_rejection.into_response()
             }
             UserClaimsRejection::InvalidToken(invalid_token_error) => {
-                invalid_token_error.error_code()
+                invalid_token_error.into_response()
             }
         }
     }
@@ -82,12 +93,12 @@ where
     S: Send + Sync,
     AuthKey: FromRef<S>,
 {
-    type Rejection = ErrorResponse<UserClaimsRejection>;
+    type Rejection = UserClaimsRejection;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let auth_header = UserToken::from_request_parts(parts, state)
             .await
-            .map_err(|err| UserClaimsRejection::TokenRejection(err.0))?;
+            .map_err(|err| UserClaimsRejection::TokenRejection(err))?;
         let auth_key = AuthKey::from_ref(state);
         Ok(parse_token(auth_header.0.token(), auth_key)
             .map_err(UserClaimsRejection::InvalidToken)?)
@@ -100,13 +111,13 @@ fn parse_token(token: &str, auth_key: AuthKey) -> Result<UserClaims, InvalidToke
         Ok(UserClaims { expiration, .. })
             if SystemTime::UNIX_EPOCH + Duration::from_secs(expiration) < received_at =>
         {
-            Err(InvalidTokenError::Expired {
+            Err(InvalidTokenError::Expired(ExpiredToken {
                 expiration: DateTime::<Local>::from(
                     SystemTime::UNIX_EPOCH + Duration::from_secs(expiration),
                 )
                 .into(),
                 received_at: DateTime::<Local>::from(received_at).into(),
-            })
+            }))
         }
         Err(err) => Err({
             tracing::debug!(

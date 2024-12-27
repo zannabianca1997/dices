@@ -1,5 +1,4 @@
 use axum::http::StatusCode;
-use dices_server_dtos::errors::ErrorCode;
 use serde_json::{from_value, json, Map, Value};
 use test_log::test;
 use uuid::Uuid;
@@ -29,9 +28,6 @@ async fn should_be_able_to_delete() {
                 .await;
 
             check.assert_status(StatusCode::GONE);
-            check.assert_json_contains(&json!({
-                "code": ErrorCode::UserDeleted
-            }))
         })
     })
     .await;
@@ -61,9 +57,6 @@ async fn cannot_signin_back() {
                 .await;
 
             check.assert_status(StatusCode::UNAUTHORIZED);
-            check.assert_json_contains(&json!({
-                "code": ErrorCode::UserDoNotExist
-            }))
         })
     })
     .await;
@@ -125,10 +118,6 @@ async fn should_request_auth() {
                 .await;
 
             response.assert_status(StatusCode::UNAUTHORIZED);
-
-            response.assert_json_contains(&json!({
-                "code":ErrorCode::MissingAuthHeader
-            }));
         })
     })
     .await;

@@ -1,7 +1,7 @@
 use derive_more::derive::{Display, Error};
 pub use konst::{primitive::parse_u16, unwrap_ctx};
 
-/// Identifies the version of the AST used
+/// Identifies the version of the component
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]

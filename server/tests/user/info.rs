@@ -1,5 +1,4 @@
 use axum::http::StatusCode;
-use dices_server_dtos::errors::ErrorCode;
 use serde_json::{json, Map, Value};
 use test_log::test;
 
@@ -45,10 +44,6 @@ async fn should_request_auth() {
             let response = infrastructure.server().get("/user").expect_failure().await;
 
             response.assert_status(StatusCode::UNAUTHORIZED);
-
-            response.assert_json_contains(&json!({
-                "code":ErrorCode::MissingAuthHeader
-            }));
         })
     })
     .await;

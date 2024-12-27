@@ -20,3 +20,16 @@ version = "3.1.0"
 edition = "2021"
 authors = ["zannabianca1997 <zannabianca199712@gmail.com>"]
 license = "MIT"
+
+[patch.crates-io.utoipa]
+git = 'https://github.com/zannabianca1997/utoipa.git'
+branch = "zannabianca1997-mutable-openapi-getter"
+[patch.crates-io.utoipa-gen]
+git = 'https://github.com/zannabianca1997/utoipa.git'
+branch = "zannabianca1997-mutable-openapi-getter"
+[patch.crates-io.utoipa-axum]
+git = 'https://github.com/zannabianca1997/utoipa.git'
+branch = "zannabianca1997-mutable-openapi-getter"
+[patch.crates-io.utoipa-swagger-ui]
+git = 'https://github.com/zannabianca1997/utoipa.git'
+branch = "zannabianca1997-mutable-openapi-getter"

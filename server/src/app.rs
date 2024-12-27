@@ -13,6 +13,9 @@ use dices_server_migration::{sea_orm::DatabaseConnection, Migrator, MigratorTrai
 mod connection;
 
 pub use connection::ConnectOptions;
+use utoipa_swagger_ui::SwaggerUi;
+
+use crate::domains;
 
 #[derive(Debug, Deserialize, Default, Serialize)]
 /// Configuration of the app
@@ -136,8 +139,15 @@ impl App {
     }
 
     pub fn service(self) -> Router {
-        router().with_state(self).layer(TraceLayer::new_for_http())
+        let router = domains::router()
+            .with_state(self)
+            .layer(TraceLayer::new_for_http());
+
+        let (router, api) = router.split_for_parts();
+
+        router.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api))
     }
+
     /// Serve the app until `Ctrl-C` or terminate signal
     pub async fn serve(self, socket: SocketConfig) -> Result<(), FatalError> {
         self.serve_with_graceful_shutdown(socket, shutdown_signal())
@@ -168,10 +178,4 @@ async fn shutdown_signal() {
         _ = terminate => {},
     };
     tracing::info!("Received shutdown signal")
-}
-
-fn router() -> Router<App> {
-    Router::new()
-        .nest("/user", super::user::router())
-        .nest("/version", super::version::router())
 }

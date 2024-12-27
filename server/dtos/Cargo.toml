@@ -14,7 +14,6 @@ serde_with = { version = "3.11", features = ["chrono", "json", "schemars_0_8"] }
 http = "1.2"
 serde_repr = "0.1"
 axum = { version = "0.7", features = ["json", "macros"] }
-schemars = { version = "0.8", features = ["chrono", "uuid"] }
 thiserror = "2.0"
 derive_more = { version = "1.0", default-features = false, features = ["from"] }
 jwt = "0.16"
@@ -23,3 +22,4 @@ sea-orm = { version = "1.1", default-features = false }
 either = "1.13"
 tracing = "0.1"
 argon2 = { version = "0.5", default-features = false, features = ["std"] }
+utoipa = "5.3.0"

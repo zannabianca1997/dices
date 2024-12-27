@@ -1,20 +1,19 @@
 use std::{borrow::Cow, fmt::Display};
 
-use axum::{async_trait, extract::FromRequestParts};
+use axum::{async_trait, extract::FromRequestParts, response::IntoResponse};
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     typed_header::TypedHeaderRejection,
     TypedHeader,
 };
 use derive_more::derive::From;
-use http::request::Parts;
+use http::{request::Parts, StatusCode};
 use serde::{Deserialize, Serialize};
 
 use thiserror::Error;
 
-use crate::errors::{ErrorCode, ErrorResponse, ServerError};
-
-#[derive(Clone, Debug, From)]
+#[derive(Clone, Debug, From, utoipa::ToSchema)]
+#[schema(value_type=String)]
 pub struct UserToken(pub Authorization<Bearer>);
 
 impl Serialize for UserToken {
@@ -55,14 +54,9 @@ impl Eq for UserToken {}
 #[error("Cannot parse authorization header")]
 pub struct AuthHeaderRejection(#[source] TypedHeaderRejection);
 
-impl ServerError for AuthHeaderRejection {
-    fn error_code(&self) -> ErrorCode {
-        match self.0.reason() {
-            axum_extra::typed_header::TypedHeaderRejectionReason::Missing => {
-                ErrorCode::MissingAuthHeader
-            }
-            _ => ErrorCode::InvalidAuthHeader,
-        }
+impl IntoResponse for AuthHeaderRejection {
+    fn into_response(self) -> axum::response::Response {
+        (StatusCode::UNAUTHORIZED, self.0).into_response()
     }
 }
 
@@ -71,7 +65,7 @@ impl<S> FromRequestParts<S> for UserToken
 where
     S: Send + Sync,
 {
-    type Rejection = ErrorResponse<AuthHeaderRejection>;
+    type Rejection = AuthHeaderRejection;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let TypedHeader(header) = TypedHeader::from_request_parts(parts, state)
