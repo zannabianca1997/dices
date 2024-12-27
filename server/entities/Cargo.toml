@@ -14,3 +14,5 @@ derive_more = { version = "1.0", default-features = false, features = [
     "into",
 ] }
 uuid = { version = "1.11", features = ["fast-rng", "v4"] }
+utoipa = { version = "5.3.0", features = ["chrono", "uuid"] }
+chrono = "0.4.39"

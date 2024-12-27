@@ -10,7 +10,7 @@ async fn version_server_should_be_returned() {
         Box::pin(async move {
             let response = infrastructure
                 .server()
-                .get("/version")
+                .get("/version/server")
                 .expect_success()
                 .await;
 

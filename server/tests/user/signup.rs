@@ -1,5 +1,4 @@
 use axum::http::StatusCode;
-use dices_server_dtos::errors::ErrorCode;
 use serde_json::{from_value, json, Map, Value};
 use test_log::test;
 use uuid::Uuid;
@@ -57,10 +56,6 @@ async fn duplicate_names_should_not_be_allowed() {
                 .await;
 
             response.assert_status(StatusCode::CONFLICT);
-
-            response.assert_json_contains(&json!({
-                "code": ErrorCode::UserAlreadyExists
-            }));
         })
     })
     .await;

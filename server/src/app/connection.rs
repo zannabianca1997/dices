@@ -195,7 +195,7 @@ impl Default for ConnectOptionsLarge {
             acquire_timeout: None,
             max_lifetime: None,
             sqlx_logging: true,
-            sqlx_logging_level: log::LevelFilter::Info,
+            sqlx_logging_level: log::LevelFilter::Debug,
             sqlx_slow_statements_logging_level: log::LevelFilter::Off,
             sqlx_slow_statements_logging_threshold: Duration::from_secs(1),
             sqlcipher_key: None,

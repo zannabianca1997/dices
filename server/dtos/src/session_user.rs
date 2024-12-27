@@ -1,17 +1,17 @@
-use axum::extract::{rejection::JsonRejection, FromRequest, FromRequestParts};
+use axum::extract::{FromRequest, FromRequestParts};
 use dices_server_entities::sea_orm_active_enums::UserRole;
 use serde::Deserialize;
 
-use crate::{errors::ErrorResponse, session::SessionPathData, user::UserPathData};
+use crate::{session::SessionPathData, user::UserPathData};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, FromRequest)]
-#[from_request(via(axum::Json), rejection(ErrorResponse<JsonRejection>))]
+#[from_request(via(axum::Json))]
 pub struct SessionUserCreateDto {
     pub role: UserRole,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, FromRequest)]
-#[from_request(via(axum::Json), rejection(ErrorResponse<JsonRejection>))]
+#[from_request(via(axum::Json))]
 pub struct SessionUserUpdateDto {
     #[serde(default)]
     pub role: Option<UserRole>,

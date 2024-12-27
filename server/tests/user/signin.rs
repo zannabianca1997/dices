@@ -1,5 +1,4 @@
 use axum::http::StatusCode;
-use dices_server_dtos::errors::ErrorCode;
 use serde_json::{from_value, json, Map, Value};
 use test_log::test;
 use uuid::Uuid;
@@ -59,10 +58,6 @@ async fn wrong_password_should_be_refused() {
                 .await;
 
             response.assert_status(StatusCode::UNAUTHORIZED);
-
-            response.assert_json_contains(&json!({
-                "code": ErrorCode::WrongPassword
-            }));
         })
     })
     .await;

@@ -6,11 +6,14 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+
+[features]
+
 [dependencies]
 # Dices components
 dices-engine = { path = "../engine" }
 dices-ast = { path = "../ast" }
-dices-version = { path = "../version" }
+dices-version = { path = "../version", features = ["utoipa"] }
 
 # Server parts
 dices-server-migration = { path = "migration" }
@@ -67,10 +70,11 @@ either = { version = "1.13", features = ["serde"] }
 const_format = "0.2"
 
 # OpenApi
+utoipa-axum = "0.1.3"
+utoipa-swagger-ui = { version = "8.1.0", features = ["axum"] }
 [dependencies.utoipa]
 version = "5.1"
 features = ["axum_extras", "chrono", "uuid", "repr"]
-optional = true
 
 
 [dev-dependencies]

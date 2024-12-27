@@ -15,10 +15,8 @@ pub use dices_server_migration as migration;
 pub mod app;
 mod banner;
 pub mod config;
+mod domains;
 mod logging;
-
-mod user;
-mod version;
 
 pub use app::{App, AppConfig, ServeConfig};
 pub use banner::banner;
