@@ -1,5 +1,6 @@
 #![feature(error_reporter)]
 #![feature(duration_constructors)]
+
 use utoipa::{
     openapi::security::{Http, HttpAuthScheme, SecurityScheme},
     Modify,
@@ -39,11 +40,17 @@ pub struct SecurityAddon;
 impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
         let components = openapi.components.get_or_insert_default();
-
-        let mut http = Http::new(HttpAuthScheme::Bearer);
-        http.bearer_format = Some("JWT".to_owned());
-        http.description =
-            Some("A jwt token obtained either from the `/signin` or `/signup` endpoint".to_owned());
-        components.add_security_scheme("user_token", SecurityScheme::Http(http))
+        components.add_security_scheme(
+            "user_token",
+            SecurityScheme::Http(
+                Http::builder()
+                    .scheme(HttpAuthScheme::Bearer)
+                    .bearer_format("JWT")
+                    .description(Some(
+                        "A jwt token obtained either from the `/signin` or `/signup` endpoint",
+                    ))
+                    .build(),
+            ),
+        );
     }
 }

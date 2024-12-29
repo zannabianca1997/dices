@@ -22,9 +22,9 @@ use crate::{
 impl<S> FromRequestParts<S> for Autenticated<UserId>
 where
     S: Send + Sync,
-    UserClaims: FromRequestParts<S>,
+    UserClaims: FromRequestParts<S, Rejection = UserClaimsRejection>,
 {
-    type Rejection = <UserClaims as FromRequestParts<S>>::Rejection;
+    type Rejection = UserClaimsRejection;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         UserClaims::from_request_parts(parts, state)

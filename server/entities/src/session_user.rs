@@ -3,19 +3,25 @@
 use crate::{session::SessionId, user::UserId};
 
 use super::sea_orm_active_enums::UserRole;
+use chrono::{DateTime, FixedOffset};
 use sea_orm::entity::prelude::*;
 use serde::Serialize;
 
 #[derive(Clone, Copy, Debug, PartialEq, DeriveEntityModel, Eq, Serialize)]
 #[sea_orm(schema_name = "public", table_name = "session_user")]
 pub struct Model {
+    /// Id of the session
     #[sea_orm(primary_key, auto_increment = false)]
     pub session: SessionId,
+    /// Id of the usere
     #[sea_orm(primary_key, auto_increment = false)]
     pub user: UserId,
+    /// Role of the user in this session
     pub role: UserRole,
-    pub added_at: DateTimeWithTimeZone,
-    pub last_access: Option<DateTimeWithTimeZone>,
+    /// Time the user was added to this session
+    pub added_at: DateTime<FixedOffset>,
+    /// Last time the user sent a command to this session
+    pub last_access: Option<DateTime<FixedOffset>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

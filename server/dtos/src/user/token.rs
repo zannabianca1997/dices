@@ -56,7 +56,7 @@ pub struct AuthHeaderRejection(#[source] TypedHeaderRejection);
 
 impl IntoResponse for AuthHeaderRejection {
     fn into_response(self) -> axum::response::Response {
-        (StatusCode::UNAUTHORIZED, self.0).into_response()
+        StatusCode::UNAUTHORIZED.into_response()
     }
 }
 

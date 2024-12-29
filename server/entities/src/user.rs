@@ -3,14 +3,16 @@
 use derive_more::derive::{From, Into};
 use sea_orm::{
     entity::prelude::*,
-    sqlx::types::{chrono, uuid},
+    sqlx::types::{
+        chrono::{DateTime, FixedOffset},
+        uuid,
+    },
     TryFromU64,
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, utoipa::ToSchema)]
 #[sea_orm(schema_name = "public", table_name = "user")]
-#[derive(utoipa::ToSchema)]
 #[schema(as = User)]
 /// A user of the server
 pub struct Model {
@@ -25,9 +27,9 @@ pub struct Model {
     #[serde(skip)]
     pub password: PasswordHash,
     /// The moment the user was created
-    pub created_at: chrono::DateTime<chrono::FixedOffset>,
+    pub created_at: DateTime<FixedOffset>,
     /// The last access of this user
-    pub last_access: chrono::DateTime<chrono::FixedOffset>,
+    pub last_access: DateTime<FixedOffset>,
 }
 
 #[derive(
