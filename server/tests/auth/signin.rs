@@ -1,7 +1,7 @@
 use axum::http::StatusCode;
+use dices_server_entities::user::UserId;
 use serde_json::{from_value, json, Map, Value};
 use test_log::test;
-use uuid::Uuid;
 
 use crate::infrastructure::Infrastructure;
 
@@ -32,8 +32,9 @@ async fn user_should_be_able_to_signin() {
             else {
                 panic!("The token must be a string")
             };
-            let _: Uuid = from_value(response.get("id").expect("The id must be returned").clone())
-                .expect("The id must be a valid uuid");
+            let _: UserId =
+                from_value(response.get("id").expect("The id must be returned").clone())
+                    .expect("The id must be a valid uuid");
 
             assert_eq!(response.get("password"), None, "The password was returned")
         })

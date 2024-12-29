@@ -14,22 +14,22 @@ use axum::{
     Json,
 };
 use axum_extra::headers::Authorization;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, FixedOffset, Local};
 use derive_more::derive::From;
 use dices_server_dtos::user::token::{AuthHeaderRejection, UserToken};
 use dices_server_entities::user::{PasswordHash, UserId};
 use jwt::{claims::SecondsSinceEpoch, SignWithKey as _, VerifyWithKey as _};
-use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use utoipa::{ToResponse, ToSchema};
 
 use crate::{auth_key::AuthKey, Autenticated};
 
-#[derive(Debug, Error, From, Serialize)]
+#[derive(Debug, Error, From, Serialize, ToResponse, ToSchema)]
 #[error("The token was received at {received_at}, but it expired at {expiration}")]
 pub struct ExpiredToken {
-    pub expiration: DateTimeWithTimeZone,
-    pub received_at: DateTimeWithTimeZone,
+    pub expiration: DateTime<FixedOffset>,
+    pub received_at: DateTime<FixedOffset>,
 }
 
 impl IntoResponse for ExpiredToken {
@@ -50,7 +50,7 @@ impl IntoResponse for InvalidTokenError {
     fn into_response(self) -> axum::response::Response {
         match self {
             InvalidTokenError::Expired(expired_token) => expired_token.into_response(),
-            InvalidTokenError::Malformed => (StatusCode::BAD_REQUEST, Json(self)).into_response(),
+            InvalidTokenError::Malformed => StatusCode::BAD_REQUEST.into_response(),
         }
     }
 }

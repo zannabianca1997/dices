@@ -1,3 +1,8 @@
+//! # `/user`: Current user
+//!
+//! Management of the user logged in: general info, change of username and password,
+//! deleting of the user.
+
 use axum::{
     debug_handler,
     extract::{FromRef, State},
@@ -14,7 +19,7 @@ use dices_server_dtos::user::{
 };
 use dices_server_entities::user::{self, UserId};
 
-#[utoipa::path(get, path = "/", tag = "User", responses(UserQueryDto, UserGetError))]
+#[utoipa::path(get, path = "/", responses(UserQueryDto, UserGetError))]
 #[debug_handler(state = crate::app::App)]
 /// Info about the current user
 ///
@@ -35,8 +40,7 @@ async fn user_get(
 }
 
 #[utoipa::path(
-    delete, path = "/", 
-    tag="User", 
+    delete, path = "/",
     responses(
         (status= OK, description="User successfully deleted"), UserGetError
     )
@@ -49,6 +53,7 @@ async fn user_delete(
     State(db): State<DatabaseConnection>,
     id: Autenticated<UserId>,
 ) -> Result<(), UserGetError> {
+    // TODO: remove sessions where this user was the last one
     match dices_server_entities::prelude::User::delete_by_id(id.into_inner())
         .exec(&db)
         .await
@@ -61,8 +66,7 @@ async fn user_delete(
 }
 
 #[utoipa::path(
-    put, path = "/", 
-    tag="User", 
+    put, path = "/",
     request_body=UserSignupDto,
     responses(UserQueryDto, UserGetError)
 )]
@@ -95,8 +99,7 @@ async fn user_put(
 }
 
 #[utoipa::path(
-    patch, path = "/", 
-    tag="User",
+    patch, path = "/",
     request_body=UserUpdateDto,
     responses(UserQueryDto, UserGetError),
 )]
@@ -137,6 +140,7 @@ where
         .routes(routes!(user_get, user_put, user_patch, user_delete));
 
     RequireUserToken.modify(router.get_openapi_mut());
+    super::tag_api(router.get_openapi_mut(), "User".to_owned());
 
     router
 }

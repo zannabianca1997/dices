@@ -1,4 +1,5 @@
 use axum::http::StatusCode;
+use dices_server_entities::user::UserId;
 use serde_json::{from_value, json, Map, Value};
 use test_log::test;
 use uuid::Uuid;
@@ -87,7 +88,7 @@ async fn can_signup_again() {
 
             check.assert_status(StatusCode::CREATED);
 
-            let new_id: Uuid = from_value(
+            let new_id: UserId = from_value(
                 check
                     .json::<Map<String, Value>>()
                     .get("id")

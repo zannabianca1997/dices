@@ -1,3 +1,7 @@
+//! # `/auth`: Authentication
+//!
+//! Endpoints to sign in and sign up in the server.
+
 use axum::{
     debug_handler,
     extract::{FromRef, State},
@@ -20,8 +24,7 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 #[utoipa::path(
-    post, path = "/signup", 
-    tag="Auth", 
+    post, path = "/signup",
     request_body=UserSignupDto,
     responses(UserSignupResponseDto, SignupError)
 )]
@@ -76,8 +79,7 @@ async fn signup(
 }
 
 #[utoipa::path(
-    post, path = "/signin", 
-    tag="Auth", 
+    post, path = "/signin",
     request_body=UserSigninDto,
     responses(UserSigninResponseDto, SigninError)
 )]
@@ -119,7 +121,9 @@ where
     DatabaseConnection: FromRef<S>,
     AuthKey: FromRef<S>,
 {
-    OpenApiRouter::with_openapi(ApiInfo::openapi())
+    let mut router = OpenApiRouter::with_openapi(ApiInfo::openapi())
         .routes(routes!(signup))
-        .routes(routes!(signin))
+        .routes(routes!(signin));
+    super::tag_api(router.get_openapi_mut(), "Auth".to_owned());
+    router
 }
