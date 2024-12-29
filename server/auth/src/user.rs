@@ -79,13 +79,12 @@ where
     type Rejection = AuthenticatedUserPathRejection;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let Autenticated(authenticated_id) =
-            Autenticated::from_request_parts(parts, state)
-                .await
-                .map_err(|err| AuthenticatedUserPathRejection::Header(err))?;
+        let Autenticated(authenticated_id) = Autenticated::from_request_parts(parts, state)
+            .await
+            .map_err(AuthenticatedUserPathRejection::Header)?;
         let path_data @ UserPathData { id } = UserPathData::from_request_parts(parts, state)
             .await
-            .map_err(|err| AuthenticatedUserPathRejection::Path(err))?;
+            .map_err(AuthenticatedUserPathRejection::Path)?;
 
         if authenticated_id == id {
             Ok(Autenticated(path_data))
@@ -103,7 +102,7 @@ pub struct RequireUserToken;
 
 impl Modify for RequireUserToken {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-        for (_, path) in &mut openapi.paths.paths {
+        for path in openapi.paths.paths.values_mut() {
             for op in [
                 &mut path.get,
                 &mut path.head,
