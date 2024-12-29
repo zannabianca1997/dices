@@ -18,8 +18,8 @@ use dices_server_auth::{Autenticated, AuthKey, RequireUserToken};
 use dices_server_dtos::{
     paginated::{PageInfo, PaginatedDto, PaginationParams},
     session::{
-        SessionCreateDto, SessionCreateError, SessionGetError, SessionListGetError,
-        SessionPathData, SessionQueryDto, SessionShortQueryDto,
+        SessionCreateDto, SessionCreateError, SessionListGetError, SessionQueryDto,
+        SessionShortQueryDto,
     },
 };
 use dices_server_entities::{
@@ -29,6 +29,8 @@ use dices_server_entities::{
     session_user,
     user::UserId,
 };
+
+mod single;
 
 #[utoipa::path(post, path = "/", request_body=SessionCreateDto, responses(SessionQueryDto, SessionCreateError))]
 #[debug_handler(state = crate::app::App)]
@@ -130,37 +132,6 @@ async fn sessions_get(
     })
 }
 
-#[utoipa::path(
-    get,
-    path = "/{session}",
-    responses(SessionQueryDto, SessionGetError),
-    params(SessionPathData)
-)]
-#[debug_handler(state = crate::app::App)]
-/// Get info about the session
-///
-/// Get the info about the session requested.
-/// This only works if the current user is part of the session.
-async fn session_get(
-    State(db): State<DatabaseConnection>,
-    user_id: Autenticated<UserId>,
-    SessionPathData { id: session_id }: SessionPathData,
-) -> Result<SessionQueryDto, SessionGetError> {
-    let (session, session_user) = Session::find_by_id(session_id)
-        .find_also_related(SessionUser)
-        .filter(session_user::Column::User.eq(*user_id.inner()))
-        .one(&db)
-        .await?
-        .ok_or(SessionGetError::NotFound)?;
-
-    Ok(SessionQueryDto {
-        session,
-        session_user: session_user
-            .expect("The query should find only sessions with a user")
-            .into(),
-    })
-}
-
 pub fn router<S: Clone + Send + Sync + 'static>() -> OpenApiRouter<S>
 where
     DatabaseConnection: FromRef<S>,
@@ -169,7 +140,7 @@ where
     let mut router =
         OpenApiRouter::with_openapi(dices_server_dtos::session::ApiComponents::openapi())
             .routes(routes!(sessions_post, sessions_get))
-            .routes(routes!(session_get));
+            .nest("/{session}", single::router());
     RequireUserToken.modify(router.get_openapi_mut());
     super::tag_api(router.get_openapi_mut(), "Sessions".to_owned());
     router
