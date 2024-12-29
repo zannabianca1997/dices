@@ -18,8 +18,8 @@ use dices_server_auth::{Autenticated, AuthKey, RequireUserToken};
 use dices_server_dtos::{
     paginated::{PageInfo, PaginatedDto, PaginationParams},
     session::{
-        SessionCreateDto, SessionCreateError, SessionListGetError, SessionQueryDto,
-        SessionShortQueryDto,
+        SessionCreateDto, SessionCreateError, SessionCreateResponseDto, SessionListGetError,
+        SessionQueryDto, SessionShortQueryDto,
     },
 };
 use dices_server_entities::{
@@ -32,7 +32,7 @@ use dices_server_entities::{
 
 mod single;
 
-#[utoipa::path(post, path = "/", request_body=SessionCreateDto, responses(SessionQueryDto, SessionCreateError))]
+#[utoipa::path(post, path = "/", request_body=SessionCreateDto, responses(SessionCreateResponseDto, SessionCreateError))]
 #[debug_handler(state = crate::app::App)]
 /// Create a new session
 ///
@@ -42,7 +42,7 @@ async fn sessions_post(
     State(db): State<DatabaseConnection>,
     user_id: Autenticated<UserId>,
     SessionCreateDto { name, description }: SessionCreateDto,
-) -> Result<SessionQueryDto, SessionCreateError> {
+) -> Result<SessionCreateResponseDto, SessionCreateError> {
     let name = name.trim().to_owned();
     if name.contains('\n') {
         return Err(SessionCreateError::NameContainsNewline);
@@ -74,6 +74,7 @@ async fn sessions_post(
         })
     })
     .await
+    .map(SessionCreateResponseDto)
     .map_err(|err| match err {
         sea_orm::TransactionError::Connection(db_err) => db_err.into(),
         sea_orm::TransactionError::Transaction(err) => err,

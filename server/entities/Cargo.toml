@@ -12,6 +12,7 @@ serde = { version = "1.0", features = ["derive"] }
 derive_more = { version = "1.0", default-features = false, features = [
     "from",
     "into",
+    "display",
 ] }
 uuid = { version = "1.11", features = ["fast-rng", "v4"] }
 utoipa = { version = "5.3", features = ["chrono", "uuid"] }

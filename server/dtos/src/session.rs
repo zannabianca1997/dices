@@ -19,6 +19,17 @@ use utoipa::{IntoParams, IntoResponses, OpenApi, ToSchema};
 use crate::paginated::{PageInfo, PaginatedDto};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, From, utoipa::ToSchema, utoipa::IntoResponses)]
+#[response(status = CREATED)]
+/// Details about the newly created session
+pub struct SessionCreateResponseDto(pub SessionQueryDto);
+
+impl IntoResponse for SessionCreateResponseDto {
+    fn into_response(self) -> axum::response::Response {
+        (StatusCode::CREATED, self.0).into_response()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, From, utoipa::ToSchema, utoipa::IntoResponses)]
 #[response(status = OK)]
 /// Details about a session
 pub struct SessionQueryDto {
@@ -208,6 +219,49 @@ impl IntoResponse for SessionGetError {
 }
 
 impl From<DbErr> for SessionGetError {
+    fn from(value: DbErr) -> Self {
+        crate::internal_server_error(&value);
+        Self::InternalServerError
+    }
+}
+
+#[derive(Debug, Error, From, IntoResponses)]
+pub enum SessionUpdateError {
+    #[error("Session does not exist")]
+    #[response(status=NOT_FOUND)]
+    /// The session does not exist
+    NotFound,
+    #[error("An admin user is needed to edit the session")]
+    #[response(status=FORBIDDEN)]
+    /// An admin user is needed to edit the session
+    NotAdmin,
+    #[error("Internal Server Error")]
+    #[response(status=INTERNAL_SERVER_ERROR)]
+    /// Internal server error
+    InternalServerError,
+}
+
+impl IntoResponse for SessionUpdateError {
+    fn into_response(self) -> axum::response::Response {
+        match self {
+            SessionUpdateError::NotFound => StatusCode::NOT_FOUND.into_response(),
+            SessionUpdateError::InternalServerError => {
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            }
+            SessionUpdateError::NotAdmin => StatusCode::FORBIDDEN.into_response(),
+        }
+    }
+}
+
+impl From<SessionGetError> for SessionUpdateError {
+    fn from(value: SessionGetError) -> Self {
+        match value {
+            SessionGetError::NotFound => Self::NotFound,
+            SessionGetError::InternalServerError => Self::InternalServerError,
+        }
+    }
+}
+impl From<DbErr> for SessionUpdateError {
     fn from(value: DbErr) -> Self {
         crate::internal_server_error(&value);
         Self::InternalServerError
