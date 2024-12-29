@@ -98,7 +98,7 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let auth_header = UserToken::from_request_parts(parts, state)
             .await
-            .map_err(|err| UserClaimsRejection::TokenRejection(err))?;
+            .map_err(UserClaimsRejection::TokenRejection)?;
         let auth_key = AuthKey::from_ref(state);
         Ok(parse_token(auth_header.0.token(), auth_key)
             .map_err(UserClaimsRejection::InvalidToken)?)

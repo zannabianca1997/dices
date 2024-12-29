@@ -26,7 +26,7 @@ where
 
 /// Tag all the paths of an api
 fn tag_api(openapi: &mut utoipa::openapi::OpenApi, tag: String) {
-    for (_, path) in &mut openapi.paths.paths {
+    for path in openapi.paths.paths.values_mut() {
         for op in [
             &mut path.get,
             &mut path.head,
