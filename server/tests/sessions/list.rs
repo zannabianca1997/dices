@@ -2,10 +2,8 @@ use dices_server_dtos::{
     paginated::{PageInfo, PaginatedDto, PaginationParams},
     session::SessionShortQueryDto,
 };
-use dices_server_entities::{sea_orm_active_enums::UserRole, session::SessionId};
 use futures::FutureExt;
 use rand::{seq::SliceRandom, thread_rng};
-use serde_json::{from_value, json};
 use test_log::test;
 
 use crate::infrastructure::Infrastructure;

@@ -14,13 +14,35 @@ use serde::{Deserialize, Serialize};
     Serialize,
     Deserialize,
     utoipa::ToSchema,
+    PartialOrd,
+    Ord,
 )]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "user_role")]
 pub enum UserRole {
-    #[sea_orm(string_value = "admin")]
-    Admin,
     #[sea_orm(string_value = "observer")]
     Observer,
     #[sea_orm(string_value = "player")]
     Player,
+    #[sea_orm(string_value = "admin")]
+    Admin,
+}
+
+#[cfg(test)]
+mod check_order {
+    //! Check that the order implementation is consistent
+
+    use super::UserRole::*;
+
+    #[test]
+    fn admin_gt_player() {
+        assert!(Admin > Player)
+    }
+    #[test]
+    fn admin_gt_observer() {
+        assert!(Admin > Observer)
+    }
+    #[test]
+    fn player_gt_observer() {
+        assert!(Player > Observer)
+    }
 }

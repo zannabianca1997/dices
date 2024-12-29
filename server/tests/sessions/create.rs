@@ -21,7 +21,7 @@ async fn should_be_able_to_create_session() {
                 .expect_success()
                 .await;
 
-            response.assert_status(StatusCode::OK);
+            response.assert_status(StatusCode::CREATED);
 
             response.assert_json_contains(&json!({
                 "name": "session",
@@ -74,7 +74,7 @@ async fn should_be_able_to_create_session_with_description() {
                 .expect_success()
                 .await;
 
-            response.assert_status(StatusCode::OK);
+            response.assert_status(StatusCode::CREATED);
 
             response.assert_json_contains(&json!({
                 "name": "session",

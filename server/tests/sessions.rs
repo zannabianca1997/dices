@@ -7,3 +7,5 @@ mod create;
 mod info;
 #[path = "sessions/list.rs"]
 mod list;
+
+// TODO: test edit and delete of a session

@@ -39,7 +39,7 @@ pub struct UserSigninDto {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, utoipa::ToSchema, utoipa::IntoResponses)]
-#[response(status=OK)]
+#[response(status=CREATED)]
 /// Data about the user that signed up
 pub struct UserSignupResponseDto(pub UserSigninResponseDto);
 
