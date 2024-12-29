@@ -2,7 +2,6 @@ use axum::http::StatusCode;
 use dices_server_entities::user::UserId;
 use serde_json::{from_value, json, Map, Value};
 use test_log::test;
-use uuid::Uuid;
 
 use crate::infrastructure::Infrastructure;
 

@@ -27,6 +27,6 @@ static BANNER: &str = const_format::formatcp!(
 "###,
     version = const_format::concatcp!(
         env!("CARGO_PKG_VERSION"),
-        const_format::str_repeat!(" ", 9 - env!("CARGO_PKG_VERSION").len())
+        const_format::str_repeat!(" ", "{version}".len() - env!("CARGO_PKG_VERSION").len())
     )
 );

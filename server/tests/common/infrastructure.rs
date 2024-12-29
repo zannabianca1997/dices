@@ -14,7 +14,6 @@ use testcontainers_modules::{
     testcontainers::{runners::AsyncRunner, ContainerAsync, ImageExt},
 };
 use tracing::instrument;
-use uuid::Uuid;
 
 use dices_server::app::ConnectOptions;
 use dices_server::{App, AppConfig};
