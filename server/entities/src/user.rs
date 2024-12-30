@@ -3,6 +3,7 @@
 use derive_more::derive::{From, Into};
 use sea_orm::{
     entity::prelude::*,
+    sea_query::Nullable,
     sqlx::types::{
         chrono::{DateTime, FixedOffset},
         uuid,
@@ -51,6 +52,12 @@ impl UserId {
 impl TryFromU64 for UserId {
     fn try_from_u64(n: u64) -> Result<Self, DbErr> {
         Uuid::try_from_u64(n).map(Self)
+    }
+}
+
+impl Nullable for UserId {
+    fn null() -> Value {
+        Uuid::null()
     }
 }
 

@@ -16,9 +16,8 @@ impl MigrationTrait for Migration {
                     .comment("Sessions at which users can connect to play `dices`")
                     .if_not_exists()
                     .col(
-                        uuid(Session::Id)
+                        pk_uuid(Session::Id)
                             .comment("UUID of the session")
-                            .primary_key()
                             .default(PgFunc::gen_random_uuid()),
                     )
                     .col(

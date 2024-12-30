@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod engine;
+pub mod log;
 pub mod sea_orm_active_enums;
 pub mod session;
 pub mod session_user;
