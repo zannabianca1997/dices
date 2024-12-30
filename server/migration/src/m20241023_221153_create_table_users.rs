@@ -13,9 +13,8 @@ impl MigrationTrait for Migration {
                     .comment("Registered users of the `dices` server")
                     .if_not_exists()
                     .col(
-                        uuid(User::Id)
+                        pk_uuid(User::Id)
                             .comment("UUID of the user")
-                            .primary_key()
                             .default(PgFunc::gen_random_uuid()),
                     )
                     .col(

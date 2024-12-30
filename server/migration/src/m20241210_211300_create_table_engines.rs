@@ -15,8 +15,7 @@ impl MigrationTrait for Migration {
                     .table(Engine::Table)
                     .if_not_exists()
                     .col(
-                        uuid(Engine::SessionId)
-                            .primary_key()
+                        pk_uuid(Engine::SessionId)
                             .comment("Identifier of the session to which this engine state belongs"),
                     )
                     .foreign_key(

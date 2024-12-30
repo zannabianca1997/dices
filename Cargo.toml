@@ -10,6 +10,7 @@ members = [
     "server/entities",
     "server/dtos",
     "server/auth",
+    "server/intrisics",
     "version",
 ]
 default-members = ["repl"]

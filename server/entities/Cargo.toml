@@ -7,6 +7,9 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+dices-ast = { path = "../../ast", features = ["serde"] }
+dices-server-intrisics = { path = "../intrisics" }
+
 sea-orm = { version = "1.1", features = ["sqlx-postgres"] }
 serde = { version = "1.0", features = ["derive"] }
 derive_more = { version = "1.0", default-features = false, features = [
@@ -17,3 +20,4 @@ derive_more = { version = "1.0", default-features = false, features = [
 uuid = { version = "1.11", features = ["fast-rng", "v4"] }
 utoipa = { version = "5.3", features = ["chrono", "uuid"] }
 chrono = "0.4"
+serde_json = "1.0.134"
