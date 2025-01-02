@@ -11,7 +11,7 @@ name = "dices"
 path = "src/main.rs"
 
 [dependencies]
-mdast2minimad = { git = "https://github.com/zannabianca1997/mdast2minimad.git" }
+mdast2minimad = "0.1"
 dices-man = { path = "../man" }
 dices-engine = { path = "../engine", features = ["eval_str"] }
 dices-ast = { path = "../ast" }
