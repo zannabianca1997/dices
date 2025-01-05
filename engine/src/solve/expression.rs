@@ -118,7 +118,7 @@ where
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut crate::Context<R, InjectedIntrisic>,
+        context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         Ok(match self {
             Expression::Const(e) => e.solve(context)?,
@@ -144,7 +144,7 @@ where
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut crate::Context<R, InjectedIntrisic>,
+        context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         Ok(Value::List(
             self.iter().map(|i| i.solve(context)).try_collect()?,
@@ -160,7 +160,7 @@ where
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut crate::Context<R, InjectedIntrisic>,
+        context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         Ok(Value::Map(
             self.iter()
@@ -183,7 +183,7 @@ where
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut crate::Context<R, InjectedIntrisic>,
+        context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         let Self {
             called: box called,
@@ -232,7 +232,7 @@ where
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut crate::Context<R, InjectedIntrisic>,
+        context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         // first we solve for the accessed value
         let accessed = self.accessed.solve(context)?;
@@ -299,7 +299,7 @@ impl<InjectedIntrisic: InjectedIntr> Solvable<InjectedIntrisic>
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut crate::Context<R, InjectedIntrisic>,
+        context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         context.scoped(|context| solve_multiple(self, context))
     }
@@ -308,7 +308,7 @@ impl<InjectedIntrisic: InjectedIntr> Solvable<InjectedIntrisic>
 /// Solve multiple expressions, discarding the result of all but the last
 pub(crate) fn solve_multiple<R: DicesRng, InjectedIntrisic: InjectedIntr>(
     scope: &NonEmpty<[Expression<InjectedIntrisic>]>,
-    context: &mut crate::Context<R, InjectedIntrisic>,
+    context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
     let (last, leading) = scope.split_last();
     for expr in leading {
@@ -325,7 +325,7 @@ where
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut crate::Context<R, InjectedIntrisic>,
+        context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         let value = self.value.solve(context)?;
 
@@ -384,7 +384,7 @@ where
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut crate::Context<R, InjectedIntrisic>,
+        context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         context
             .vars()

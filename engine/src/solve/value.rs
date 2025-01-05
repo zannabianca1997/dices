@@ -10,7 +10,7 @@ macro_rules! trivial_impl {
 
                     fn solve<R>(
                         &self,
-                        _context: &mut crate::Context<R, InjectedIntrisic>,
+                        _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
                     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
                         Ok(self.clone().into())
                     }
@@ -37,7 +37,7 @@ impl<InjectedIntrisic: InjectedIntr> crate::solve::Solvable<InjectedIntrisic>
 
     fn solve<R>(
         &self,
-        _context: &mut crate::Context<R, InjectedIntrisic>,
+        _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         Ok(Box::new(self.clone()).into())
     }

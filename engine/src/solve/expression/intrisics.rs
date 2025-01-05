@@ -61,7 +61,7 @@ where
 
 pub(super) fn call<R: DicesRng, Injected>(
     intrisic: ValueIntrisic<Injected>,
-    context: &mut crate::Context<R, Injected>,
+    context: &mut crate::Context<R, Injected, Injected::Data>,
     params: Box<[Value<Injected>]>,
 ) -> Result<Value<Injected>, IntrisicError<Injected>>
 where

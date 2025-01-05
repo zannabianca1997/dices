@@ -225,7 +225,7 @@ pub fn repl(
     let skin = Rc::new(graphic.skin(teminal));
     // Initializing the engine
     let engine_builder = dices_engine::EngineBuilder::new()
-        .inject_intrisics_with_data(repl_intrisics::Data::new(graphic.clone(), skin.clone()));
+        .inject_intrisics_data(repl_intrisics::Data::new(graphic.clone(), skin.clone()));
     let engine_builder = if let Some(seed) = seed {
         let mut hasher = DefaultHasher::new();
         seed.hash(&mut hasher);
@@ -234,7 +234,7 @@ pub fn repl(
     } else {
         engine_builder.with_rng_from_entropy()
     };
-    let mut engine: dices_engine::Engine<Xoshiro256PlusPlus, REPLIntrisics> =
+    let mut engine: dices_engine::Engine<Xoshiro256PlusPlus, REPLIntrisics, _> =
         engine_builder.build();
 
     if let Some(run) = run {
@@ -276,7 +276,7 @@ pub fn repl(
 pub fn interactive_repl(
     graphic: Rc<Graphic>,
     skin: Rc<MadSkin>,
-    engine: &mut Engine<Xoshiro256PlusPlus, REPLIntrisics>,
+    engine: &mut Engine<Xoshiro256PlusPlus, REPLIntrisics, repl_intrisics::Data>,
 ) -> Result<(), ReplFatalError> {
     // Creating the editor
     let mut line_editor = Reedline::create();
@@ -312,7 +312,7 @@ pub fn interactive_repl(
 pub fn detached_repl(
     graphic: Rc<Graphic>,
     skin: Rc<MadSkin>,
-    engine: &mut Engine<Xoshiro256PlusPlus, REPLIntrisics>,
+    engine: &mut Engine<Xoshiro256PlusPlus, REPLIntrisics, repl_intrisics::Data>,
 ) -> Result<(), ReplFatalError> {
     // REPL loop
     for line in stdin().lines() {

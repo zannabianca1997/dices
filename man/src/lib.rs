@@ -141,7 +141,7 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
             "The examples in the manual should be all well formatted, thanks to `dices-mantest`",
         );
         // initialize an engine, deterministic with regard of the seed and the code
-        let mut engine: Engine<Xoshiro256PlusPlus, NoInjectedIntrisics> =
+        let mut engine: Engine<Xoshiro256PlusPlus, NoInjectedIntrisics, _> =
             Engine::new_with_rng(SeedableRng::seed_from_u64({
                 let mut hasher = DefaultHasher::new();
                 options.seed.hash(&mut hasher);

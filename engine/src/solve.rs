@@ -14,6 +14,6 @@ pub(super) trait Solvable<InjectedIntrisic: InjectedIntr> {
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut Context<R, InjectedIntrisic>,
+        context: &mut Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error>;
 }

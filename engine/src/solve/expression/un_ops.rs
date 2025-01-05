@@ -13,7 +13,7 @@ where
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut crate::Context<R, InjectedIntrisic>,
+        context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
         let ExpressionUnOp {
             op,
@@ -29,7 +29,7 @@ where
 }
 
 pub(crate) fn plus<R, InjectedIntrisic: InjectedIntr>(
-    context: &mut crate::Context<R, InjectedIntrisic>,
+    context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
     Ok(match a {
@@ -60,7 +60,7 @@ pub(crate) fn plus<R, InjectedIntrisic: InjectedIntr>(
 }
 
 pub(super) fn neg<R, InjectedIntrisic>(
-    context: &mut crate::Context<R, InjectedIntrisic>,
+    context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
 where
@@ -71,7 +71,7 @@ where
 }
 
 fn dice<R: Rng, InjectedIntrisic: InjectedIntr>(
-    context: &mut crate::Context<R, InjectedIntrisic>,
+    context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
     let a = a
