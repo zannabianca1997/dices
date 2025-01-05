@@ -1216,7 +1216,7 @@ dependencies = [
  "dices-version",
  "either",
  "enum-as-inner",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "lazy-regex",
  "num-bigint",
  "nunny",
@@ -1254,7 +1254,7 @@ dependencies = [
  "itertools 0.13.0",
  "lazy-regex",
  "markdown",
- "mdast2minimad",
+ "mdast2minimad 0.1.0 (git+https://github.com/zannabianca1997/mdast2minimad.git)",
  "nunny",
  "phf",
  "phf_codegen",
@@ -1296,7 +1296,7 @@ dependencies = [
  "dices-man",
  "figment",
  "home",
- "mdast2minimad",
+ "mdast2minimad 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pretty",
  "rand",
  "rand_xoshiro",
@@ -2352,6 +2352,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2546,6 +2555,20 @@ checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
 dependencies = [
  "cfg-if",
  "digest",
+]
+
+[[package]]
+name = "mdast2minimad"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "737cabecac18afd8c166312d4b1584c9d3e1790679472be18547440306f8ee89"
+dependencies = [
+ "derive_more",
+ "markdown",
+ "minimad",
+ "proc-macro2",
+ "quote",
+ "slugify",
 ]
 
 [[package]]

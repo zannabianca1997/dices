@@ -2,26 +2,28 @@
 
 use std::{collections::BTreeMap, fmt::Debug, mem};
 
-use dices_ast::{ident::IdentStr, intrisics::InjectedIntr, value::Value};
+use dices_ast::{ident::IdentStr, value::Value};
 use nunny::NonEmpty;
 
 type Scope<InjectedIntrisic> = BTreeMap<Box<IdentStr>, Value<InjectedIntrisic>>;
 
-pub struct Context<RNG, InjectedIntrisic: InjectedIntr> {
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Context<RNG, InjectedIntrisic, InjectedIntrisicData> {
     /// the stack of variables
     scopes: NonEmpty<Vec<Scope<InjectedIntrisic>>>,
     /// The random number generator
     rng: RNG,
     /// The data for the injected intrisics
-    injected_intrisics_data: <InjectedIntrisic as InjectedIntr>::Data,
+    injected_intrisics_data: InjectedIntrisicData,
 }
 
 #[cfg(feature = "bincode")]
-impl<RNG, InjectedIntrisic: InjectedIntr> bincode::Encode for Context<RNG, InjectedIntrisic>
+impl<RNG, InjectedIntrisic, InjectedIntrisicData> bincode::Encode
+    for Context<RNG, InjectedIntrisic, InjectedIntrisicData>
 where
     RNG: serde::Serialize,
-    InjectedIntrisic: bincode::Encode,
-    InjectedIntrisic::Data: bincode::Encode,
+    Value<InjectedIntrisic>: bincode::Encode + 'static,
+    InjectedIntrisicData: bincode::Encode,
 {
     fn encode<E: bincode::enc::Encoder>(
         &self,
@@ -35,11 +37,12 @@ where
 }
 
 #[cfg(feature = "bincode")]
-impl<RNG, InjectedIntrisic: InjectedIntr> bincode::Decode for Context<RNG, InjectedIntrisic>
+impl<RNG, InjectedIntrisic, InjectedIntrisicData> bincode::Decode
+    for Context<RNG, InjectedIntrisic, InjectedIntrisicData>
 where
     RNG: serde::de::DeserializeOwned,
-    InjectedIntrisic: bincode::Decode,
-    InjectedIntrisic::Data: bincode::Decode,
+    Value<InjectedIntrisic>: bincode::Decode + 'static,
+    InjectedIntrisicData: bincode::Decode,
 {
     fn decode<D: bincode::de::Decoder>(
         decoder: &mut D,
@@ -54,12 +57,12 @@ where
 }
 
 #[cfg(feature = "bincode")]
-impl<'de, RNG, InjectedIntrisic: InjectedIntr> bincode::BorrowDecode<'de>
-    for Context<RNG, InjectedIntrisic>
+impl<'de, RNG, InjectedIntrisic, InjectedIntrisicData> bincode::BorrowDecode<'de>
+    for Context<RNG, InjectedIntrisic, InjectedIntrisicData>
 where
     RNG: serde::de::Deserialize<'de>,
-    InjectedIntrisic: bincode::de::BorrowDecode<'de>,
-    InjectedIntrisic::Data: bincode::de::BorrowDecode<'de>,
+    Value<InjectedIntrisic>: bincode::de::BorrowDecode<'de>,
+    InjectedIntrisicData: bincode::de::BorrowDecode<'de>,
 {
     fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
         decoder: &mut D,
@@ -73,53 +76,10 @@ where
     }
 }
 
-impl<RNG: std::fmt::Debug, InjectedIntrisic: InjectedIntr + std::fmt::Debug> std::fmt::Debug
-    for Context<RNG, InjectedIntrisic>
+impl<RNG, InjectedIntrisic, InjectedIntrisicData>
+    Context<RNG, InjectedIntrisic, InjectedIntrisicData>
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let debuggable_data: &dyn Debug = match InjectedIntrisic::data_debug_fmt() {
-            Some(debug_data_fn) => {
-                struct DebuggableDataWrapper<'d, II>(
-                    &'d II,
-                    fn(&II, &mut std::fmt::Formatter<'_>) -> std::fmt::Result,
-                );
-                impl<II> Debug for DebuggableDataWrapper<'_, II> {
-                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        (self.1)(self.0, f)
-                    }
-                }
-
-                &DebuggableDataWrapper(&self.injected_intrisics_data, debug_data_fn)
-            }
-            None => &"...",
-        };
-
-        f.debug_struct("Context")
-            .field("scopes", &self.scopes)
-            .field("rng", &self.rng)
-            .field("injected_intrisics_data", debuggable_data)
-            .finish()
-    }
-}
-
-impl<RNG: Clone, InjectedIntrisic: InjectedIntr + Clone> Clone for Context<RNG, InjectedIntrisic>
-where
-    <InjectedIntrisic as dices_ast::intrisics::InjectedIntr>::Data: Clone,
-{
-    fn clone(&self) -> Self {
-        Self {
-            scopes: self.scopes.clone(),
-            rng: self.rng.clone(),
-            injected_intrisics_data: self.injected_intrisics_data.clone(),
-        }
-    }
-}
-
-impl<RNG, InjectedIntrisic: InjectedIntr> Context<RNG, InjectedIntrisic> {
-    pub fn new(
-        rng: RNG,
-        injected_intrisics_data: <InjectedIntrisic as InjectedIntr>::Data,
-    ) -> Self {
+    pub fn new(rng: RNG, injected_intrisics_data: InjectedIntrisicData) -> Self {
         Self {
             scopes: nunny::vec![Scope::new()],
             rng,
@@ -162,16 +122,39 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Context<RNG, InjectedIntrisic> {
         &mut self.rng
     }
 
-    pub fn injected_intrisics_data(&self) -> &<InjectedIntrisic as InjectedIntr>::Data {
+    /// Handler to the data used by the injected intrisics
+    pub fn injected_intrisics_data(&self) -> &InjectedIntrisicData {
         &self.injected_intrisics_data
     }
 
-    pub fn injected_intrisics_data_mut(&mut self) -> &mut <InjectedIntrisic as InjectedIntr>::Data {
+    /// Mutable handler to the data used by the injected intrisics
+    pub fn injected_intrisics_data_mut(&mut self) -> &mut InjectedIntrisicData {
         &mut self.injected_intrisics_data
+    }
+
+    /// Obtain all the separate mutable handlers
+    ///
+    /// This enable an algorithm to keep mutable handlers to the non overlapping parts of the context
+    pub fn handlers_mut(
+        &mut self,
+    ) -> (
+        VarsMut<InjectedIntrisic>,
+        &mut RNG,
+        &mut InjectedIntrisicData,
+    ) {
+        let Self {
+            scopes,
+            rng,
+            injected_intrisics_data,
+        } = self;
+        (VarsMut(scopes), rng, injected_intrisics_data)
     }
 }
 
 #[derive(Debug, Clone, Copy)]
+/// Readonly vars handler
+///
+/// This is a handler that enable one to read the variable values
 pub struct Vars<'c, InjectedIntrisic>(&'c NonEmpty<[Scope<InjectedIntrisic>]>);
 
 impl<InjectedIntrisic> Vars<'_, InjectedIntrisic> {
@@ -200,6 +183,9 @@ impl<'c, InjectedIntrisic> From<&'c mut VarsMut<'c, InjectedIntrisic>>
 }
 
 #[derive(Debug)]
+/// Mutable vars handles
+///
+/// This is a handler that enable one to read and modify the variable values
 pub struct VarsMut<'c, InjectedIntrisic>(&'c mut NonEmpty<[Scope<InjectedIntrisic>]>);
 
 impl<InjectedIntrisic> VarsMut<'_, InjectedIntrisic> {

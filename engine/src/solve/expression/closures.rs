@@ -27,7 +27,7 @@ where
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut crate::Context<R, InjectedIntrisic>,
+        context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         // pull captures from the context
         let captures = captures(self)

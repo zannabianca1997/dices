@@ -14,7 +14,7 @@ where
 
     fn solve<R: DicesRng>(
         &self,
-        context: &mut crate::Context<R, InjectedIntrisic>,
+        context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
         let ExpressionBinOp {
             op,
@@ -55,7 +55,7 @@ where
 }
 
 fn repeats<R: DicesRng, InjectedIntrisic>(
-    context: &mut crate::Context<R, InjectedIntrisic>,
+    context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: &Expression<InjectedIntrisic>,
     n: &Expression<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -92,7 +92,7 @@ where
 }
 
 pub(super) fn add<R, InjectedIntrisic>(
-    context: &mut crate::Context<R, InjectedIntrisic>,
+    context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -105,7 +105,7 @@ where
 }
 
 pub(super) fn mult<R, InjectedIntrisic>(
-    _context: &mut crate::Context<R, InjectedIntrisic>,
+    _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -237,7 +237,7 @@ where
 }
 
 fn sub<R, InjectedIntrisic>(
-    context: &mut crate::Context<R, InjectedIntrisic>,
+    context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -250,7 +250,7 @@ where
 }
 
 fn div<R, InjectedIntrisic>(
-    _context: &mut crate::Context<R, InjectedIntrisic>,
+    _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -280,7 +280,7 @@ where
 }
 
 fn rem<R, InjectedIntrisic>(
-    _context: &mut crate::Context<R, InjectedIntrisic>,
+    _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -310,7 +310,7 @@ where
 }
 
 fn join<R, InjectedIntrisic>(
-    _context: &mut crate::Context<R, InjectedIntrisic>,
+    _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -344,7 +344,7 @@ where
 }
 
 fn keep_high<R, InjectedIntrisic>(
-    _context: &mut crate::Context<R, InjectedIntrisic>,
+    _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -376,7 +376,7 @@ where
 }
 
 fn keep_low<R, InjectedIntrisic>(
-    _context: &mut crate::Context<R, InjectedIntrisic>,
+    _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -408,7 +408,7 @@ where
 }
 
 fn remove_high<R, InjectedIntrisic>(
-    _context: &mut crate::Context<R, InjectedIntrisic>,
+    _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
@@ -441,7 +441,7 @@ where
 }
 
 fn remove_low<R, InjectedIntrisic>(
-    _context: &mut crate::Context<R, InjectedIntrisic>,
+    _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
     b: Value<InjectedIntrisic>,
 ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>

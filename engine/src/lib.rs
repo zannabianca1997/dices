@@ -11,11 +11,7 @@ use dices_version::Version;
 use nunny::NonEmpty;
 use rand::{Rng, SeedableRng};
 
-use dices_ast::{
-    ident::IdentStr,
-    intrisics::{InjectedIntr, NoInjectedIntrisics},
-    Expression, Value,
-};
+use dices_ast::{ident::IdentStr, intrisics::InjectedIntr, Expression, Value};
 
 use serde::{de::DeserializeOwned, Serialize};
 use solve::{solve_multiple, Solvable};
@@ -28,13 +24,13 @@ mod context;
 mod dices_std;
 mod solve;
 
-pub struct EngineBuilder<RNG = (), InjectedIntrisic: InjectedIntr = NoInjectedIntrisics> {
+pub struct EngineBuilder<RNG = (), InjectedIntrisicData = ()> {
     rng: RNG,
     std: Option<Cow<'static, IdentStr>>,
     prelude: bool,
-    injected_intrisics_data: <InjectedIntrisic as InjectedIntr>::Data,
+    injected_intrisics_data: InjectedIntrisicData,
 }
-impl EngineBuilder<(), NoInjectedIntrisics> {
+impl EngineBuilder {
     /// Start building a new engine
     pub fn new() -> Self {
         Self {
@@ -45,19 +41,19 @@ impl EngineBuilder<(), NoInjectedIntrisics> {
         }
     }
 }
-impl Default for EngineBuilder<(), NoInjectedIntrisics> {
+impl Default for EngineBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
-impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
+impl<RNG, InjectedIntrisicData> EngineBuilder<RNG, InjectedIntrisicData> {
     /// Add an RNG
-    pub fn with_rng<NewRNG>(self, rng: NewRNG) -> EngineBuilder<NewRNG, InjectedIntrisic> {
+    pub fn with_rng<NewRNG>(self, rng: NewRNG) -> EngineBuilder<NewRNG, InjectedIntrisicData> {
         EngineBuilder { rng, ..self }
     }
 
     /// Add an RNG, seeding it from entropy
-    pub fn with_rng_from_entropy<NewRNG>(self) -> EngineBuilder<NewRNG, InjectedIntrisic>
+    pub fn with_rng_from_entropy<NewRNG>(self) -> EngineBuilder<NewRNG, InjectedIntrisicData>
     where
         NewRNG: SeedableRng,
     {
@@ -67,22 +63,11 @@ impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
         }
     }
 
-    /// Inject the intrisics
-    pub fn inject_intrisics<NewInjected: InjectedIntr>(self) -> EngineBuilder<RNG, NewInjected>
-    where
-        NewInjected::Data: Default,
-    {
-        EngineBuilder {
-            injected_intrisics_data: Default::default(),
-            ..self
-        }
-    }
-
     /// Inject the intrisics with data
-    pub fn inject_intrisics_with_data<NewInjected: InjectedIntr>(
+    pub fn inject_intrisics_data<NewInjectedIntrisicData>(
         self,
-        data: NewInjected::Data,
-    ) -> EngineBuilder<RNG, NewInjected> {
+        data: NewInjectedIntrisicData,
+    ) -> EngineBuilder<RNG, NewInjectedIntrisicData> {
         EngineBuilder {
             injected_intrisics_data: data,
             ..self
@@ -133,9 +118,9 @@ impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
     }
 
     /// Build the engine
-    pub fn build(self) -> Engine<RNG, InjectedIntrisic>
+    pub fn build<InjectedIntrisic>(self) -> Engine<RNG, InjectedIntrisic, InjectedIntrisicData>
     where
-        InjectedIntrisic: Clone,
+        InjectedIntrisic: InjectedIntr<Data = InjectedIntrisicData>,
     {
         let Self {
             rng,
@@ -169,29 +154,18 @@ impl<RNG, InjectedIntrisic: InjectedIntr> EngineBuilder<RNG, InjectedIntrisic> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "bincode",
     derive(bincode::Encode, bincode::Decode),
     bincode(
-        encode_bounds = "RNG: serde::Serialize, InjectedIntrisic: bincode::Encode, InjectedIntrisic::Data: bincode::Encode",
-        decode_bounds = "RNG: serde::de::DeserializeOwned, InjectedIntrisic: bincode::Decode, InjectedIntrisic::Data: bincode::Decode",
-        borrow_decode_bounds = "RNG: serde::Deserialize<'__de>, InjectedIntrisic: bincode::BorrowDecode<'__de>, InjectedIntrisic::Data: bincode::BorrowDecode<'__de>"
+        encode_bounds = "Context<RNG, InjectedIntrisic, InjectedIntrisicData>: bincode::Encode",
+        decode_bounds = "Context<RNG, InjectedIntrisic, InjectedIntrisicData>: bincode::Decode",
+        borrow_decode_bounds = "Context<RNG, InjectedIntrisic, InjectedIntrisicData>: bincode::BorrowDecode<'__de>"
     )
 )]
-pub struct Engine<RNG, InjectedIntrisic: InjectedIntr> {
-    context: Context<RNG, InjectedIntrisic>,
-}
-
-impl<RNG: Clone, InjectedIntrisic: InjectedIntr + Clone> Clone for Engine<RNG, InjectedIntrisic>
-where
-    InjectedIntrisic::Data: Clone,
-{
-    fn clone(&self) -> Self {
-        Self {
-            context: self.context.clone(),
-        }
-    }
+pub struct Engine<RNG, InjectedIntrisic, InjectedIntrisicData> {
+    context: Context<RNG, InjectedIntrisic, InjectedIntrisicData>,
 }
 
 #[cfg(feature = "eval_str")]
@@ -199,30 +173,33 @@ where
 pub type EvalStrError<InjectedIntrisic> =
     either::Either<dices_ast::expression::ParseError, SolveError<InjectedIntrisic>>;
 
-impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
+impl<RNG, InjectedIntrisic, InjectedIntrisicData>
+    Engine<RNG, InjectedIntrisic, InjectedIntrisicData>
+{
     /// Initialize a new engine
     ///
     /// This will use the entropy to initialize the rng
     pub fn new() -> Self
     where
         RNG: SeedableRng,
-        InjectedIntrisic::Data: Default,
+        InjectedIntrisic: InjectedIntr<Data = InjectedIntrisicData>,
+        InjectedIntrisicData: Default,
     {
         EngineBuilder::new()
-            .inject_intrisics()
             .with_rng_from_entropy()
-            .build()
+            .inject_intrisics_data(Default::default())
+            .build::<InjectedIntrisic>()
     }
 
     /// Initialize a new engine
     pub fn new_with_rng(rng: RNG) -> Self
     where
-        InjectedIntrisic: Clone,
-        InjectedIntrisic::Data: Default,
+        InjectedIntrisic: InjectedIntr<Data = InjectedIntrisicData>,
+        InjectedIntrisicData: Default,
     {
         EngineBuilder::new()
-            .inject_intrisics()
             .with_rng(rng)
+            .inject_intrisics_data(Default::default())
             .build()
     }
 
@@ -233,7 +210,7 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
     ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
     where
         RNG: DicesRng,
-        InjectedIntrisic: Clone,
+        InjectedIntrisic: InjectedIntr<Data = InjectedIntrisicData>,
     {
         expr.solve(&mut self.context)
     }
@@ -245,7 +222,7 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
     ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>>
     where
         RNG: DicesRng,
-        InjectedIntrisic: Clone,
+        InjectedIntrisic: InjectedIntr<Data = InjectedIntrisicData>,
     {
         solve_multiple(exprs, &mut self.context)
     }
@@ -258,22 +235,23 @@ impl<RNG, InjectedIntrisic: InjectedIntr> Engine<RNG, InjectedIntrisic> {
     ) -> Result<Value<InjectedIntrisic>, EvalStrError<InjectedIntrisic>>
     where
         RNG: DicesRng,
-        InjectedIntrisic: Clone,
+        InjectedIntrisic: InjectedIntr<Data = InjectedIntrisicData>,
     {
         let exprs = dices_ast::parse_file(cmd).map_err(either::Either::Left)?;
         self.eval_multiple(&exprs).map_err(either::Either::Right)
     }
 
-    pub fn injected_intrisics_data(&self) -> &<InjectedIntrisic as InjectedIntr>::Data {
+    pub fn injected_intrisics_data(&self) -> &InjectedIntrisicData {
         self.context.injected_intrisics_data()
     }
 
-    pub fn injected_intrisics_data_mut(&mut self) -> &mut <InjectedIntrisic as InjectedIntr>::Data {
+    pub fn injected_intrisics_data_mut(&mut self) -> &mut InjectedIntrisicData {
         self.context.injected_intrisics_data_mut()
     }
 }
 
-impl<RNG: SeedableRng, InjectedIntrisic: InjectedIntr> Default for Engine<RNG, InjectedIntrisic>
+impl<RNG: SeedableRng, InjectedIntrisic: InjectedIntr> Default
+    for Engine<RNG, InjectedIntrisic, InjectedIntrisic::Data>
 where
     InjectedIntrisic::Data: Default,
 {
