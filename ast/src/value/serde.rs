@@ -16,6 +16,7 @@ use super::{
 
 #[derive(Deserialize)]
 #[serde(bound = "InjectedIntrisic: InjectedIntr", tag = "$type")]
+/// Serialized for of a [`Value`]
 enum Serialized<InjectedIntrisic> {
     #[serde(rename = "map")]
     NestedMap {

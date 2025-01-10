@@ -2,6 +2,7 @@
 
 use std::{
     hash::{DefaultHasher, Hash, Hasher},
+    rc::Rc,
     str::FromStr,
 };
 
@@ -54,7 +55,7 @@ where
     #[display("{_0}")]
     Injected(#[error(source)] Injected::Error),
     #[display("Cannot deserialize from json")]
-    JsonError(#[error(source)] serde_json::Error),
+    JsonError(#[error(source)] Rc<serde_json::Error>),
     #[display("Invalid RNG state")]
     InvalidRngState(#[error(source)] dices_ast::value::serde::DeserializeFromValueError),
 }
@@ -189,7 +190,7 @@ where
             };
             serde_json::to_string(&value)
                 .map(|s| Value::String(s.into()))
-                .map_err(IntrisicError::JsonError)
+                .map_err(|err| IntrisicError::JsonError(Rc::new(err)))
         }
         Intrisic::FromJson => {
             let [value] = match Box::<[_; 1]>::try_from(params) {
@@ -202,7 +203,7 @@ where
                     })
                 }
             };
-            serde_json::from_str(&value).map_err(IntrisicError::JsonError)
+            serde_json::from_str(&value).map_err(|err| IntrisicError::JsonError(Rc::new(err)))
         }
 
         Intrisic::SeedRNG => {

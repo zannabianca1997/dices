@@ -149,6 +149,22 @@ impl<RNG, InjectedIntrisic, InjectedIntrisicData>
         } = self;
         (VarsMut(scopes), rng, injected_intrisics_data)
     }
+
+    pub(crate) fn map_injected_intrisics_data<NewInjectedIntrisicData>(
+        self,
+        f: impl FnOnce(InjectedIntrisicData) -> NewInjectedIntrisicData,
+    ) -> Context<RNG, InjectedIntrisic, NewInjectedIntrisicData> {
+        let Self {
+            scopes,
+            rng,
+            injected_intrisics_data,
+        } = self;
+        Context {
+            scopes,
+            rng,
+            injected_intrisics_data: f(injected_intrisics_data),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

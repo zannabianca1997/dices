@@ -13,7 +13,7 @@ bincode = ["dices-ast/bincode", "dep:bincode"]
 [dependencies]
 derive_more = { version = "1.0", features = ["debug", "constructor"] }
 dices-ast = { path = "../ast", features = ["parse_value", "rand", "serde"] }
-itertools = "0.13"
+itertools = "0.14"
 nunny = "0.2"
 rand = "0.8"
 either = { version = "1.13", optional = true }

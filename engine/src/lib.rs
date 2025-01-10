@@ -120,7 +120,7 @@ impl<RNG, InjectedIntrisicData> EngineBuilder<RNG, InjectedIntrisicData> {
     /// Build the engine
     pub fn build<InjectedIntrisic>(self) -> Engine<RNG, InjectedIntrisic, InjectedIntrisicData>
     where
-        InjectedIntrisic: InjectedIntr<Data = InjectedIntrisicData>,
+        InjectedIntrisic: InjectedIntr,
     {
         let Self {
             rng,
@@ -182,27 +182,30 @@ impl<RNG, InjectedIntrisic, InjectedIntrisicData>
     pub fn new() -> Self
     where
         RNG: SeedableRng,
-        InjectedIntrisic: InjectedIntr<Data = InjectedIntrisicData>,
+        InjectedIntrisic: InjectedIntr,
         InjectedIntrisicData: Default,
     {
         EngineBuilder::new()
             .with_rng_from_entropy()
-            .inject_intrisics_data(Default::default())
-            .build::<InjectedIntrisic>()
+            .inject_intrisics_data(InjectedIntrisicData::default())
+            .build()
     }
 
     /// Initialize a new engine
     pub fn new_with_rng(rng: RNG) -> Self
     where
-        InjectedIntrisic: InjectedIntr<Data = InjectedIntrisicData>,
+        InjectedIntrisic: InjectedIntr,
         InjectedIntrisicData: Default,
     {
         EngineBuilder::new()
             .with_rng(rng)
-            .inject_intrisics_data(Default::default())
+            .inject_intrisics_data(InjectedIntrisicData::default())
             .build()
     }
-
+}
+impl<RNG, InjectedIntrisic, InjectedIntrisicData>
+    Engine<RNG, InjectedIntrisic, InjectedIntrisicData>
+{
     /// Evaluate the result of an expression
     pub fn eval(
         &mut self,
@@ -240,7 +243,12 @@ impl<RNG, InjectedIntrisic, InjectedIntrisicData>
         let exprs = dices_ast::parse_file(cmd).map_err(either::Either::Left)?;
         self.eval_multiple(&exprs).map_err(either::Either::Right)
     }
+}
 
+/// Getters and setters
+impl<RNG, InjectedIntrisic, InjectedIntrisicData>
+    Engine<RNG, InjectedIntrisic, InjectedIntrisicData>
+{
     pub fn injected_intrisics_data(&self) -> &InjectedIntrisicData {
         self.context.injected_intrisics_data()
     }
@@ -248,12 +256,22 @@ impl<RNG, InjectedIntrisic, InjectedIntrisicData>
     pub fn injected_intrisics_data_mut(&mut self) -> &mut InjectedIntrisicData {
         self.context.injected_intrisics_data_mut()
     }
+
+    pub fn map_injected_intrisics_data<NewInjectedIntrisicData>(
+        self,
+        f: impl FnOnce(InjectedIntrisicData) -> NewInjectedIntrisicData,
+    ) -> Engine<RNG, InjectedIntrisic, NewInjectedIntrisicData> {
+        Engine {
+            context: self.context.map_injected_intrisics_data(f),
+        }
+    }
 }
 
-impl<RNG: SeedableRng, InjectedIntrisic: InjectedIntr> Default
-    for Engine<RNG, InjectedIntrisic, InjectedIntrisic::Data>
+impl<RNG: SeedableRng, InjectedIntrisic, InjectedIntrisicData> Default
+    for Engine<RNG, InjectedIntrisic, InjectedIntrisicData>
 where
-    InjectedIntrisic::Data: Default,
+    InjectedIntrisic: InjectedIntr,
+    InjectedIntrisicData: Default,
 {
     fn default() -> Self {
         Self::new()

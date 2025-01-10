@@ -20,6 +20,7 @@ dices-server-migration = { path = "migration" }
 dices-server-entities = { path = "entities" }
 dices-server-dtos = { path = "dtos" }
 dices-server-auth = { path = "auth" }
+dices-server-intrisics = { path = "intrisics" }
 
 # Runtime
 tokio = { version = "1", features = ["full"] }
@@ -69,10 +70,14 @@ thiserror = "2.0"
 either = { version = "1.13", features = ["serde"] }
 const_format = "0.2"
 futures-util = "0.3"
+nunny = "0.2"
+chrono = "0.4"
 
 # OpenApi
 utoipa-axum = "0.1"
 utoipa-swagger-ui = { version = "8.1", features = ["axum"] }
+tokio-stream = "0.1"
+
 [dependencies.utoipa]
 version = "5.1"
 features = ["axum_extras", "chrono", "uuid", "repr"]

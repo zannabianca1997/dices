@@ -8,5 +8,10 @@ license.workspace = true
 
 [dependencies]
 dices-ast = { path = "../../ast" }
-serde = { version = "1.0.217", features = ["derive"] }
-thiserror = "2.0.9"
+rand_xoshiro = { version = "0.6", features = ["serde1"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "2.0"
+bincode = "2.0.0-rc.3"
+chrono = "0.4"
+tokio = "1.43"
+futures = "0.3.31"
