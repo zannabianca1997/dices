@@ -7,7 +7,6 @@ use std::{
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher, PasswordVerifier};
 use axum::{
-    async_trait,
     extract::{FromRef, FromRequestParts},
     http::{request::Parts, StatusCode},
     response::IntoResponse,
@@ -87,7 +86,6 @@ impl IntoResponse for UserClaimsRejection {
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for UserClaims
 where
     S: Send + Sync,
@@ -100,8 +98,7 @@ where
             .await
             .map_err(UserClaimsRejection::TokenRejection)?;
         let auth_key = AuthKey::from_ref(state);
-        Ok(parse_token(auth_header.0.token(), auth_key)
-            .map_err(UserClaimsRejection::InvalidToken)?)
+        parse_token(auth_header.0.token(), auth_key).map_err(UserClaimsRejection::InvalidToken)
     }
 }
 

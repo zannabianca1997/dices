@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Display};
 
-use axum::{async_trait, extract::FromRequestParts, response::IntoResponse};
+use axum::{extract::FromRequestParts, response::IntoResponse};
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     typed_header::TypedHeaderRejection,
@@ -60,7 +60,6 @@ impl IntoResponse for AuthHeaderRejection {
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for UserToken
 where
     S: Send + Sync,

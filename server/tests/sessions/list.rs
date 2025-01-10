@@ -21,8 +21,8 @@ async fn should_get_list() {
 
             let response = infrastructure
                 .server()
-                .get(&format!("/sessions"))
-                .add_query_params(&PaginationParams {
+                .get("/sessions")
+                .add_query_params(PaginationParams {
                     page: 0,
                     page_size: 10,
                 })
@@ -96,8 +96,8 @@ async fn should_not_contain_sessions_that_user_is_not_member_of() {
 
             let response = infrastructure
                 .server()
-                .get(&format!("/sessions"))
-                .add_query_params(&PaginationParams {
+                .get("/sessions")
+                .add_query_params(PaginationParams {
                     page: 0,
                     page_size: 10,
                 })

@@ -1,5 +1,4 @@
 use axum::{
-    async_trait,
     extract::{rejection::PathRejection, FromRequestParts},
     http::{request::Parts, StatusCode},
     response::IntoResponse,
@@ -18,7 +17,6 @@ use crate::{
     Autenticated,
 };
 
-#[async_trait]
 impl<S> FromRequestParts<S> for Autenticated<UserId>
 where
     S: Send + Sync,
@@ -69,7 +67,6 @@ impl IntoResponse for AuthenticatedUserPathRejection {
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for Autenticated<UserPathData>
 where
     S: Send + Sync,
