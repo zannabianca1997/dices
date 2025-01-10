@@ -24,7 +24,7 @@ dices-server-intrisics = { path = "intrisics" }
 
 # Runtime
 tokio = { version = "1", features = ["full"] }
-axum = { version = "0.7", features = ["macros", "tracing"] }
+axum = { version = "0.8", features = ["macros", "tracing"] }
 tower-http = { version = "0.6", features = ["trace"] }
 futures = { version = "0.3", default-features = false, features = [
     "async-await",
@@ -84,7 +84,7 @@ features = ["axum_extras", "chrono", "uuid", "repr"]
 
 
 [dev-dependencies]
-axum-test = "16.4"
+axum-test = "17.0"
 serde_json = "1.0"
 testcontainers-modules = { version = "0.11", features = ["postgres"] }
 uuid = "1.11"

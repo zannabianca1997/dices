@@ -7,7 +7,7 @@ use axum::{
     extract::{FromRef, State},
 };
 use chrono::DateTime;
-use dices_server_migration::{OnConflict, OnConflictUpdate};
+use dices_server_migration::OnConflict;
 use futures::{FutureExt, StreamExt, TryFutureExt, TryStreamExt};
 use nunny::NonEmpty;
 use sea_orm::{
@@ -15,7 +15,7 @@ use sea_orm::{
     EntityTrait as _, IntoActiveModel, QueryFilter as _, Set, TransactionTrait,
 };
 use serde_with::chrono::Local;
-use tokio::{runtime::Handle, task::spawn_blocking};
+use tokio::task::spawn_blocking;
 use tokio_stream::wrappers::ReceiverStream;
 use utoipa_axum::{router::OpenApiRouter, routes};
 

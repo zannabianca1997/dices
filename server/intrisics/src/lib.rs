@@ -8,7 +8,6 @@ pub type ServerRng = rand_xoshiro::Xoshiro256PlusPlus;
 mod log;
 
 pub use log::*;
-use tokio::runtime::Runtime;
 
 #[derive(Debug, Clone, Decode, Encode, Serialize, Deserialize, PartialEq, Eq)]
 /// Server intrisics data that go into the database
@@ -73,10 +72,8 @@ impl dices_ast::intrisics::InjectedIntr for ServerIntrisics {
         match *self {}
     }
 
-    fn named(name: &str) -> Option<Self> {
-        match name {
-            _ => None,
-        }
+    fn named(_name: &str) -> Option<Self> {
+        None
     }
 
     fn call(

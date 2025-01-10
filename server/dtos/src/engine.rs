@@ -1,5 +1,4 @@
 use axum::{
-    async_trait,
     extract::{rejection::StringRejection, FromRequest, Request},
     response::IntoResponse,
     Json,
@@ -96,7 +95,6 @@ impl From<SessionGetError> for CommandRejection {
     }
 }
 
-#[async_trait]
 impl<S> FromRequest<S> for Command
 where
     S: Send + Sync,
