@@ -41,7 +41,6 @@ impl MigrationTrait for Migration {
                         timestamp_with_time_zone(Session::CreatedAt)
                             .comment("Timestamp marking when the session was created, defaults to the current time")
                             .default(Expr::current_timestamp())
-                            .check(Expr::col(Session::CreatedAt).lte(Expr::current_timestamp())),
                     )
                     .take(),
             )
@@ -94,14 +93,10 @@ impl MigrationTrait for Migration {
                         timestamp_with_time_zone(SessionUser::AddedAt)
                             .comment("Timestamp marking when the user was added to the session, defaults to the current time")
                             .default(Expr::current_timestamp())
-                            .check(Expr::col(SessionUser::AddedAt).lte(Expr::current_timestamp())),
                     )
                     .col(
                         timestamp_with_time_zone_null(SessionUser::LastAccess)
                             .comment("Timestamp of the user's most recent interaction with the session, must be after they were added")
-                            .check(
-                                Expr::col(SessionUser::LastAccess).lte(Expr::current_timestamp()),
-                            )
                             .check(
                                 Expr::col(SessionUser::LastAccess)
                                     .gte(Expr::col(SessionUser::AddedAt)),

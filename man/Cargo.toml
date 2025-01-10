@@ -23,9 +23,9 @@ dices-ast = { path = "../ast", features = [
     "parse_expression",
 ] }
 pretty = "0.12"
-itertools = "0.13"
+itertools = "0.14"
 typed-arena = "2.0"
-mdast2minimad = { git = "https://github.com/zannabianca1997/mdast2minimad.git" }
+mdast2minimad = "0.1"
 rand_xoshiro = { version = "0.6", features = ["serde1"] }
 
 [build-dependencies]

@@ -16,7 +16,11 @@ impl MigrationTrait for Migration {
                     .comment("Log item of the sessions")
                     .table(Log::Table)
                     .if_not_exists()
-                    .col(big_integer(Log::Id).auto_increment().primary_key().comment("Position of the log item in the chat"))
+                    .col(
+                        pk_uuid(Log::Id)
+                        .default(PgFunc::gen_random_uuid())
+                        .comment("Identifier of the log id")
+                    )
                     .col(
                         uuid(Log::SessionId)
                             .comment("Identifier of the session to which this log belongs"),
@@ -30,7 +34,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(
                         uuid_null(Log::UserId)
-                            .comment("Identifier of the session to which this log belongs. `null` stand for a deleted user"),
+                            .comment("Identifier of the user that caused this log. `null` stand for a deleted user"),
                     )
                     .foreign_key(
                         ForeignKey::create()
@@ -40,12 +44,12 @@ impl MigrationTrait for Migration {
                             .on_delete(ForeignKeyAction::SetNull),
                     )
                     .col(
-                        big_integer_null(Log::SourceId)
+                        uuid_null(Log::AnswerTo)
                             .comment("Log that caused this log (generally the command that gave this result)"),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .from(Log::Table, Log::SourceId)
+                            .from(Log::Table, Log::AnswerTo)
                             .to(Log::Table, Log::Id)
                             .on_update(ForeignKeyAction::Cascade)
                             .on_delete(ForeignKeyAction::Cascade),
@@ -54,7 +58,6 @@ impl MigrationTrait for Migration {
                         timestamp_with_time_zone(Log::CreatedAt)
                             .comment("Timestamp indicating when the log was created, defaults to the current time")
                             .default(Expr::current_timestamp())
-                            .check(Expr::col(Log::CreatedAt).lte(Expr::current_timestamp())),
                     )
                     .col(
                        json(Log::Content).comment("The content of the log")
@@ -80,7 +83,7 @@ enum Log {
     Id,
     SessionId,
     UserId,
-    SourceId,
+    AnswerTo,
     CreatedAt,
     Content,
 }

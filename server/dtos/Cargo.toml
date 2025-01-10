@@ -8,7 +8,8 @@ license.workspace = true
 
 [dependencies]
 dices-server-entities = { path = "../entities" }
-dices-ast = { path = "../../ast", features = ["bincode"] }
+dices-server-intrisics = { path = "../intrisics" }
+dices-ast = { path = "../../ast", features = ["parse_expression"] }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_with = { version = "3.11", features = ["chrono", "json", "schemars_0_8"] }
@@ -25,3 +26,5 @@ tracing = "0.1"
 argon2 = { version = "0.5", default-features = false, features = ["std"] }
 utoipa = "5.3"
 chrono = { version = "0.4", features = ["serde"] }
+nunny = { version = "0.2", features = ["serde"] }
+tokio = { version = "1.43" }

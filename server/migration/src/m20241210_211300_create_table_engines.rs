@@ -29,12 +29,10 @@ impl MigrationTrait for Migration {
                         timestamp_with_time_zone(Engine::CreatedAt)
                             .comment("Timestamp indicating when the engine state was created, defaults to the current time")
                             .default(Expr::current_timestamp())
-                            .check(Expr::col(Engine::CreatedAt).lte(Expr::current_timestamp())),
                     )
                     .col(
                         timestamp_with_time_zone_null(Engine::LastCommandAt)
                             .comment("Timestamp of the most recent command executed by the engine, must be after its creation")
-                            .check(Expr::col(Engine::LastCommandAt).lte(Expr::current_timestamp()))
                             .check(
                                 Expr::col(Engine::LastCommandAt).gte(Expr::col(Engine::CreatedAt)),
                             ),
