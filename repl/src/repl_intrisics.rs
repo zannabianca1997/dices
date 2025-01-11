@@ -1,4 +1,5 @@
 //! Intrisics for the REPL
+#![allow(clippy::boxed_local)]
 
 use std::{
     fmt::Debug,
