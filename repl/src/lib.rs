@@ -249,7 +249,9 @@ pub fn repl(
             &value,
             interactive, // skip printing `null` if the console is interactive
         );
-        println!();
+        if !(interactive && value.is_null()) {
+            println!();
+        }
 
         if !interactive {
             // runned the single command, exiting.
