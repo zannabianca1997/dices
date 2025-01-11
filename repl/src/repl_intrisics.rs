@@ -217,12 +217,6 @@ impl InjectedIntr for REPLIntrisics {
             }
         }
     }
-
-    fn data_debug_fmt(
-    ) -> std::option::Option<fn(&Self::Data, &mut std::fmt::Formatter<'_>) -> std::fmt::Result>
-    {
-        Some(Debug::fmt)
-    }
 }
 
 /// The page for help about `help`
