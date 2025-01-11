@@ -160,6 +160,9 @@ fn all_names_roundtrip() {
     }
 }
 
+// derive macro
+pub use dices_ast_macros::InjectedIntr;
+
 pub trait InjectedIntr: Sized + Clone + 'static + Hash {
     /// The data used by the injected intrisics
     type Data;

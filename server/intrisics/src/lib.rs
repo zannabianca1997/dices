@@ -1,5 +1,6 @@
 use bincode::{Decode, Encode};
 use chrono::Local;
+use dices_ast::intrisics::InjectedIntr;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -56,31 +57,8 @@ impl ServerIntrisicsWetData {
 #[derive(Debug, Clone, Error, Serialize, Deserialize)]
 pub enum ServerIntrisicsError {}
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Encode, Decode, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, Hash, PartialEq, Eq, Encode, Decode, Serialize, Deserialize, InjectedIntr,
+)]
+#[injected_intr(data = "ServerIntrisicsWetData", error = "ServerIntrisicsError")]
 pub enum ServerIntrisics {}
-
-impl dices_ast::intrisics::InjectedIntr for ServerIntrisics {
-    type Data = ServerIntrisicsWetData;
-
-    type Error = ServerIntrisicsError;
-
-    fn iter() -> impl IntoIterator<Item = Self> {
-        []
-    }
-
-    fn name(&self) -> &'static str {
-        match *self {}
-    }
-
-    fn named(_name: &str) -> Option<Self> {
-        None
-    }
-
-    fn call(
-        &self,
-        _data: &mut Self::Data,
-        _params: Box<[dices_ast::Value<Self>]>,
-    ) -> Result<dices_ast::Value<Self>, Self::Error> {
-        match *self {}
-    }
-}
