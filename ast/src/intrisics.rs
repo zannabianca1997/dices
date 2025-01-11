@@ -183,11 +183,6 @@ pub trait InjectedIntr: Sized + Clone + 'static + Hash {
         data: &mut Self::Data,
         params: Box<[Value<Self>]>,
     ) -> Result<Value<Self>, Self::Error>;
-    /// Return a function to debug the `Data` type, if possible
-    fn data_debug_fmt() -> Option<fn(&Self::Data, &mut std::fmt::Formatter<'_>) -> std::fmt::Result>
-    {
-        None
-    }
 }
 
 /// No injected intrisics
@@ -283,12 +278,6 @@ impl InjectedIntr for NoInjectedIntrisics {
 
     fn named(_: &str) -> Option<Self> {
         None
-    }
-
-    fn data_debug_fmt(
-    ) -> std::option::Option<fn(&Self::Data, &mut std::fmt::Formatter<'_>) -> std::fmt::Result>
-    {
-        Some(Debug::fmt)
     }
 }
 
