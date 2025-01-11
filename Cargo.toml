@@ -12,6 +12,7 @@ members = [
     "server/auth",
     "server/intrisics",
     "version",
+    "ast/macros",
 ]
 default-members = ["repl"]
 resolver = "2"

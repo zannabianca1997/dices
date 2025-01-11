@@ -180,7 +180,7 @@ peg::parser! {
             ) {? IdentStr::new(i).ok_or("identifier") }
 
 
-        /// Either a identifier or a wuoted string literal
+        /// Either a identifier or a quoted string literal
         rule ident_or_quoted_string() -> std::borrow::Cow<'input,str>
             = i: ident()         { Cow::Borrowed(&**i) }
             / s: quoted_string() { s }
