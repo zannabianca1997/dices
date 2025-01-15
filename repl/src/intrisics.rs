@@ -190,7 +190,7 @@ fn print(
 ) -> Result<Value<REPLIntrisics>, REPLIntrisicsError> {
     for value in params.iter() {
         match print_value(*data.graphic, &data.skin, value, false) {
-            Ok(_) => (),
+            Ok(()) => (),
             Err(err) => {
                 data.quitted = Quitted::Fatal(err);
                 return Err(REPLIntrisicsError::Quitting);

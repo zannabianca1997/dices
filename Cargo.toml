@@ -24,6 +24,7 @@ unsafe_code = "deny"
 missing_const_for_fn = "deny"
 map_unwrap_or = "warn"
 semicolon_if_nothing_returned = "deny"
+ignored_unit_patterns = "deny"
 redundant_closure_for_method_calls = "warn"
 
 [workspace.package]
