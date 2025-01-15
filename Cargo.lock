@@ -1353,7 +1353,7 @@ dependencies = [
 
 [[package]]
 name = "dices-server"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "atty",
  "axum",
@@ -1401,7 +1401,7 @@ dependencies = [
 
 [[package]]
 name = "dices-server-auth"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "argon2",
  "axum",
@@ -1424,7 +1424,7 @@ dependencies = [
 
 [[package]]
 name = "dices-server-dtos"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "argon2",
  "axum",
@@ -1450,7 +1450,7 @@ dependencies = [
 
 [[package]]
 name = "dices-server-entities"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "bincode",
  "chrono",
@@ -1468,7 +1468,7 @@ dependencies = [
 
 [[package]]
 name = "dices-server-intrisics"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "bincode",
  "chrono",
@@ -1482,7 +1482,7 @@ dependencies = [
 
 [[package]]
 name = "dices-server-migration"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "async-std",
  "sea-orm-migration",

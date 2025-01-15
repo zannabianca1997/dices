@@ -17,6 +17,7 @@ use sea_orm::{
 use serde_with::chrono::Local;
 use tokio::task::spawn_blocking;
 use tokio_stream::wrappers::ReceiverStream;
+use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 use dices_ast::Expression;
@@ -375,12 +376,14 @@ fn solve_command(
     engine_model
 }
 
+mod logs;
+
 pub fn router<S: Clone + Send + Sync + 'static>() -> OpenApiRouter<S>
 where
     DatabaseConnection: FromRef<S>,
     AuthKey: FromRef<S>,
 {
-    OpenApiRouter::default()
+    OpenApiRouter::with_openapi(dices_server_dtos::engine::ApiComponents::openapi())
         .routes(routes!(
             session_get,
             session_put,
@@ -388,6 +391,7 @@ where
             session_delete
         ))
         .routes(routes!(command_post))
+        .nest("/logs", logs::router())
 }
 
 async fn fetch_session_data(

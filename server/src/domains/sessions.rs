@@ -16,7 +16,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 
 use dices_server_auth::{Autenticated, AuthKey, RequireUserToken};
 use dices_server_dtos::{
-    paginated::{PageInfo, PaginatedDto, PaginationParams},
+    paginated::{FixedSizePageInfo, FixedSizePaginationParams, PaginatedDto},
     session::{
         SessionCreateDto, SessionCreateError, SessionCreateResponseDto, SessionListGetError,
         SessionQueryDto, SessionShortQueryDto,
@@ -81,7 +81,7 @@ async fn sessions_post(
     })
 }
 
-#[utoipa::path(get, path = "/", responses(PaginatedDto<SessionShortQueryDto>, SessionListGetError), params(PaginationParams))]
+#[utoipa::path(get, path = "/", responses(PaginatedDto<SessionShortQueryDto, FixedSizePageInfo>, SessionListGetError), params(FixedSizePaginationParams))]
 #[debug_handler(state = crate::app::App)]
 /// Get a list of available sessions
 ///
@@ -90,8 +90,8 @@ async fn sessions_post(
 async fn sessions_get(
     State(db): State<DatabaseConnection>,
     user_id: Autenticated<UserId>,
-    PaginationParams { page, page_size }: PaginationParams,
-) -> Result<PaginatedDto<SessionShortQueryDto>, SessionListGetError> {
+    FixedSizePaginationParams { page, page_size }: FixedSizePaginationParams,
+) -> Result<PaginatedDto<SessionShortQueryDto, FixedSizePageInfo>, SessionListGetError> {
     // Create the paginated query
 
     // TODO: this should be a view query, instead of mapping after
@@ -105,11 +105,14 @@ async fn sessions_get(
             ]
             .map(IntoSimpleExpr::into_simple_expr),
         )))
-        .paginate(&db, page_size);
+        .paginate(&db, page_size.get());
 
     // Query the database
 
-    let fetch_pageinfo = PageInfo::new(page, page_size, &paginated_query);
+    let fetch_pageinfo = FixedSizePageInfo::new(
+        FixedSizePaginationParams { page, page_size },
+        &paginated_query,
+    );
     let fetch_page = paginated_query.fetch_page(page);
 
     let (page, page_info) = tokio::try_join!(fetch_page, fetch_pageinfo)?;

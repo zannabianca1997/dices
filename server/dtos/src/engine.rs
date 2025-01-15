@@ -13,9 +13,12 @@ use sea_orm::DbErr;
 use serde::Serialize;
 use thiserror::Error;
 use tokio::task::JoinError;
-use utoipa::{IntoResponses, ToSchema};
+use utoipa::{IntoResponses, OpenApi, ToSchema};
 
-use crate::session::SessionGetError;
+use crate::{
+    paginated::{LimitAlign, TimePageInfo, TimePaginationParams},
+    session::SessionGetError,
+};
 
 #[derive(Debug, Clone, Into)]
 pub struct Command {
@@ -117,3 +120,52 @@ impl IntoResponse for CommandResult {
         Json(self).into_response()
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, IntoResponses, Error)]
+pub enum LogsGetError {
+    #[error("Session does not exist")]
+    #[response(status=NOT_FOUND)]
+    /// The session does not exist
+    NotFound,
+    #[error("Internal server error")]
+    #[response(status=INTERNAL_SERVER_ERROR)]
+    /// Internal server error
+    InternalServerError,
+    #[error("`start` must precede `end`")]
+    #[response(status=BAD_REQUEST)]
+    /// `start` must precede `end`
+    StartAfterEnd,
+}
+impl IntoResponse for LogsGetError {
+    fn into_response(self) -> axum::response::Response {
+        match self {
+            LogsGetError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            LogsGetError::NotFound => StatusCode::NOT_FOUND.into_response(),
+            LogsGetError::StartAfterEnd => StatusCode::BAD_REQUEST.into_response(),
+        }
+    }
+}
+impl From<DbErr> for LogsGetError {
+    fn from(value: DbErr) -> Self {
+        crate::internal_server_error(&value);
+        Self::InternalServerError
+    }
+}
+impl From<SessionGetError> for LogsGetError {
+    fn from(value: SessionGetError) -> Self {
+        match value {
+            SessionGetError::NotFound => Self::NotFound,
+            SessionGetError::InternalServerError => Self::InternalServerError,
+        }
+    }
+}
+
+#[derive(OpenApi)]
+#[openapi(components(schemas(
+    dices_server_entities::log::Model,
+    CommandResult,
+    TimePageInfo,
+    TimePaginationParams,
+    LimitAlign
+)))]
+pub struct ApiComponents;

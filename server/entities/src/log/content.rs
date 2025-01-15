@@ -19,7 +19,7 @@ pub enum LogContent {
     /// A runtime error
     Error { msg: String, sources: Box<[String]> },
     /// A manual page, requsted with the `help` intrisic
-    Manual { topic: String },
+    Manual { topic: Box<str> },
 }
 
 impl From<dices_engine::SolveError<ServerIntrisics>> for LogContent {

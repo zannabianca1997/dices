@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use utoipa::{IntoParams, IntoResponses, OpenApi, ToSchema};
 
-use crate::paginated::{PageInfo, PaginatedDto};
+use crate::paginated::{FixedSizePageInfo, PaginatedDto};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, From, utoipa::ToSchema, utoipa::IntoResponses)]
 #[response(status = CREATED)]
@@ -276,7 +276,7 @@ impl From<DbErr> for SessionUpdateError {
     SessionShortQueryDto,
     SessionCreateDto,
     SessionUpdateDto,
-    PageInfo,
-    PaginatedDto<SessionShortQueryDto>
+    FixedSizePageInfo,
+    PaginatedDto<SessionShortQueryDto, FixedSizePageInfo>
 )))]
 pub struct ApiComponents;
