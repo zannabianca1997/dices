@@ -30,7 +30,7 @@ impl From<dices_engine::SolveError<ServerIntrisics>> for LogContent {
         let mut sources = vec![];
         while let Some(next_source) = source {
             sources.push(next_source.to_string());
-            source = next_source.source()
+            source = next_source.source();
         }
 
         Self::Error {

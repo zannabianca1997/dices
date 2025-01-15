@@ -24,7 +24,7 @@ impl ToTokens for ManPage {
         let title = &*self.title;
         let content = &*self.content;
 
-        quote!(ManPage::new(#title, #content)).to_tokens(tokens)
+        quote!(ManPage::new(#title, #content)).to_tokens(tokens);
     }
 }
 
@@ -56,7 +56,7 @@ impl ToTokens for ManDir {
             .to_string()
             .parse()
             .expect("The builder should produce valid rust");
-        quote! (ManDir::new(#name, #content)).to_tokens(tokens)
+        quote! (ManDir::new(#name, #content)).to_tokens(tokens);
     }
 }
 
@@ -76,7 +76,7 @@ impl ToTokens for ManItem {
             ManItem::Dir(dir) => quote!(ManItem::Dir(#dir)),
             ManItem::Index => quote!(ManItem::Index(ManIndex::new())),
         }
-        .to_tokens(tokens)
+        .to_tokens(tokens);
     }
 }
 
@@ -105,13 +105,12 @@ fn read_item(path: &Path) -> Result<ManItem> {
     // first: is it a directory or a file?
     if let Ok(content) = fs::read_to_string(path) {
         // parsing the page content
-        Ok(ManItem::Page(read_page(path, content).context(format!(
-            "Cannot read manual page {}",
-            path.display()
-        ))?))
+        Ok(ManItem::Page(read_page(path, &content).context(
+            format!("Cannot read manual page {}", path.display()),
+        )?))
     } else if let Ok(index) = fs::read_to_string(path.join("index.yml")) {
         // parsing the directory
-        Ok(ManItem::Dir(read_dir(path, index).context(format!(
+        Ok(ManItem::Dir(read_dir(path, &index).context(format!(
             "Cannot read manual dir {}",
             path.display()
         ))?))
@@ -129,7 +128,7 @@ struct FrontMatter {
     title: Option<String>,
 }
 
-fn read_page(path: &Path, content: String) -> Result<ManPage> {
+fn read_page(path: &Path, content: &str) -> Result<ManPage> {
     println!("cargo::rerun-if-changed={}", path.display());
 
     // read the file content
@@ -142,7 +141,7 @@ fn read_page(path: &Path, content: String) -> Result<ManPage> {
             .context("Cannot parse yaml frontmatter")
             .map(|front| (front, content))
     })
-    .unwrap_or_else(|| Ok((FrontMatter::default(), &*content)))?;
+    .unwrap_or_else(|| Ok((FrontMatter::default(), content)))?;
     let title = title.unwrap_or_else(|| {
         path.file_stem()
             .expect("Every file name should have a stem")
@@ -159,14 +158,14 @@ struct Index {
     index: Vec<String>,
 }
 
-fn read_dir(path: &Path, index: String) -> Result<ManDir> {
+fn read_dir(path: &Path, index: &str) -> Result<ManDir> {
     println!("cargo::rerun-if-changed={}", path.display());
     println!(
         "cargo::rerun-if-changed={}",
         path.join("index.yml").display()
     );
 
-    let Index { name, index } = serde_yaml::from_str(&index).context("Cannot parse index file")?;
+    let Index { name, index } = serde_yaml::from_str(index).context("Cannot parse index file")?;
     let name = name.unwrap_or_else(|| {
         path.file_stem()
             .expect("Every file name should have a stem")

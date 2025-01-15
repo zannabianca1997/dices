@@ -17,6 +17,7 @@ mod context;
 mod dices_std;
 mod solve;
 
+#[must_use]
 pub struct EngineBuilder<RNG = (), InjectedIntrisicData = ()> {
     rng: RNG,
     std: Option<Cow<'static, IdentStr>>,
@@ -152,7 +153,7 @@ impl<RNG, InjectedIntrisicData> EngineBuilder<RNG, InjectedIntrisicData> {
                     let name = IdentStr::new_boxed(name.clone().into()).expect(
                         "The values in `prelude` should all be named with valid identifiers",
                     );
-                    context.vars_mut().let_(name, value.clone())
+                    context.vars_mut().let_(name, value.clone());
                 }
             }
             // adding the std library
@@ -188,6 +189,7 @@ impl<RNG, InjectedIntrisic, InjectedIntrisicData>
     /// Initialize a new engine
     ///
     /// This will use the entropy to initialize the rng
+    #[must_use]
     pub fn new() -> Self
     where
         RNG: SeedableRng,
@@ -258,7 +260,7 @@ impl<RNG, InjectedIntrisic, InjectedIntrisicData>
 impl<RNG, InjectedIntrisic, InjectedIntrisicData>
     Engine<RNG, InjectedIntrisic, InjectedIntrisicData>
 {
-    pub fn injected_intrisics_data(&self) -> &InjectedIntrisicData {
+    pub const fn injected_intrisics_data(&self) -> &InjectedIntrisicData {
         self.context.injected_intrisics_data()
     }
 

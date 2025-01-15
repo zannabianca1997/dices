@@ -38,7 +38,7 @@ use dices_server_entities::{
     session_user,
     user::UserId,
 };
-use dices_server_intrisics::ServerIntrisics;
+use dices_server_intrisics::{ServerIntrisics, ServerIntrisicsWetData};
 
 #[utoipa::path(
     get,
@@ -217,15 +217,14 @@ async fn command_post(
         .transaction(|db| {
             Box::pin(async move {
                 // Get the engine, or create a new one
-                let engine_model = Engine::find_by_id(session_id)
-                    .one(db)
-                    .await?
-                    .map(IntoActiveModel::into_active_model)
-                    .unwrap_or_else(|| engine::ActiveModel {
+                let engine_model = Engine::find_by_id(session_id).one(db).await?.map_or_else(
+                    || engine::ActiveModel {
                         session_id: Set(session_id),
                         state: Set(DatabaseEngine(dices_engine::Engine::new())),
                         ..Default::default()
-                    });
+                    },
+                    IntoActiveModel::into_active_model,
+                );
 
                 // Channel to receive logs to
                 let (logs_sender, logs_receiver) = tokio::sync::mpsc::channel(
@@ -370,7 +369,7 @@ fn solve_command(
 
     // Put the engine back to be saved
     engine_model.state.set_if_not_equals(DatabaseEngine(
-        engine.map_injected_intrisics_data(|wet| wet.dehydrate()),
+        engine.map_injected_intrisics_data(ServerIntrisicsWetData::dehydrate),
     ));
 
     engine_model

@@ -12,7 +12,7 @@ pub enum ConnectOptions {
 
 impl Default for ConnectOptions {
     fn default() -> Self {
-        Self::Large(Default::default())
+        Self::Large(Box::default())
     }
 }
 
@@ -31,7 +31,7 @@ fn default_values() -> String {
 fn default_host() -> String {
     Ipv4Addr::LOCALHOST.to_string()
 }
-fn default_port() -> u16 {
+const fn default_port() -> u16 {
     5432
 }
 
@@ -187,7 +187,7 @@ impl From<ConnectOptionsLarge> for sea_orm::ConnectOptions {
 impl Default for ConnectOptionsLarge {
     fn default() -> Self {
         Self {
-            url: Default::default(),
+            url: UrlOrParts::default(),
             max_connections: None,
             min_connections: None,
             connect_timeout: None,

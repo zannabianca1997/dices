@@ -13,6 +13,7 @@ pub struct Version {
 }
 impl Version {
     /// Construct a new version
+    #[must_use]
     pub const fn new(major: &str, minor: &str, patch: &str) -> Self {
         Self {
             major: unwrap_ctx!(parse_u16(major)),
@@ -22,7 +23,7 @@ impl Version {
     }
 
     /// Check if this version is compatible with the remote one
-    pub fn is_compatible_with(&self, remote: &Self) -> Result<(), IncompatibilityReason> {
+    pub const fn is_compatible_with(&self, remote: &Self) -> Result<(), IncompatibilityReason> {
         if self.major != remote.major {
             return Err(IncompatibilityReason::Major {
                 local: self.major,

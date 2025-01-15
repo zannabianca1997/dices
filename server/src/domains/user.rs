@@ -140,7 +140,7 @@ where
         .routes(routes!(user_get, user_put, user_patch, user_delete));
 
     RequireUserToken.modify(router.get_openapi_mut());
-    super::tag_api(router.get_openapi_mut(), "User".to_owned());
+    super::tag_api(router.get_openapi_mut(), "User");
 
     router
 }

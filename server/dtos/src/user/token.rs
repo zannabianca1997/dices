@@ -31,7 +31,7 @@ impl<'de> Deserialize<'de> for UserToken {
     {
         Ok(UserToken(
             Authorization::bearer(&<Cow<str>>::deserialize(deserializer)?).map_err(|err| {
-                <D::Error as serde::de::Error>::custom(format!("invalid bearer token {}", err))
+                <D::Error as serde::de::Error>::custom(format!("invalid bearer token {err}"))
             })?,
         ))
     }

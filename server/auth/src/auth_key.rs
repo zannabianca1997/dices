@@ -38,7 +38,7 @@ impl AuthKey {
         }
     }
 
-    pub(super) fn token_validity(&self) -> Duration {
+    pub(super) const fn token_validity(&self) -> Duration {
         self.token_validity
     }
 }

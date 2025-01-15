@@ -17,6 +17,35 @@ members = [
 default-members = ["repl"]
 resolver = "2"
 
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+missing_const_for_fn = "deny"
+map_unwrap_or = "warn"
+semicolon_if_nothing_returned = "deny"
+ignored_unit_patterns = "deny"
+redundant_closure_for_method_calls = "warn"
+default_trait_access = "deny"
+single_match_else = "warn"
+uninlined_format_args = "deny"
+wildcard_imports = "warn"
+explicit_into_iter_loop = "deny"
+explicit_iter_loop = "deny"
+single_char_pattern = "deny"
+manual_assert = "warn"
+trivially_copy_pass_by_ref = "warn"
+manual_let_else = "warn"
+return_self_not_must_use = "warn"
+if_not_else = "warn"
+used_underscore_binding = "deny"
+match_bool = "warn"
+match_same_arms = "warn"
+implicit_clone = "warn"
+similar_names = "warn"
+from_iter_instead_of_collect = "deny"
+ref_as_ptr = "deny"
+
 [workspace.package]
 version = "0.3.2"
 edition = "2021"

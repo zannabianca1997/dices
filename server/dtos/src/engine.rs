@@ -63,12 +63,9 @@ impl IntoResponse for CommandRejection {
 
 impl From<StringRejection> for CommandRejection {
     fn from(value: StringRejection) -> Self {
-        match value {
-            StringRejection::InvalidUtf8(_) => Self::CommandBodyCannotBeDeserialized,
-            _ => {
-                crate::internal_server_error(&value);
-                Self::InternalServerError
-            }
+        if let StringRejection::InvalidUtf8(_) = value { Self::CommandBodyCannotBeDeserialized } else {
+            crate::internal_server_error(&value);
+            Self::InternalServerError
         }
     }
 }

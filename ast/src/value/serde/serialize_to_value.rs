@@ -142,14 +142,14 @@ struct SerializeMap {
     key: Option<ValueString>,
 }
 impl SerializeMap {
-    fn new(_len: Option<usize>) -> Self {
+    const fn new(_len: Option<usize>) -> Self {
         Self {
             variant_name: None,
             map: ValueMap::new(),
             key: None,
         }
     }
-    fn new_variant(name: &'static str, _len: Option<usize>) -> Self {
+    const fn new_variant(name: &'static str, _len: Option<usize>) -> Self {
         Self {
             variant_name: Some(name),
             map: ValueMap::new(),
@@ -491,7 +491,7 @@ mod tests {
         assert_eq!(
             serialized, expected,
             "The value {value:?} did not serialize as expected"
-        )
+        );
     }
 
     macro_rules! tests {

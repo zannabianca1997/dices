@@ -35,7 +35,7 @@ pub enum BinOp {
 impl BinOp {
     /// Return the evaluation order.
     /// Return `None` if the operator has a custom way of evaluate the operands
-    #[inline(always)]
+    #[must_use]
     pub const fn eval_order(&self) -> Option<EvalOrder> {
         match self {
             BinOp::Add | BinOp::Sub | BinOp::Join | BinOp::Mult | BinOp::Rem | BinOp::Div => {

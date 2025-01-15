@@ -37,7 +37,8 @@ impl<InjectedIntrisic> Default for ValueMap<InjectedIntrisic> {
 }
 
 impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self(BTreeMap::new())
     }
 
@@ -53,10 +54,12 @@ impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
         Ok(self.0.into_values().collect())
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -70,9 +73,11 @@ impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
         self.0.iter_mut()
     }
 
+    #[must_use]
     pub fn get(&self, key: &str) -> Option<&Value<InjectedIntrisic>> {
         self.0.get(key)
     }
+    #[must_use]
     pub fn get_mut(&mut self, key: &str) -> Option<&mut Value<InjectedIntrisic>> {
         self.0.get_mut(key)
     }
@@ -89,15 +94,18 @@ impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
         self.0.insert(key, value)
     }
 
+    #[must_use]
     pub fn contains(&self, key: &str) -> bool {
         self.0.contains_key(key)
     }
 
+    #[must_use]
     pub fn entry(&mut self, s: ValueString) -> Entry<InjectedIntrisic> {
         self.0.entry(s)
     }
 }
 impl ValueMap<NoInjectedIntrisics> {
+    #[must_use]
     pub fn with_arbitrary_injected_intrisics<II>(self) -> ValueMap<II> {
         ValueMap(
             self.0

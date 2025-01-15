@@ -1,4 +1,4 @@
-use sea_orm_migration::{prelude::*, schema::*};
+use sea_orm_migration::{prelude::*, schema::{binary, pk_uuid, timestamp_with_time_zone, timestamp_with_time_zone_null}};
 
 use crate::m20241101_171000_create_table_sessions::Session;
 

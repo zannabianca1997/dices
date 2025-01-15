@@ -56,7 +56,7 @@ impl Clone for Quitted {
 }
 
 impl Data {
-    pub fn new(graphic: Rc<Graphic>, skin: Rc<MadSkin>) -> Self {
+    pub const fn new(graphic: Rc<Graphic>, skin: Rc<MadSkin>) -> Self {
         Self {
             graphic,
             skin,
@@ -163,9 +163,8 @@ fn file_read(
     _data: &mut Data,
     params: Box<[Value<REPLIntrisics>]>,
 ) -> Result<Value<REPLIntrisics>, REPLIntrisicsError> {
-    let path = match Box::<[_; 1]>::try_from(params).map(|p| *p) {
-        Ok([Value::String(path)]) => path,
-        _ => return Err(REPLIntrisicsError::FileReadUsage),
+    let Ok([Value::String(path)]) = Box::<[_; 1]>::try_from(params).map(|p| *p) else {
+        return Err(REPLIntrisicsError::FileReadUsage);
     };
     let content =
         fs::read_to_string(Path::new(&**path)).map_err(REPLIntrisicsError::FileReadError)?;
@@ -176,9 +175,10 @@ fn file_write(
     _data: &mut Data,
     params: Box<[Value<REPLIntrisics>]>,
 ) -> Result<Value<REPLIntrisics>, REPLIntrisicsError> {
-    let (path, content) = match Box::<[_; 2]>::try_from(params).map(|p| *p) {
-        Ok([Value::String(path), Value::String(content)]) => (path, content),
-        _ => return Err(REPLIntrisicsError::FileWriteUsage),
+    let Ok([Value::String(path), Value::String(content)]) =
+        Box::<[_; 2]>::try_from(params).map(|p| *p)
+    else {
+        return Err(REPLIntrisicsError::FileWriteUsage);
     };
     fs::write(Path::new(&**path), &**content).map_err(REPLIntrisicsError::FileWriteError)?;
     Ok(Value::Null(ValueNull))
@@ -188,15 +188,15 @@ fn print(
     data: &mut Data,
     params: Box<[Value<REPLIntrisics>]>,
 ) -> Result<Value<REPLIntrisics>, REPLIntrisicsError> {
-    for value in params.iter() {
+    for value in &params {
         match print_value(*data.graphic, &data.skin, value, false) {
-            Ok(_) => (),
+            Ok(()) => (),
             Err(err) => {
                 data.quitted = Quitted::Fatal(err);
                 return Err(REPLIntrisicsError::Quitting);
             }
         };
-        println!()
+        println!();
     }
     Ok(Value::Null(ValueNull))
 }
@@ -220,14 +220,14 @@ const HELP_PAGE_FOR_HELP: &str = "std/repl/help";
 #[cfg(test)]
 #[test]
 fn help_for_help_exist() {
-    assert!(dices_man::search(HELP_PAGE_FOR_HELP).is_some())
+    assert!(dices_man::search(HELP_PAGE_FOR_HELP).is_some());
 }
 
 /// The manual must contains the pages relative to the *REPL* intrisics
 #[cfg(test)]
 #[test]
 fn man_has_repl_intrisics() {
-    dices_man::std_library_is_represented::<REPLIntrisics>()
+    dices_man::std_library_is_represented::<REPLIntrisics>();
 }
 
 #[cfg(test)]
@@ -242,6 +242,6 @@ fn all_names_roundtrip() {
                 "Intrisic `{intrisic:?}` gave `{name}` as name, but `named` did not recognize it"
             )
         });
-        assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip")
+        assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip");
     }
 }

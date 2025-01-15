@@ -43,8 +43,8 @@ pub struct ServeConfig {
 impl Default for ServeConfig {
     fn default() -> Self {
         Self {
-            app: Default::default(),
-            socket: Default::default(),
+            app: AppConfig::default(),
+            socket: SocketConfig::default(),
             banner: true,
         }
     }
@@ -174,8 +174,8 @@ async fn shutdown_signal() {
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
+        () = ctrl_c => {},
+        () = terminate => {},
     };
-    tracing::info!("Received shutdown signal")
+    tracing::info!("Received shutdown signal");
 }

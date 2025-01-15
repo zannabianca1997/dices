@@ -3,7 +3,7 @@ use dices_ast::expression::un_ops::UnOp;
 use itertools::Itertools;
 use rand::Rng;
 
-use super::*;
+use super::{DicesRng, ExpressionUnOp, InjectedIntr, Solvable, SolveError, Value, ValueNumber, bin_ops};
 
 impl<InjectedIntrisic> Solvable<InjectedIntrisic> for ExpressionUnOp<InjectedIntrisic>
 where

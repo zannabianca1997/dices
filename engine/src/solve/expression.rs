@@ -220,7 +220,7 @@ where
                         params_names.into_vec().into_iter(),
                         params.into_vec(),
                     )) {
-                        context.vars_mut().let_(name, value)
+                        context.vars_mut().let_(name, value);
                     }
                     // solving in the jailed context
                     body.solve(context)
@@ -398,6 +398,6 @@ where
             .vars()
             .get(&self.name)
             .cloned() // todo: is this clone lightweight?
-            .ok_or_else(|| SolveError::InvalidReference(self.name.to_owned()))
+            .ok_or_else(|| SolveError::InvalidReference(self.name.clone()))
     }
 }

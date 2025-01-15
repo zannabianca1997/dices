@@ -69,6 +69,7 @@ pub enum Value<InjectedIntrisic = NoInjectedIntrisics> {
 
 impl Value<NoInjectedIntrisics> {
     // Add any intrisic type to a intrisic-less value
+    #[must_use]
     pub fn with_arbitrary_injected_intrisics<II>(self) -> Value<II> {
         match self {
             Value::Null(value_null) => Value::Null(value_null),

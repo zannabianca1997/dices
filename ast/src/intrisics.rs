@@ -102,7 +102,7 @@ macro_rules! repetitive_impl {
             }
         }
         impl Intrisic<NoInjectedIntrisics> {
-            pub fn with_arbitrary_injected_intrisics<II>(self) -> Intrisic<II> {
+            #[must_use]pub const fn with_arbitrary_injected_intrisics<II>(self) -> Intrisic<II> {
                 match self {
                     $(
                         Intrisic::$variant => Intrisic::$variant,
@@ -137,13 +137,17 @@ where
     Injected: InjectedIntr,
 {
     /// Build a module containing all the intrisics, to include in the standard library
+    #[must_use]
     pub fn all() -> ValueMap<Injected> {
-        ValueMap::from_iter(Self::iter().into_iter().map(|v| {
-            (
-                v.name().to_string().into_boxed_str().into(),
-                ValueIntrisic::from(v).into(),
-            )
-        }))
+        Self::iter()
+            .into_iter()
+            .map(|v| {
+                (
+                    v.name().to_string().into_boxed_str().into(),
+                    ValueIntrisic::from(v).into(),
+                )
+            })
+            .collect()
     }
 }
 
@@ -157,7 +161,7 @@ fn all_names_roundtrip() {
                 "Intrisic `{intrisic:?}` gave `{name}` as name, but `named` did not recognize it"
             )
         });
-        assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip")
+        assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip");
     }
 }
 
@@ -261,7 +265,7 @@ impl InjectedIntr for NoInjectedIntrisics {
 
     fn call<'d>(
         &self,
-        _: &mut Self::Data,
+        (): &mut Self::Data,
         _: Box<[Value<Self>]>,
     ) -> Result<Value<Self>, Self::Error> {
         match *self {}

@@ -68,7 +68,7 @@ impl Infrastructure {
         db.rm().await.expect("Error in removing the test container");
     }
 
-    pub fn server(&self) -> &TestServer {
+    pub const fn server(&self) -> &TestServer {
         &self.server
     }
 

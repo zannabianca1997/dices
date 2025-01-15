@@ -1,5 +1,5 @@
 use extension::postgres::Type;
-use sea_orm_migration::{prelude::*, schema::*};
+use sea_orm_migration::{prelude::*, schema::{pk_uuid, text, text_null, timestamp_with_time_zone, timestamp_with_time_zone_null, uuid}};
 
 use crate::m20241023_221153_create_table_users::User;
 
