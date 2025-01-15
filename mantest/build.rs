@@ -92,9 +92,7 @@ impl ManTests<'_, '_, ManPage> {
             // find a name
             let name = rustify(
                 &e.position
-                    .as_ref()
-                    .map(|p| format!("line_{}", p.start.line)) // use the line number
-                    .unwrap_or_else(|| format!("example_{}", i + 1)), // or fall back to numbering the examples
+                    .as_ref().map_or_else(|| format!("example_{}", i + 1), |p| format!("line_{}", p.start.line)), // or fall back to numbering the examples
                 &mut names,
             );
 
