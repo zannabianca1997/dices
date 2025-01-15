@@ -1,8 +1,4 @@
-use std::{
-    fmt::Display,
-    iter,
-    ops::{Add, AddAssign},
-};
+use std::{fmt::Display, iter, ops::AddAssign};
 
 use derive_more::derive::{
     Add, AddAssign, Display, Div, DivAssign, From, Into, Mul, MulAssign, Neg, Rem, RemAssign, Sub,

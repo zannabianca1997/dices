@@ -1347,6 +1347,7 @@ dependencies = [
  "reedline",
  "serde",
  "termimad",
+ "thiserror 2.0.11",
  "typed-arena",
 ]
 

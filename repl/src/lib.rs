@@ -4,7 +4,6 @@ use std::{
     io::{self, stderr, stdin, stdout, Write as _},
     mem,
     path::PathBuf,
-    process::{ExitCode, Termination},
     rc::Rc,
 };
 
@@ -14,7 +13,6 @@ use clap::ValueEnum;
 use derive_more::derive::{Debug, Display, Error, From};
 use dices_ast::value::{Value, ValueNull};
 use dices_engine::Engine;
-use mdast2minimad::mdast::Paragraph;
 use pretty::Pretty;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -23,7 +21,7 @@ use repl_intrisics::{Quitted, REPLIntrisics};
 use serde::{Deserialize, Serialize};
 use setup::Setup;
 use termimad::{
-    minimad::{Composite, CompositeStyle, Compound, Line, Text},
+    minimad::{Compound, Line, Text},
     terminal_size, Alignment, FmtText, MadSkin,
 };
 use typed_arena::Arena;
@@ -417,7 +415,7 @@ fn print_err<const FATAL: bool>(
 
         text.lines.push(Line::raw_str(""));
         text.lines.push(Line::new_paragraph(
-            vec![Compound::raw_str("Caused by:").italic()].into(),
+            vec![Compound::raw_str("Caused by:").italic()],
         ));
 
         while let Some(current) = source {
