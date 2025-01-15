@@ -261,7 +261,7 @@ impl InjectedIntr for NoInjectedIntrisics {
 
     fn call<'d>(
         &self,
-        _: &mut Self::Data,
+        (): &mut Self::Data,
         _: Box<[Value<Self>]>,
     ) -> Result<Value<Self>, Self::Error> {
         match *self {}
