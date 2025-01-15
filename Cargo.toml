@@ -36,6 +36,7 @@ single_char_pattern = "deny"
 manual_assert = "warn"
 trivially_copy_pass_by_ref = "warn"
 manual_let_else = "warn"
+return_self_not_must_use = "warn"
 
 [workspace.package]
 version = "0.3.2"

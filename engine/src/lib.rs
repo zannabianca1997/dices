@@ -17,6 +17,7 @@ mod context;
 mod dices_std;
 mod solve;
 
+#[must_use]
 pub struct EngineBuilder<RNG = (), InjectedIntrisicData = ()> {
     rng: RNG,
     std: Option<Cow<'static, IdentStr>>,
@@ -25,7 +26,6 @@ pub struct EngineBuilder<RNG = (), InjectedIntrisicData = ()> {
 }
 impl EngineBuilder {
     /// Start building a new engine
-    #[must_use]
     pub fn new() -> Self {
         Self {
             rng: (),
