@@ -18,12 +18,7 @@ dices-ast = { path = "../ast" }
 termimad = "0.31"
 clap = { version = "4.5", features = ["derive"] }
 reedline = "0.38"
-derive_more = { version = "1.0", features = [
-    "debug",
-    "display",
-    "error",
-    "from",
-] }
+derive_more = { version = "1.0", features = ["debug", "display", "from"] }
 atty = "0.2"
 chrono = "0.4"
 rand = "0.8"
@@ -33,6 +28,7 @@ figment = { version = "0.10", features = ["env", "toml"] }
 home = "0.5"
 rand_xoshiro = { version = "0.6", features = ["serde1"] }
 typed-arena = "2.0.2"
+thiserror = "2.0"
 
 [dev-dependencies]
 dices-man = { path = "../man", features = ["test_std_handle"] }

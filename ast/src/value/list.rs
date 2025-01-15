@@ -71,6 +71,11 @@ impl<InjectedIntrisic> ValueList<InjectedIntrisic> {
         self.0.iter_mut()
     }
 }
+impl<II> Default for ValueList<II> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl ValueList<NoInjectedIntrisics> {
     pub fn with_arbitrary_injected_intrisics<II>(self) -> ValueList<II> {
         ValueList(

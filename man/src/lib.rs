@@ -2,10 +2,9 @@
 
 use std::{
     borrow::Cow,
-    collections::HashMap,
     hash::{DefaultHasher, Hash, Hasher},
     ops::Deref,
-    sync::{Arc, LazyLock, Mutex, MutexGuard, OnceLock},
+    sync::{Arc, LazyLock, OnceLock},
 };
 
 use dices_ast::{

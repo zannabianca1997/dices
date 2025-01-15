@@ -9,13 +9,13 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use derive_more::derive::{Display, Error};
 use dices_ast::{
     intrisics::InjectedIntr,
     value::{Value, ValueList, ValueNull},
 };
 use dices_man::RenderOptions;
-use termimad::{crossbeam::epoch::Pointable, crossterm::terminal, MadSkin};
+use termimad::{crossterm::terminal, MadSkin};
+use thiserror::Error;
 
 use crate::{print_value, Graphic, ReplFatalError};
 
@@ -64,9 +64,6 @@ impl Data {
         }
     }
 
-    pub(crate) fn quitted(&self) -> &Quitted {
-        &self.quitted
-    }
     pub(crate) fn quitted_mut(&mut self) -> &mut Quitted {
         &mut self.quitted
     }
@@ -90,26 +87,27 @@ pub enum REPLIntrisics {
     Time,
 
     /// Read a file as a string
-    #[injected_intr(calls = "file_read", std("sys.files."))]
+    #[injected_intr(calls = "file_read", std("sys.files.read"))]
     FileRead,
     /// Write a string to a file
-    #[injected_intr(calls = "file_write", std("sys.files."))]
+    #[injected_intr(calls = "file_write", std("sys.files.write"))]
     FileWrite,
 }
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Error)]
 pub enum REPLIntrisicsError {
     /// The `quit` intrisic was called
+    #[error("<internal> Called the quit intrisic")]
     Quitting,
 
-    #[display("`file_read` must be called with a single string parameter")]
+    #[error("`file_read` must be called with a single string parameter")]
     FileReadUsage,
-    #[display("Error while reading file")]
-    FileReadError(io::Error),
+    #[error("Error while reading file")]
+    FileReadError(#[source] io::Error),
 
-    #[display("`file_write` must be called with two string parameters")]
+    #[error("`file_write` must be called with two string parameters")]
     FileWriteUsage,
-    #[display("Error while writing file")]
-    FileWriteError(io::Error),
+    #[error("Error while writing file")]
+    FileWriteError(#[source] io::Error),
 }
 
 fn help(
