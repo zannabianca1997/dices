@@ -4,7 +4,10 @@ use dices_ast::value::{ValueNull, ValueString};
 use itertools::Itertools;
 use un_ops::{neg, plus};
 
-use super::{BinOp, DicesRng, EvalOrder, Expression, ExpressionBinOp, InjectedIntr, Solvable, SolveError, Value, ValueNumber, un_ops};
+use super::{
+    un_ops, BinOp, DicesRng, EvalOrder, Expression, ExpressionBinOp, InjectedIntr, Solvable,
+    SolveError, Value, ValueNumber,
+};
 
 impl<InjectedIntrisic> Solvable<InjectedIntrisic> for ExpressionBinOp<InjectedIntrisic>
 where
@@ -103,6 +106,10 @@ where
     Ok(Value::Number(a + b))
 }
 
+#[allow(
+    clippy::used_underscore_binding,
+    reason = "The `_context` parameter is used only in recursion"
+)]
 pub(super) fn mult<R, InjectedIntrisic>(
     _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
@@ -248,6 +255,10 @@ where
     add(context, a, b)
 }
 
+#[allow(
+    clippy::used_underscore_binding,
+    reason = "The `_context` parameter is used only in recursion"
+)]
 fn div<R, InjectedIntrisic>(
     _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
@@ -281,6 +292,10 @@ where
     }
 }
 
+#[allow(
+    clippy::used_underscore_binding,
+    reason = "The `_context` parameter is used only in recursion"
+)]
 fn rem<R, InjectedIntrisic>(
     _context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     a: Value<InjectedIntrisic>,
