@@ -63,12 +63,12 @@ impl<InjectedIntrisic> Display for ValueClosure<InjectedIntrisic> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<closure")?;
         if self.params.is_empty() {
-            write!(f, " without parameters")?
+            write!(f, " without parameters")?;
         } else {
-            write!(f, " with {} parameters", self.params.len())?
+            write!(f, " with {} parameters", self.params.len())?;
         };
         if !self.captures.is_empty() {
-            write!(f, " (captured {} values)", self.captures.len())?
+            write!(f, " (captured {} values)", self.captures.len())?;
         };
         write!(f, ">")?;
         Ok(())

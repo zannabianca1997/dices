@@ -38,7 +38,7 @@ impl FromStr for CodeExample {
                 let mut cmd = start.to_owned();
                 for line in cont.trim_start().lines() {
                     cmd.push('\n');
-                    cmd.push_str(line.trim_start().strip_prefix("...").unwrap())
+                    cmd.push_str(line.trim_start().strip_prefix("...").unwrap());
                 }
                 cmd
             };
@@ -63,7 +63,7 @@ impl FromStr for CodeExample {
                 } else {
                     let mut cmd = start.to_owned();
                     for line in cont.lines() {
-                        cmd.push_str(line.trim_start().strip_prefix('#').unwrap().trim_start().strip_prefix("...").unwrap())
+                        cmd.push_str(line.trim_start().strip_prefix('#').unwrap().trim_start().strip_prefix("...").unwrap());
                     }
                     cmd
                 };
@@ -91,7 +91,7 @@ impl FromStr for CodeExample {
                 .trim()
                 .is_empty()
             ) {
-                assert!(l.trim_start().starts_with('#'), "Inconsistent ignoring of result lines")
+                assert!(l.trim_start().starts_with('#'), "Inconsistent ignoring of result lines");
             }
             None
         } else if res.is_empty() {
@@ -100,7 +100,7 @@ impl FromStr for CodeExample {
         } else {
             Some(res.parse().expect("The value must be a valid result matcher"))
         };
-        items.push(CodeExamplePiece {cmd, res})
+        items.push(CodeExamplePiece {cmd, res});
     }
         assert_eq!(test.trim(), "", "Cannot recognize command prompt");
 

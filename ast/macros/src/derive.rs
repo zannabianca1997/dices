@@ -64,7 +64,7 @@ pub fn injected_intr(input: &DeriveInput) -> TokenStream {
             *name = Some(LitStr::new(
                 &ident.to_string().to_case(Case::Snake),
                 ident.span(),
-            ))
+            ));
         }
         if *prelude {
             std.push(LitStr::new("prelude.", Span::call_site()));

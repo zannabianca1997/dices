@@ -29,7 +29,7 @@ impl LogContent {
         let mut sources = vec![];
         while let Some(src) = next_src {
             sources.push(src.to_string());
-            next_src = src.source()
+            next_src = src.source();
         }
         Self::Error {
             msg,

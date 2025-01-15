@@ -152,7 +152,7 @@ impl<RNG, InjectedIntrisicData> EngineBuilder<RNG, InjectedIntrisicData> {
                     let name = IdentStr::new_boxed(name.clone().into()).expect(
                         "The values in `prelude` should all be named with valid identifiers",
                     );
-                    context.vars_mut().let_(name, value.clone())
+                    context.vars_mut().let_(name, value.clone());
                 }
             }
             // adding the std library

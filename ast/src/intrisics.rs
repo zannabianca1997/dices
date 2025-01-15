@@ -157,7 +157,7 @@ fn all_names_roundtrip() {
                 "Intrisic `{intrisic:?}` gave `{name}` as name, but `named` did not recognize it"
             )
         });
-        assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip")
+        assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip");
     }
 }
 

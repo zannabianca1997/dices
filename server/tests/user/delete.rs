@@ -99,7 +99,7 @@ async fn can_signup_again() {
             assert_ne!(
                 old_id, new_id,
                 "The newly created user should have a different id"
-            )
+            );
         })
     })
     .await;

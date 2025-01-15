@@ -196,7 +196,7 @@ fn print(
                 return Err(REPLIntrisicsError::Quitting);
             }
         };
-        println!()
+        println!();
     }
     Ok(Value::Null(ValueNull))
 }
@@ -220,14 +220,14 @@ const HELP_PAGE_FOR_HELP: &str = "std/repl/help";
 #[cfg(test)]
 #[test]
 fn help_for_help_exist() {
-    assert!(dices_man::search(HELP_PAGE_FOR_HELP).is_some())
+    assert!(dices_man::search(HELP_PAGE_FOR_HELP).is_some());
 }
 
 /// The manual must contains the pages relative to the *REPL* intrisics
 #[cfg(test)]
 #[test]
 fn man_has_repl_intrisics() {
-    dices_man::std_library_is_represented::<REPLIntrisics>()
+    dices_man::std_library_is_represented::<REPLIntrisics>();
 }
 
 #[cfg(test)]
@@ -242,6 +242,6 @@ fn all_names_roundtrip() {
                 "Intrisic `{intrisic:?}` gave `{name}` as name, but `named` did not recognize it"
             )
         });
-        assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip")
+        assert_eq!(intrisic, named, "Intrisic `{name}` did not roundtrip");
     }
 }

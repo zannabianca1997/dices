@@ -102,7 +102,7 @@ where
             for p in params {
                 acc = Expression::BinOp(ExpressionBinOp::new(BinOp::Add, acc.into(), p.into()))
                     .solve(context)
-                    .map_err(IntrisicError::SumFailed)?
+                    .map_err(IntrisicError::SumFailed)?;
             }
             Ok(acc)
         }
@@ -115,7 +115,7 @@ where
             for p in params {
                 acc = Expression::BinOp(ExpressionBinOp::new(BinOp::Join, acc.into(), p.into()))
                     .solve(context)
-                    .map_err(IntrisicError::JoinFailed)?
+                    .map_err(IntrisicError::JoinFailed)?;
             }
             Ok(acc)
         }
@@ -128,7 +128,7 @@ where
             for p in params {
                 acc = Expression::BinOp(ExpressionBinOp::new(BinOp::Mult, acc.into(), p.into()))
                     .solve(context)
-                    .map_err(IntrisicError::MultFailed)?
+                    .map_err(IntrisicError::MultFailed)?;
             }
             Ok(acc)
         }

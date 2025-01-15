@@ -491,7 +491,7 @@ mod tests {
         assert_eq!(
             serialized, expected,
             "The value {value:?} did not serialize as expected"
-        )
+        );
     }
 
     macro_rules! tests {

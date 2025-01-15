@@ -76,7 +76,7 @@ impl Provider for ConfigArgs {
                 else {
                     unreachable!()
                 };
-                data = new_data
+                data = new_data;
             }
 
             data.insert(name.to_owned(), v.parse().unwrap());
@@ -99,11 +99,11 @@ fn figment(config_args: ConfigArgs) -> Figment {
     };
     // Then the default config file
     if !config_args.no_default_config_file {
-        figment = figment.merge(Toml::file("DicesServer.toml"))
+        figment = figment.merge(Toml::file("DicesServer.toml"));
     }
     // Then the one provided by the user
     if let Some(config_file) = &config_args.config_file {
-        figment = figment.merge(Toml::file_exact(config_file))
+        figment = figment.merge(Toml::file_exact(config_file));
     }
     // Then, the enviroment variables and the arguments
     if !config_args.no_env {
@@ -112,7 +112,7 @@ fn figment(config_args: ConfigArgs) -> Figment {
             Err(err) if err.not_found() => (),
             Err(err) => eprintln!("Cannot open `.env` to load enviroment variable: {err}"),
         };
-        figment = figment.merge(Env::raw().split("__").global())
+        figment = figment.merge(Env::raw().split("__").global());
     }
     // Finally the cli arguments
     figment.merge(config_args)

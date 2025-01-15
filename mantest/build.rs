@@ -156,7 +156,7 @@ fn rustify(s: &str, name_pool: &mut BTreeSet<Ident>) -> Ident {
     let mut i: usize = 1;
     while !name_pool.insert(ident.clone()) {
         i += 1;
-        ident = format_ident!("{}_{}", slug, i)
+        ident = format_ident!("{}_{}", slug, i);
     }
     ident
 }
