@@ -43,6 +43,7 @@ match_bool = "warn"
 match_same_arms = "warn"
 implicit_clone = "warn"
 similar_names = "warn"
+from_iter_instead_of_collect = "deny"
 
 [workspace.package]
 version = "0.3.2"
