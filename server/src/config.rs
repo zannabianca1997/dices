@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use clap::Args;
 use figment::{
@@ -22,7 +22,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            serve: Default::default(),
+            serve: ServeConfig::default(),
             logging: default_tracing_config(),
         }
     }
@@ -71,7 +71,7 @@ impl Provider for ConfigArgs {
             for component in components {
                 let figment::value::Value::Dict(_, new_data) =
                     data.entry(component.to_string()).or_insert_with(|| {
-                        figment::value::Value::Dict(Tag::Default, Default::default())
+                        figment::value::Value::Dict(Tag::Default, BTreeMap::default())
                     })
                 else {
                     unreachable!()

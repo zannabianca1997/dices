@@ -43,8 +43,8 @@ pub struct ServeConfig {
 impl Default for ServeConfig {
     fn default() -> Self {
         Self {
-            app: Default::default(),
-            socket: Default::default(),
+            app: AppConfig::default(),
+            socket: SocketConfig::default(),
             banner: true,
         }
     }
