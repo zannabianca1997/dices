@@ -44,6 +44,7 @@ match_same_arms = "warn"
 implicit_clone = "warn"
 similar_names = "warn"
 from_iter_instead_of_collect = "deny"
+ref_as_ptr = "deny"
 
 [workspace.package]
 version = "0.3.2"
