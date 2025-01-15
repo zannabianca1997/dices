@@ -213,14 +213,11 @@ mod serde {
         where
             S: serde::Serializer,
         {
-            match i64::try_from(&self.0) {
-                Ok(small) => Serialized::Small(small),
-                Err(_) => {
-                    let (sign, bytes) = self.0.to_bytes_le();
-                    Serialized::Nested {
-                        sign,
-                        bytes: ByteBuf::from(bytes),
-                    }
+            if let Ok(small) = i64::try_from(&self.0) { Serialized::Small(small) } else {
+                let (sign, bytes) = self.0.to_bytes_le();
+                Serialized::Nested {
+                    sign,
+                    bytes: ByteBuf::from(bytes),
                 }
             }
             .serialize(serializer)

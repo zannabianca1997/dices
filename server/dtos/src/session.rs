@@ -105,7 +105,7 @@ impl From<DbErr> for SessionListGetError {
 }
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, From, utoipa::ToSchema)]
-/// Additional data from the SessionUser
+/// Additional data from the `SessionUser`
 pub struct SessionUserAdditionalData {
     /// Role of the user in this session
     pub role: UserRole,

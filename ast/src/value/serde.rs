@@ -114,14 +114,11 @@ where
         match self {
             Value::Null(value_null) => BorrowedSerialized::Null(value_null),
             Value::Bool(value_bool) => BorrowedSerialized::Bool(value_bool),
-            Value::Number(value_number) => match i64::try_from(&value_number.0) {
-                Ok(small) => BorrowedSerialized::Number(small),
-                Err(_) => {
-                    let (sign, bytes) = value_number.0.to_bytes_le();
-                    BorrowedSerialized::NestedNumber {
-                        sign,
-                        bytes: ByteBuf::from(bytes),
-                    }
+            Value::Number(value_number) => if let Ok(small) = i64::try_from(&value_number.0) { BorrowedSerialized::Number(small) } else {
+                let (sign, bytes) = value_number.0.to_bytes_le();
+                BorrowedSerialized::NestedNumber {
+                    sign,
+                    bytes: ByteBuf::from(bytes),
                 }
             },
             Value::String(value_string) => BorrowedSerialized::String(value_string),
