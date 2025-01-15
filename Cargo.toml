@@ -34,6 +34,7 @@ explicit_into_iter_loop = "deny"
 explicit_iter_loop = "deny"
 single_char_pattern = "deny"
 manual_assert = "warn"
+trivially_copy_pass_by_ref = "warn"
 
 [workspace.package]
 version = "0.3.2"

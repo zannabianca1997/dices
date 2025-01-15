@@ -123,7 +123,7 @@ impl Graphic {
         }
     }
 
-    fn skin(&self, light: Option<TerminalLightness>) -> termimad::MadSkin {
+    fn skin(self, light: Option<TerminalLightness>) -> termimad::MadSkin {
         let mut skin = match self {
             Graphic::None | Graphic::Ascii => termimad::MadSkin::no_style(),
             Graphic::Fancy => match light {
@@ -219,7 +219,7 @@ pub fn repl(
         },
         err,
     ) = match setup::Setup::extract_setups(file_setup.as_ref(), cli_setup).map(|setup| {
-        let repl_result = repl_with_setup(interactive, run, &setup);
+        let repl_result = repl_with_setup(*interactive, run.as_deref(), &setup);
         (setup, repl_result)
     }) {
         Ok((_, Ok(()))) => return Ok(()),
@@ -235,8 +235,8 @@ pub fn repl(
 }
 
 fn repl_with_setup(
-    interactive: &bool,
-    run: &Option<Vec<String>>,
+    interactive: bool,
+    run: Option<&[String]>,
     setup::Setup {
         graphic,
         terminal,
@@ -274,9 +274,9 @@ fn repl_with_setup(
             *graphic,
             &skin,
             &value,
-            *interactive, // skip printing `null` if the console is interactive
+            interactive, // skip printing `null` if the console is interactive
         )?;
-        if !(*interactive && value.is_null()) {
+        if !(interactive && value.is_null()) {
             println!();
         }
 
