@@ -139,12 +139,15 @@ where
     /// Build a module containing all the intrisics, to include in the standard library
     #[must_use]
     pub fn all() -> ValueMap<Injected> {
-        ValueMap::from_iter(Self::iter().into_iter().map(|v| {
-            (
-                v.name().to_string().into_boxed_str().into(),
-                ValueIntrisic::from(v).into(),
-            )
-        }))
+        Self::iter()
+            .into_iter()
+            .map(|v| {
+                (
+                    v.name().to_string().into_boxed_str().into(),
+                    ValueIntrisic::from(v).into(),
+                )
+            })
+            .collect()
     }
 }
 
