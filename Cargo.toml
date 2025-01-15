@@ -23,14 +23,15 @@ unsafe_code = "deny"
 [workspace.lints.clippy]
 missing_const_for_fn = "deny"
 map_unwrap_or = "warn"
-semicolon_if_nothing_returned = "deny"
+semicolon_if_nothing_returned = "forbid"
 ignored_unit_patterns = "deny"
 redundant_closure_for_method_calls = "warn"
 default_trait_access = "deny"
 single_match_else = "warn"
-uninlined_format_args = "deny"
+uninlined_format_args = "forbid"
 wildcard_imports = "warn"
 explicit_into_iter_loop = "deny"
+single_char_pattern = "deny"
 
 [workspace.package]
 version = "0.3.2"

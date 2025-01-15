@@ -121,7 +121,7 @@ pub fn injected_intr(input: &DeriveInput) -> TokenStream {
     let variants_paths = variants.iter().map(|v| {
         let paths = v.std.iter().map(|p| {
             let mut path = p.value();
-            if path.ends_with(".") {
+            if path.ends_with('.') {
                 path.push_str(&v.name.as_ref().unwrap().value());
             }
             let components = path.split('.').map(|s| LitStr::new(s, p.span()));

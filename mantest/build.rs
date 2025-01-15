@@ -148,7 +148,7 @@ fn main() -> Result<()> {
 
 fn rustify(s: &str, name_pool: &mut BTreeSet<Ident>) -> Ident {
     // removing all unicode chars, adding a leading _ if starting with a number
-    let mut slug = slugify(s).replace("-", "_");
+    let mut slug = slugify(s).replace('-', "_");
     if slug.starts_with(|ch: char| ch.is_ascii_digit()) {
         slug = "_".to_owned() + &slug;
     }
