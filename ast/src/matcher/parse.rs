@@ -4,7 +4,7 @@ use either::Either::{Left, Right};
 use peg::{error::ParseError, str::LineCol};
 
 use crate::ident::IdentStr;
-use crate::value::*;
+use crate::value::{Value, ValueBool, ValueList, ValueMap, ValueNull, ValueNumber, ValueString};
 
 use super::Matcher;
 

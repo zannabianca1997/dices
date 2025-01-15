@@ -4,7 +4,7 @@ use dices_ast::value::{ValueNull, ValueString};
 use itertools::Itertools;
 use un_ops::{neg, plus};
 
-use super::*;
+use super::{BinOp, DicesRng, EvalOrder, Expression, ExpressionBinOp, InjectedIntr, Solvable, SolveError, Value, ValueNumber, un_ops};
 
 impl<InjectedIntrisic> Solvable<InjectedIntrisic> for ExpressionBinOp<InjectedIntrisic>
 where
