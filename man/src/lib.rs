@@ -409,6 +409,7 @@ pub fn index() -> ManTopicContent {
     search("index").unwrap()
 }
 
+#[allow(clippy::unreadable_literal)]
 pub static MANUAL: ManDir = include!(env!("MANUAL_RS"));
 
 #[cfg(test)]
