@@ -77,7 +77,7 @@ async fn logs_get(
             if (page.len() as u64) < limit.get() {
                 start
             } else {
-                page.first().map(|f| f.created_at).unwrap_or(start)
+                page.first().map_or(start, |f| f.created_at)
             }
         }
     };
@@ -86,7 +86,7 @@ async fn logs_get(
             if (page.len() as u64) < limit.get() {
                 end
             } else {
-                page.last().map(|f| f.created_at).unwrap_or(end)
+                page.last().map_or(end, |f| f.created_at)
             }
         }
         LimitAlign::End => end,

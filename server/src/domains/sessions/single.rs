@@ -217,15 +217,14 @@ async fn command_post(
         .transaction(|db| {
             Box::pin(async move {
                 // Get the engine, or create a new one
-                let engine_model = Engine::find_by_id(session_id)
-                    .one(db)
-                    .await?
-                    .map(IntoActiveModel::into_active_model)
-                    .unwrap_or_else(|| engine::ActiveModel {
+                let engine_model = Engine::find_by_id(session_id).one(db).await?.map_or_else(
+                    || engine::ActiveModel {
                         session_id: Set(session_id),
                         state: Set(DatabaseEngine(dices_engine::Engine::new())),
                         ..Default::default()
-                    });
+                    },
+                    IntoActiveModel::into_active_model,
+                );
 
                 // Channel to receive logs to
                 let (logs_sender, logs_receiver) = tokio::sync::mpsc::channel(

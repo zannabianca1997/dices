@@ -107,11 +107,11 @@ fn figment(config_args: ConfigArgs) -> Figment {
     }
     // Then, the enviroment variables and the arguments
     if !config_args.no_env {
-        dotenv::dotenv().map(|_| ()).unwrap_or_else(|err| {
-            if !err.not_found() {
-                eprintln!("Cannot open `.env` to load enviroment variable: {err}")
-            }
-        });
+        match dotenv::dotenv() {
+            Ok(_) => (),
+            Err(err) if err.not_found() => (),
+            Err(err) => eprintln!("Cannot open `.env` to load enviroment variable: {err}"),
+        };
         figment = figment.merge(Env::raw().split("__").global())
     }
     // Finally the cli arguments
