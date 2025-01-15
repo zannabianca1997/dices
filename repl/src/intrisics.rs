@@ -163,9 +163,8 @@ fn file_read(
     _data: &mut Data,
     params: Box<[Value<REPLIntrisics>]>,
 ) -> Result<Value<REPLIntrisics>, REPLIntrisicsError> {
-    let path = match Box::<[_; 1]>::try_from(params).map(|p| *p) {
-        Ok([Value::String(path)]) => path,
-        _ => return Err(REPLIntrisicsError::FileReadUsage),
+    let Ok([Value::String(path)]) = Box::<[_; 1]>::try_from(params).map(|p| *p) else {
+        return Err(REPLIntrisicsError::FileReadUsage);
     };
     let content =
         fs::read_to_string(Path::new(&**path)).map_err(REPLIntrisicsError::FileReadError)?;
@@ -176,9 +175,10 @@ fn file_write(
     _data: &mut Data,
     params: Box<[Value<REPLIntrisics>]>,
 ) -> Result<Value<REPLIntrisics>, REPLIntrisicsError> {
-    let (path, content) = match Box::<[_; 2]>::try_from(params).map(|p| *p) {
-        Ok([Value::String(path), Value::String(content)]) => (path, content),
-        _ => return Err(REPLIntrisicsError::FileWriteUsage),
+    let Ok([Value::String(path), Value::String(content)]) =
+        Box::<[_; 2]>::try_from(params).map(|p| *p)
+    else {
+        return Err(REPLIntrisicsError::FileWriteUsage);
     };
     fs::write(Path::new(&**path), &**content).map_err(REPLIntrisicsError::FileWriteError)?;
     Ok(Value::Null(ValueNull))
