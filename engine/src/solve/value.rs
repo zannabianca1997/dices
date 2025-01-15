@@ -1,6 +1,6 @@
 //! Trivial implementations of `Solvable` for Values
 
-use dices_ast::{intrisics::InjectedIntr, value::*};
+use dices_ast::{intrisics::InjectedIntr, value::{Value, ValueBool, ValueClosure, ValueIntrisic, ValueList, ValueMap, ValueNull, ValueNumber, ValueString}};
 
 macro_rules! trivial_impl {
         ( $( $type:ty ),* ) => {

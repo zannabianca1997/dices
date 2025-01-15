@@ -1,4 +1,4 @@
-use sea_orm_migration::{prelude::*, schema::*};
+use sea_orm_migration::{prelude::*, schema::{json, pk_uuid, timestamp_with_time_zone, uuid, uuid_null}};
 
 use crate::{
     m20241023_221153_create_table_users::User, m20241101_171000_create_table_sessions::Session,

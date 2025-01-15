@@ -281,7 +281,7 @@ impl ManTopicContent {
 
 /// Create the index of a page
 fn render_index(dir: &ManDir) -> Node {
-    use markdown::mdast::*;
+    use markdown::mdast::{Heading, InlineCode, List, ListItem, Node, Paragraph, Root, Text};
 
     fn list_item(name: &str, key: &str) -> Paragraph {
         // parse the name as markdown

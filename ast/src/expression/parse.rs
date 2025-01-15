@@ -6,9 +6,9 @@ use peg::{error::ParseError, str::LineCol};
 use set::MemberReceiver;
 
 use crate::{
-    expression::{bin_ops::BinOp, un_ops::UnOp, *},
+    expression::{bin_ops::BinOp, un_ops::UnOp, Expression, ExpressionBinOp, ExpressionCall, ExpressionClosure, ExpressionList, ExpressionMap, ExpressionMemberAccess, ExpressionRef, ExpressionScope, ExpressionSet, ExpressionUnOp, Receiver, set},
     ident::IdentStr,
-    value::*,
+    value::{Value, ValueBool, ValueNull, ValueNumber, ValueString},
 };
 
 peg::parser! {

@@ -4,7 +4,7 @@ use either::Either::{Left, Right};
 use num_bigint::BigInt;
 use peg::{error::ParseError, str::LineCol};
 
-use super::*;
+use super::{Value, ValueBool, ValueList, ValueMap, ValueNull, ValueNumber, ValueString};
 use crate::ident::IdentStr;
 
 peg::parser! {
