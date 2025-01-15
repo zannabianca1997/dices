@@ -3,7 +3,7 @@
 
 use std::{
     fmt::Debug,
-    fs, io,
+    fs, io, mem,
     path::Path,
     rc::Rc,
     time::{SystemTime, UNIX_EPOCH},
@@ -15,9 +15,9 @@ use dices_ast::{
     value::{Value, ValueList, ValueNull},
 };
 use dices_man::RenderOptions;
-use termimad::{crossterm::terminal, MadSkin};
+use termimad::{crossbeam::epoch::Pointable, crossterm::terminal, MadSkin};
 
-use crate::{print_value, Graphic};
+use crate::{print_value, Graphic, ReplFatalError};
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -29,10 +29,30 @@ pub struct Data {
     quitted: Quitted,
 }
 
-#[derive(Debug, Clone)]
-pub enum Quitted {
+#[derive(Debug, Default)]
+pub(crate) enum Quitted {
+    #[default]
     No,
     Yes(Value<REPLIntrisics>),
+    Fatal(ReplFatalError),
+}
+
+impl Quitted {
+    pub fn take(&mut self) -> Self {
+        mem::take(self)
+    }
+}
+
+impl Clone for Quitted {
+    fn clone(&self) -> Self {
+        match self {
+            Self::No => Self::No,
+            Self::Yes(v) => Self::Yes(v.clone()),
+            Self::Fatal(err) => panic!(
+                "The repl data should not be cloned while a fatal error was running: {err:?}"
+            ),
+        }
+    }
 }
 
 impl Data {
@@ -44,8 +64,11 @@ impl Data {
         }
     }
 
-    pub fn quitted(&self) -> &Quitted {
+    pub(crate) fn quitted(&self) -> &Quitted {
         &self.quitted
+    }
+    pub(crate) fn quitted_mut(&mut self) -> &mut Quitted {
+        &mut self.quitted
     }
 }
 
@@ -142,8 +165,8 @@ fn file_read(
     _data: &mut Data,
     params: Box<[Value<REPLIntrisics>]>,
 ) -> Result<Value<REPLIntrisics>, REPLIntrisicsError> {
-    let path = match Box::<[_; 1]>::try_from(params) {
-        Ok(box [Value::String(path)]) => path,
+    let path = match Box::<[_; 1]>::try_from(params).map(|p| *p) {
+        Ok([Value::String(path)]) => path,
         _ => return Err(REPLIntrisicsError::FileReadUsage),
     };
     let content =
@@ -155,8 +178,8 @@ fn file_write(
     _data: &mut Data,
     params: Box<[Value<REPLIntrisics>]>,
 ) -> Result<Value<REPLIntrisics>, REPLIntrisicsError> {
-    let (path, content) = match Box::<[_; 2]>::try_from(params) {
-        Ok(box [Value::String(path), Value::String(content)]) => (path, content),
+    let (path, content) = match Box::<[_; 2]>::try_from(params).map(|p| *p) {
+        Ok([Value::String(path), Value::String(content)]) => (path, content),
         _ => return Err(REPLIntrisicsError::FileWriteUsage),
     };
     fs::write(Path::new(&**path), &**content).map_err(REPLIntrisicsError::FileWriteError)?;
@@ -168,7 +191,13 @@ fn print(
     params: Box<[Value<REPLIntrisics>]>,
 ) -> Result<Value<REPLIntrisics>, REPLIntrisicsError> {
     for value in params.iter() {
-        print_value(*data.graphic, &data.skin, value, false);
+        match print_value(*data.graphic, &data.skin, value, false) {
+            Ok(_) => (),
+            Err(err) => {
+                data.quitted = Quitted::Fatal(err);
+                return Err(REPLIntrisicsError::Quitting);
+            }
+        };
         println!()
     }
     Ok(Value::Null(ValueNull))
@@ -178,9 +207,9 @@ fn quit(
     data: &mut Data,
     params: Box<[Value<REPLIntrisics>]>,
 ) -> Result<Value<REPLIntrisics>, REPLIntrisicsError> {
-    data.quitted = Quitted::Yes(match Box::<[_; 1]>::try_from(params) {
-        Ok(box [v]) => v,
-        Err(box []) => ValueNull.into(),
+    data.quitted = Quitted::Yes(match Box::<[_; 1]>::try_from(params).map(|p| *p) {
+        Ok([v]) => v,
+        Err(params) if params.is_empty() => ValueNull.into(),
         Err(params) => ValueList::from_iter(params.into_vec()).into(),
     });
     Err(REPLIntrisicsError::Quitting)

@@ -1,11 +1,10 @@
-#![feature(error_reporter)]
-#![feature(box_patterns)]
-
 use std::{
-    error::{Error, Report},
+    error::Error,
     hash::{DefaultHasher, Hash, Hasher},
-    io::{self, stdin, stdout},
+    io::{self, stderr, stdin, stdout, Write as _},
+    mem,
     path::PathBuf,
+    process::{ExitCode, Termination},
     rc::Rc,
 };
 
@@ -15,13 +14,19 @@ use clap::ValueEnum;
 use derive_more::derive::{Debug, Display, Error, From};
 use dices_ast::value::{Value, ValueNull};
 use dices_engine::Engine;
+use mdast2minimad::mdast::Paragraph;
 use pretty::Pretty;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use reedline::{Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, Reedline, Signal};
 use repl_intrisics::{Quitted, REPLIntrisics};
 use serde::{Deserialize, Serialize};
-use termimad::{terminal_size, Alignment, MadSkin};
+use setup::Setup;
+use termimad::{
+    minimad::{Composite, CompositeStyle, Compound, Line, Text},
+    terminal_size, Alignment, FmtText, MadSkin,
+};
+use typed_arena::Arena;
 
 mod repl_intrisics;
 mod setup;
@@ -208,21 +213,45 @@ pub fn repl(
         cli_setup,
         interactive,
         run,
-    }: ReplCli,
+    }: &ReplCli,
 ) -> Result<(), ReplFatalError> {
-    let setup::Setup {
-        graphic,
-        teminal,
-        seed,
-    } = setup::Setup::extract_setups(file_setup, cli_setup)?;
+    let (
+        Setup {
+            graphic, terminal, ..
+        },
+        err,
+    ) = match setup::Setup::extract_setups(file_setup.as_ref(), cli_setup).map(|setup| {
+        let repl_result = repl_with_setup(interactive, run, &setup);
+        (setup, repl_result)
+    }) {
+        Ok((_, Ok(()))) => return Ok(()),
+        Ok((setup, Err(err))) => (setup, err),
+        Err(err) => (Setup::default(), err.into()),
+    };
+    let graphic = graphic.unwrap_or_default();
+    let skin = graphic.skin(terminal);
 
+    print_err::<true>(graphic, &skin, &err).unwrap();
+
+    Err(err)
+}
+
+fn repl_with_setup(
+    interactive: &bool,
+    run: &Option<Vec<String>>,
+    setup::Setup {
+        graphic,
+        terminal,
+        seed,
+    }: &Setup,
+) -> Result<(), ReplFatalError> {
     // Identify the default graphic if not given
     let graphic = graphic.unwrap_or_default();
 
     // Boxing the graphic
     let graphic = Rc::new(graphic);
     // Creating the skin
-    let skin = Rc::new(graphic.skin(teminal));
+    let skin = Rc::new(graphic.skin(*terminal));
     // Initializing the engine
     let engine_builder = dices_engine::EngineBuilder::new()
         .inject_intrisics_data(repl_intrisics::Data::new(graphic.clone(), skin.clone()));
@@ -247,9 +276,9 @@ pub fn repl(
             *graphic,
             &skin,
             &value,
-            interactive, // skip printing `null` if the console is interactive
-        );
-        if !(interactive && value.is_null()) {
+            *interactive, // skip printing `null` if the console is interactive
+        )?;
+        if !(*interactive && value.is_null()) {
             println!();
         }
 
@@ -287,18 +316,19 @@ pub fn interactive_repl(
         let sig = line_editor.read_line(&ReplPrompt { graphic: *graphic })?;
         match sig {
             Signal::Success(line) => match engine.eval_str(&line) {
-                Ok(value) => print_value(*graphic, &skin, &value, true),
+                Ok(value) => print_value(*graphic, &skin, &value, true)?,
                 Err(err) => {
                     // need to catch the quitting error
-                    if let Quitted::Yes(value) = engine.injected_intrisics_data().quitted() {
-                        // this is not an error, but the quitting signal
-                        let _ = err;
-                        // printing the value provided to the `quit` intrisic
-                        print_value(*graphic, &skin, value, true);
-                        // stopping the REPL
-                        break;
+                    match engine.injected_intrisics_data_mut().quitted_mut().take() {
+                        Quitted::Yes(value) => {
+                            let _ = err;
+                            print_value(*graphic, &skin, &value, true)?;
+                            break;
+                        }
+                        Quitted::No => (),
+                        Quitted::Fatal(repl_fatal_error) => return Err(repl_fatal_error),
                     }
-                    print_err(*graphic, &skin, err)
+                    print_err::<false>(*graphic, &skin, err)?
                 }
             },
             Signal::CtrlD => {
@@ -321,43 +351,90 @@ pub fn detached_repl(
         let line = line?;
         println!("{}{}", graphic.prompt(), line);
         match engine.eval_str(&line) {
-            Ok(value) => print_value(*graphic, &skin, &value, true),
+            Ok(value) => print_value(*graphic, &skin, &value, true)?,
             Err(err) => {
                 // need to catch the quitting error
-                if let Quitted::Yes(value) = engine.injected_intrisics_data().quitted() {
-                    // this is not an error, but the quitting signal
-                    let _ = err;
-                    // printing the value provided to the `quit` intrisic
-                    print_value(*graphic, &skin, value, true);
-                    // stopping the REPL
-                    break;
+                match engine.injected_intrisics_data_mut().quitted_mut().take() {
+                    Quitted::Yes(value) => {
+                        let _ = err;
+                        print_value(*graphic, &skin, &value, true)?;
+                        break;
+                    }
+                    Quitted::No => (),
+                    Quitted::Fatal(repl_fatal_error) => return Err(repl_fatal_error),
                 }
-                print_err(*graphic, &skin, err)
+                print_err::<false>(*graphic, &skin, err)?
             }
-        }
+        };
     }
     Ok(())
 }
 
 /// Print a value
-fn print_value(graphic: Graphic, _skin: &MadSkin, value: &Value<REPLIntrisics>, skip_nulls: bool) {
+fn print_value(
+    graphic: Graphic,
+    _skin: &MadSkin,
+    value: &Value<REPLIntrisics>,
+    skip_nulls: bool,
+) -> Result<(), ReplFatalError> {
     if skip_nulls && value == &Value::Null(ValueNull) {
         // do not print null values
-        return;
+        return Ok(());
     }
     if graphic == Graphic::None {
         println!("{}", value);
-        return;
+        return Ok(());
     }
     let arena = pretty::Arena::<()>::new();
     value
         .pretty(&arena)
-        .render(terminal_size().0 as _, &mut stdout())
-        .expect("Error in formatting the value");
+        .render(terminal_size().0 as _, &mut stdout().lock())?;
+    Ok(())
 }
 
 /// Print an error
-fn print_err(_graphic: Graphic, _skin: &MadSkin, error: impl Error) {
-    let report = Report::new(error).pretty(true);
-    eprintln!("{report}")
+fn print_err<const FATAL: bool>(
+    graphic: Graphic,
+    skin: &MadSkin,
+    error: impl Error,
+) -> Result<(), ReplFatalError> {
+    let lines = Arena::new();
+    let mut text = Text { lines: vec![] };
+
+    let mut compounds = vec![];
+    if graphic == Graphic::Fancy {
+        compounds.push(Compound::raw_str(if FATAL { "🛑 " } else { "🚨 " }).bold());
+    }
+    compounds.push(Compound::raw_str("Error: ").bold());
+    compounds.append(
+        &mut termimad::minimad::parse_inline(lines.alloc_str(&error.to_string())).compounds,
+    );
+    text.lines
+        .push(Line::new_paragraph(mem::take(&mut compounds)));
+
+    if let Some(source) = error.source() {
+        let mut source = Some(source);
+
+        text.lines.push(Line::raw_str(""));
+        text.lines.push(Line::new_paragraph(
+            vec![Compound::raw_str("Caused by:").italic()].into(),
+        ));
+
+        while let Some(current) = source {
+            source = current.source();
+
+            text.lines.push(Line::new_list_item(
+                1,
+                termimad::minimad::parse_inline(lines.alloc_str(&current.to_string())).compounds,
+            ));
+        }
+    }
+
+    writeln!(
+        stderr().lock(),
+        "{}",
+        FmtText::from_text(skin, text, Some(terminal_size().0 as _))
+    )?;
+
+    Ok(())
 }

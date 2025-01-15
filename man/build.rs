@@ -1,5 +1,3 @@
-#![feature(iterator_try_collect)]
-
 use core::str;
 use std::{
     env::{self, var_os},
@@ -189,6 +187,6 @@ fn read_dir(path: &Path, index: String) -> Result<ManDir> {
                 ))
             }
         })
-        .try_collect()?;
+        .collect::<Result<_, _>>()?;
     Ok(ManDir { name, content })
 }

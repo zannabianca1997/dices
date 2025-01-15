@@ -1,9 +1,6 @@
 // Logic to parse user claims from the authentication header
 
-use std::{
-    error::Report,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher, PasswordVerifier};
 use axum::{
@@ -117,10 +114,7 @@ fn parse_token(token: &str, auth_key: AuthKey) -> Result<UserClaims, InvalidToke
             }))
         }
         Err(err) => Err({
-            tracing::debug!(
-                "Token {token} was refused: {}",
-                Report::new(err).pretty(true)
-            );
+            tracing::debug!("Token {token} was refused: {err}");
             InvalidTokenError::Malformed
         }),
         Ok(claims) => Ok(claims),

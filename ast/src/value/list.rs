@@ -37,10 +37,17 @@ use super::Value;
 )]
 pub struct ValueList<InjectedIntrisic>(Box<[Value<InjectedIntrisic>]>);
 impl<InjectedIntrisic> ValueList<InjectedIntrisic> {
+    pub fn new() -> Self {
+        Self([].into())
+    }
+
     #[cfg(feature = "parse_value")]
     pub fn to_number(self) -> Result<super::ValueNumber, super::ToNumberError> {
         match Box::<[_; 1]>::try_from(self.0) {
-            Ok(box [value]) => value.to_number(),
+            Ok(value) => {
+                let [value] = *value;
+                value.to_number()
+            }
             Err(vals) => Err(super::ToNumberError::WrongListLength(vals.len())),
         }
     }

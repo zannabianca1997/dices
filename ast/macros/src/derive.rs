@@ -1,8 +1,8 @@
+use convert_case::{Case, Casing};
 use darling::{ast::Data, FromDeriveInput, FromVariant};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{DeriveInput, Generics, Ident, LitStr, Type};
-use to_snake_case::ToSnakeCase;
 
 #[derive(Debug, FromDeriveInput)]
 #[darling(attributes(injected_intr), supports(enum_unit))]
@@ -62,7 +62,7 @@ pub fn injected_intr(input: DeriveInput) -> TokenStream {
     {
         if name.is_none() {
             *name = Some(LitStr::new(
-                &ident.to_string().to_snake_case(),
+                &ident.to_string().to_case(Case::Snake),
                 ident.span(),
             ))
         }

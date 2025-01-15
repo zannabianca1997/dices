@@ -1,10 +1,15 @@
-use std::iter::Step;
+use std::{
+    fmt::Display,
+    iter,
+    ops::{Add, AddAssign},
+};
 
 use derive_more::derive::{
-    Add, AddAssign, Display, Div, DivAssign, Error, From, Into, Mul, MulAssign, Neg, Rem,
-    RemAssign, Sub, SubAssign,
+    Add, AddAssign, Display, Div, DivAssign, From, Into, Mul, MulAssign, Neg, Rem, RemAssign, Sub,
+    SubAssign,
 };
 use num_bigint::{BigInt, ToBigInt};
+use thiserror::Error;
 
 use super::list::ValueList;
 
@@ -60,6 +65,17 @@ impl ValueNumber {
             self.0.into_parts().1,
         ))
     }
+
+    pub fn iter_between(mut self, end: &Self) -> impl Iterator<Item = Self> + '_ {
+        iter::from_fn(move || {
+            if &self >= end {
+                return None;
+            }
+            let res = self.clone();
+            self.add_assign(Self::from(1));
+            Some(res)
+        })
+    }
 }
 macro_rules! impl_lesser_nums {
     ( $( $n:ty ) *) => {
@@ -81,9 +97,9 @@ macro_rules! impl_lesser_nums {
     };
 }
 impl_lesser_nums! {i8 u8 i16 u16 i32 u32 i64 u64 i128 u128 isize usize}
-#[derive(Debug, Clone, Copy, Error, Display)]
-#[display("The float {_0} is too big to be represented")]
-pub struct FloatTooBig<F>(#[error(not(source))] F);
+#[derive(Debug, Clone, Copy, Error)]
+#[error("The float {_0} is too big to be represented")]
+pub struct FloatTooBig<F: Display>(F);
 
 macro_rules! impl_floating_nums {
     ( $( $n:ty ) *) => {
@@ -99,27 +115,6 @@ macro_rules! impl_floating_nums {
     };
 }
 impl_floating_nums! {f32 f64}
-
-impl Step for ValueNumber {
-    fn steps_between(start: &Self, end: &Self) -> (usize, Option<usize>) {
-        if start > end {
-            return (0, None);
-        }
-        if let Ok(diff) = usize::try_from(&end.0 - &start.0) {
-            return (diff, Some(diff));
-        }
-        // difference overflows usize
-        (usize::MAX, None)
-    }
-
-    fn forward_checked(start: Self, count: usize) -> Option<Self> {
-        Some(Self(start.0 + count))
-    }
-
-    fn backward_checked(start: Self, count: usize) -> Option<Self> {
-        Some(Self(start.0 - count))
-    }
-}
 
 #[cfg(feature = "pretty")]
 impl<'a, D, A> pretty::Pretty<'a, D, A> for &'a ValueNumber

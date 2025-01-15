@@ -16,10 +16,8 @@ where
         &self,
         context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
-        let ExpressionBinOp {
-            op,
-            expressions: box [a, b],
-        } = self;
+        let ExpressionBinOp { op, expressions } = self;
+        let [a, b] = &**expressions;
         let [a, b] = match op.eval_order() {
             Some(EvalOrder::AB) => {
                 let a = a.solve(context)?;
@@ -70,7 +68,8 @@ where
         return Err(SolveError::NegativeRepeats(repeats));
     }
     Ok(Value::List(
-        (ValueNumber::ZERO..repeats)
+        ValueNumber::ZERO
+            .iter_between(&repeats)
             .map(|_| a.solve(context))
             .try_collect()?,
     ))
@@ -274,6 +273,9 @@ where
         }
         _ => {
             let [a, b] = ops_to_numbers(BinOp::Div, [a, b])?;
+            if b == ValueNumber::ZERO {
+                return Err(SolveError::DivisionByZero);
+            }
             Ok(Value::Number(a / b))
         }
     }

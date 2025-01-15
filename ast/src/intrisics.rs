@@ -2,10 +2,10 @@
 
 use std::{
     borrow::Cow,
+    convert::Infallible,
     error::Error,
     fmt::{Debug, Display},
     hash::Hash,
-    ops::{Deref, DerefMut},
 };
 
 use crate::value::{map::ValueMap, Value, ValueIntrisic};
@@ -108,7 +108,8 @@ macro_rules! repetitive_impl {
                         Intrisic::$variant => Intrisic::$variant,
                     )*
                     // This last case never happens
-                    Intrisic::Injected(injected) => *injected,
+                    Intrisic::Injected(injected) =>
+                    match injected {}
                 }
             }
         }
@@ -190,7 +191,7 @@ pub trait InjectedIntr: Sized + Clone + 'static + Hash {
 
 /// No injected intrisics
 #[derive(Clone, Copy)]
-pub struct NoInjectedIntrisics(!);
+pub enum NoInjectedIntrisics {}
 
 #[cfg(feature = "bincode")]
 impl bincode::Decode for NoInjectedIntrisics {
@@ -207,39 +208,26 @@ impl bincode::Encode for NoInjectedIntrisics {
         &self,
         _: &mut E,
     ) -> Result<(), bincode::error::EncodeError> {
-        self.0
+        match *self {}
     }
 }
 
 #[cfg(feature = "bincode")]
 bincode::impl_borrow_decode!(NoInjectedIntrisics);
 
-impl Deref for NoInjectedIntrisics {
-    type Target = !;
-
-    fn deref(&self) -> &Self::Target {
-        self.0
-    }
-}
-impl DerefMut for NoInjectedIntrisics {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0
-    }
-}
-
 impl Debug for NoInjectedIntrisics {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0
+        match *self {}
     }
 }
 impl Display for NoInjectedIntrisics {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0
+        match *self {}
     }
 }
 impl PartialEq for NoInjectedIntrisics {
     fn eq(&self, _: &Self) -> bool {
-        self.0
+        match *self {}
     }
 }
 impl Eq for NoInjectedIntrisics {}
@@ -250,25 +238,25 @@ impl PartialOrd for NoInjectedIntrisics {
 }
 impl Ord for NoInjectedIntrisics {
     fn cmp(&self, _: &Self) -> std::cmp::Ordering {
-        self.0
+        match *self {}
     }
 }
 impl Hash for NoInjectedIntrisics {
     fn hash<H: std::hash::Hasher>(&self, _: &mut H) {
-        self.0
+        match *self {}
     }
 }
 
 impl InjectedIntr for NoInjectedIntrisics {
     type Data = ();
-    type Error = !;
+    type Error = Infallible;
 
     fn iter() -> impl IntoIterator<Item = Self> {
         []
     }
 
     fn name(&self) -> &'static str {
-        self.0
+        match *self {}
     }
 
     fn call<'d>(
@@ -276,7 +264,7 @@ impl InjectedIntr for NoInjectedIntrisics {
         _: &mut Self::Data,
         _: Box<[Value<Self>]>,
     ) -> Result<Value<Self>, Self::Error> {
-        self.0
+        match *self {}
     }
 
     fn named(_: &str) -> Option<Self> {

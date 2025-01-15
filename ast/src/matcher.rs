@@ -34,7 +34,7 @@ impl<InjectedIntrisic> Matcher<InjectedIntrisic> {
                 end,
                 inclusive: true,
             } => start <= v && v <= end,
-            Matcher::List(box matchers) => {
+            Matcher::List(matchers) => {
                 let Value::List(values) = v else {
                     return false;
                 };
@@ -53,7 +53,7 @@ impl<InjectedIntrisic> Matcher<InjectedIntrisic> {
                     return false;
                 }
                 // check that all matchers have their match
-                matchers.iter().all(|(box name, matcher)| {
+                matchers.iter().all(|(name, matcher)| {
                     let Some(value) = values.get(name) else {
                         return false;
                     };
@@ -61,9 +61,9 @@ impl<InjectedIntrisic> Matcher<InjectedIntrisic> {
                 })
                 // we do not have to check for orfan values, because the maps have the same size.
             }
-            Matcher::And(box [a, b]) => a.is_match(v) && b.is_match(v),
-            Matcher::Or(box [a, b]) => a.is_match(v) || b.is_match(v),
-            Matcher::Not(box a) => !a.is_match(v),
+            Matcher::And(ops) => ops[0].is_match(v) && ops[1].is_match(v),
+            Matcher::Or(ops) => ops[0].is_match(v) || ops[1].is_match(v),
+            Matcher::Not(a) => !a.is_match(v),
             Matcher::Any => true,
             Matcher::None => false,
         }

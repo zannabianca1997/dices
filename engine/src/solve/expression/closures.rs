@@ -1,6 +1,5 @@
 use std::{collections::HashSet, iter::once};
 
-use derive_more::derive::{Display, Error};
 use itertools::Itertools;
 
 use dices_ast::{
@@ -14,6 +13,7 @@ use dices_ast::{
     intrisics::InjectedIntr,
     value::{Value, ValueClosure},
 };
+use thiserror::Error;
 
 use crate::{solve::Solvable, DicesRng};
 
@@ -49,11 +49,11 @@ where
     }
 }
 
-#[derive(Debug, Clone, Display, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum VarUseCalcError {
-    #[display("The variable(s) `{}` are declared only in some paths", vars.iter().format("`, `"))]
+    #[error("The variable(s) `{}` are declared only in some paths", vars.iter().format("`, `"))]
     ConditionalLet { vars: HashSet<Box<IdentStr>> },
-    #[display("Cannot calculate the variables captured in the closure")]
+    #[error("Cannot calculate the variables captured in the closure")]
     CalculateCaptures(Box<VarUseCalcError>),
 }
 
@@ -234,20 +234,16 @@ impl<'e> VarUse<'e> {
     fn receiving<II>(receiver: &'e Receiver<II>) -> Result<Self, VarUseCalcError> {
         Ok(match receiver {
             Receiver::Ignore => Self::none(),
-            Receiver::Set(MemberReceiver {
-                root: box root,
-                indices,
-            }) if indices.is_empty() => Self::sets(root),
-            Receiver::Set(MemberReceiver {
-                root: box root,
-                indices,
-            }) => once(Ok(Self::reads(root)))
+            Receiver::Set(MemberReceiver { root, indices }) if indices.is_empty() => {
+                Self::sets(root)
+            }
+            Receiver::Set(MemberReceiver { root, indices }) => once(Ok(Self::reads(root)))
                 .chain(indices.iter().map(Self::of))
                 .chain(once(Ok(Self::sets(root))))
                 .tree_reduce(maybe_concat)
                 .transpose()?
                 .expect("The iterator cannot be empty"),
-            Receiver::Let(box var) => Self::lets(var),
+            Receiver::Let(var) => Self::lets(var),
         })
     }
 }

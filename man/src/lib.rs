@@ -1,18 +1,11 @@
 //! This package contains  the manual pages for `dices`
 
-#![feature(never_type)]
-#![feature(box_patterns)]
-#![feature(iter_intersperse)]
-#![feature(mapped_lock_guards)]
-#![feature(error_reporter)]
-
 use std::{
     borrow::Cow,
     collections::HashMap,
-    error::Report,
     hash::{DefaultHasher, Hash, Hasher},
     ops::Deref,
-    sync::{Mutex, MutexGuard, OnceLock},
+    sync::{Arc, LazyLock, Mutex, MutexGuard, OnceLock},
 };
 
 use dices_ast::{
@@ -30,7 +23,10 @@ use pretty::DocAllocator;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
+use report::Report;
+
 pub mod example;
+mod report;
 
 /// Options to render the examples in the manual pages
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -60,11 +56,15 @@ pub const fn man_parse_options() -> ParseOptions {
     mdast2minimad::md_parse_options()
 }
 
-/// Content of the cache for tha parsed markdown AST
-struct AstCache {
-    ast: Node,
-    rendered: Mutex<HashMap<RenderOptions, Node>>,
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+struct RenderKey {
+    content: &'static str,
+    options: RenderOptions,
 }
+
+/// Rendered manual pages cache
+static RENDERS: LazyLock<mini_moka::sync::Cache<RenderKey, Arc<Node>>> =
+    LazyLock::new(|| mini_moka::sync::Cache::builder().build());
 
 /// A page of the manual
 pub struct ManPage {
@@ -73,7 +73,7 @@ pub struct ManPage {
     /// The content of the page
     pub content: &'static str,
     /// The markdown ast of the page, if parsed
-    ast: OnceLock<Box<AstCache>>,
+    ast: OnceLock<Node>,
 }
 impl ManPage {
     const fn new(name: &'static str, content: &'static str) -> Self {
@@ -84,36 +84,24 @@ impl ManPage {
         }
     }
 
-    fn ast_cache(&self) -> &AstCache {
-        self.ast.get_or_init(|| {
-            Box::new(AstCache {
-                ast: to_mdast(self.content, &man_parse_options()).unwrap(),
-                rendered: Mutex::new(HashMap::new()),
-            })
-        })
-    }
-
     /// The source ast, with the unrendered examples
     pub fn source(&self) -> &Node {
-        &self.ast_cache().ast
+        self.ast
+            .get_or_init(|| to_mdast(self.content, &man_parse_options()).unwrap())
     }
 
     /// The ast of the page, once the examples are rendered
-    pub fn rendered(&self, options: RenderOptions) -> impl Deref<Target = Node> + '_ {
-        let AstCache { ast, rendered } = self.ast_cache();
-        // Lock the cache for ourselves
-        // If poisoned, clear the cache and unpoison it.
-        let rendered = rendered.lock().unwrap_or_else(|mut e| {
-            **e.get_mut() = HashMap::new();
-            rendered.clear_poison();
-            e.into_inner()
-        });
-        // Get the cached value or render it
-        MutexGuard::map(rendered, |rendered| {
-            rendered
-                .entry(options)
-                .or_insert_with_key(|options| render_examples(ast.clone(), options))
-        })
+    pub fn rendered(&self, options: RenderOptions) -> Arc<Node> {
+        let key = RenderKey {
+            content: self.content,
+            options,
+        };
+        if let Some(cached) = RENDERS.get(&key) {
+            return cached;
+        }
+        let render = Arc::new(render_examples(self.source().clone(), &key.options));
+        RENDERS.insert(key, render.clone());
+        render
     }
 }
 
@@ -157,7 +145,7 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
                      cmd:
                          CodeExampleCommand {
                              ignore,
-                             command: box command,
+                             command,
                              src,
                          },
                      res: _,
@@ -192,10 +180,8 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
                             Ok(Value::Null(ValueNull)) => command,
                             Ok(res) => command.append(doc_arena.hardline()).append(res),
                             Err(err) => {
-                                let report = Report::new(err).pretty(true);
-                                command
-                                    .append(doc_arena.hardline())
-                                    .append(report.to_string())
+                                let report = Report::new(err);
+                                command.append(doc_arena.hardline()).append(&report)
                             }
                         };
 
@@ -220,7 +206,7 @@ pub struct ManDir {
     /// The content of the subdirectory
     pub content: phf::OrderedMap<&'static str, &'static ManItem>,
     /// The index of the subdirectory, if rendered
-    index: OnceLock<Box<Node>>,
+    index: OnceLock<Node>,
 }
 
 impl ManDir {
@@ -282,7 +268,7 @@ impl ManTopicContent {
         match self {
             ManTopicContent::Page(p) => RenderedRef::Page(p.rendered(options)),
             ManTopicContent::Index(dir) => {
-                RenderedRef::Index(&**dir.index.get_or_init(|| Box::new(render_index(dir))))
+                RenderedRef::Index(dir.index.get_or_init(|| render_index(dir)))
             }
         }
     }

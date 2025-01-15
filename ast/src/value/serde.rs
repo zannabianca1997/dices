@@ -138,18 +138,21 @@ where
             Value::Intrisic(ValueIntrisic(intrinsic)) => {
                 BorrowedSerialized::NestedIntrisic { intrinsic }
             }
-            Value::Closure(box ValueClosure {
-                params,
-                captures,
-                body,
-            }) => BorrowedSerialized::NestedClosure {
-                params,
-                captures,
-                body: ByteBuf::from(
-                    bincode::encode_to_vec(body, bincode::config::standard())
-                        .map_err(<S::Error as serde::ser::Error>::custom)?,
-                ),
-            },
+            Value::Closure(closure) => {
+                let ValueClosure {
+                    params,
+                    captures,
+                    body,
+                } = &**closure;
+                BorrowedSerialized::NestedClosure {
+                    params,
+                    captures,
+                    body: ByteBuf::from(
+                        bincode::encode_to_vec(body, bincode::config::standard())
+                            .map_err(<S::Error as serde::ser::Error>::custom)?,
+                    ),
+                }
+            }
         }
         .serialize(serializer)
     }
