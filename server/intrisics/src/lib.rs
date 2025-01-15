@@ -86,7 +86,7 @@ fn print(
     data: &mut ServerIntrisicsWetData,
     params: Box<[Value<ServerIntrisics>]>,
 ) -> Result<Value<ServerIntrisics>, ServerIntrisicsError> {
-    for value in params.into_vec().into_iter() {
+    for value in params.into_vec() {
         data.log(LogContent::Value(value));
     }
     Ok(Value::Null(ValueNull))
