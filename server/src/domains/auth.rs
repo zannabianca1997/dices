@@ -73,7 +73,7 @@ async fn signup(
         }
     };
 
-    let token = new_token(auth_id, auth_key);
+    let token = new_token(auth_id, &auth_key);
 
     Ok(UserSignupResponseDto(UserSigninResponseDto { token, user }))
 }
@@ -102,12 +102,12 @@ async fn signin(
         Err(err) => return Err(err.into()),
     };
 
-    let auth_id = check_password(user.id, &user.password, password).map_err(|err| match err {
+    let auth_id = check_password(user.id, &user.password, &password).map_err(|err| match err {
         CheckPasswordError::Password => SigninError::WrongPassword,
         err => err.into(),
     })?;
 
-    let token = new_token(auth_id, auth_key);
+    let token = new_token(auth_id, &auth_key);
 
     Ok(UserSigninResponseDto { token, user })
 }
@@ -124,6 +124,6 @@ where
     let mut router = OpenApiRouter::with_openapi(ApiInfo::openapi())
         .routes(routes!(signup))
         .routes(routes!(signin));
-    super::tag_api(router.get_openapi_mut(), "Auth".to_owned());
+    super::tag_api(router.get_openapi_mut(), "Auth");
     router
 }

@@ -25,7 +25,7 @@ where
 }
 
 /// Tag all the paths of an api
-fn tag_api(openapi: &mut utoipa::openapi::OpenApi, tag: String) {
+fn tag_api(openapi: &mut utoipa::openapi::OpenApi, tag: &str) {
     for path in openapi.paths.paths.values_mut() {
         for op in [
             &mut path.get,
@@ -39,7 +39,7 @@ fn tag_api(openapi: &mut utoipa::openapi::OpenApi, tag: String) {
         .into_iter()
         .flatten()
         {
-            op.tags.get_or_insert_default().push(tag.clone());
+            op.tags.get_or_insert_default().push(tag.to_string());
         }
     }
 }

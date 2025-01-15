@@ -5,5 +5,5 @@ mod derive;
 
 #[proc_macro_derive(InjectedIntr, attributes(injected_intr))]
 pub fn injected_intr(input: TokenStream) -> TokenStream {
-    derive::injected_intr(parse_macro_input!(input as DeriveInput)).into()
+    derive::injected_intr(&parse_macro_input!(input as DeriveInput)).into()
 }

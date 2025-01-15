@@ -1,4 +1,5 @@
 //! Definitions about `dices` identifiers
+#![allow(unsafe_code)]
 
 use derive_more::derive::{AsRef, Deref, Display};
 use lazy_regex::{regex, Lazy, Regex};

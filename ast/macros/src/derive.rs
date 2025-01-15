@@ -37,14 +37,14 @@ struct InjectedIntrVariantInput {
     prelude: bool,
 }
 
-pub fn injected_intr(input: DeriveInput) -> TokenStream {
+pub fn injected_intr(input: &DeriveInput) -> TokenStream {
     let InjectedIntrDeriveInput {
         ident,
         generics,
         data: Data::Enum(mut variants),
         data_ty,
         error_ty,
-    } = (match InjectedIntrDeriveInput::from_derive_input(&input) {
+    } = (match InjectedIntrDeriveInput::from_derive_input(input) {
         Ok(v) => v,
         Err(e) => return e.write_errors(),
     })

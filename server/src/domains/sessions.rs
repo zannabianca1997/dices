@@ -146,6 +146,6 @@ where
             .routes(routes!(sessions_post, sessions_get))
             .nest("/{session}", single::router());
     RequireUserToken.modify(router.get_openapi_mut());
-    super::tag_api(router.get_openapi_mut(), "Sessions".to_owned());
+    super::tag_api(router.get_openapi_mut(), "Sessions");
     router
 }

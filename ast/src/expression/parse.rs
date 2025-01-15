@@ -24,7 +24,7 @@ peg::parser! {
                 receiver:receiver() _ "=" _ value:@ { ExpressionSet{ receiver, value: Box::new(value) }.into()}
                 --
                 "|" _ p:( ident()  ** ( _ "," _ ) ) _ "|" _ body:@ {
-                    ExpressionClosure::new(p.into_iter().map(|p| p.to_owned()).collect(), body).into()
+                    ExpressionClosure::new(p.into_iter().map(ToOwned::to_owned).collect(), body).into()
                 }
                 --
                 a:(@) _ "+" _ b:@ { ExpressionBinOp::new(BinOp::Add, a,b).into() }
