@@ -380,7 +380,7 @@ fn print_value(
         return Ok(());
     }
     if graphic == Graphic::None {
-        println!("{}", value);
+        println!("{value}");
         return Ok(());
     }
     let arena = pretty::Arena::<()>::new();
