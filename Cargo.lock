@@ -1238,7 +1238,7 @@ checksum = "339544cc9e2c4dc3fc7149fd630c5f22263a4fdf18a98afd0075784968b5cf00"
 
 [[package]]
 name = "dices-ast"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "bincode",
  "derive_more",
@@ -1261,7 +1261,7 @@ dependencies = [
 
 [[package]]
 name = "dices-ast-macros"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "convert_case 0.7.1",
  "darling",
@@ -1272,7 +1272,7 @@ dependencies = [
 
 [[package]]
 name = "dices-engine"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "bincode",
  "derive_more",
@@ -1289,7 +1289,7 @@ dependencies = [
 
 [[package]]
 name = "dices-man"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "dices-ast",
@@ -1314,7 +1314,7 @@ dependencies = [
 
 [[package]]
 name = "dices-mantest"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "dices-engine",
@@ -1329,7 +1329,7 @@ dependencies = [
 
 [[package]]
 name = "dices-repl"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "atty",
  "chrono",
@@ -1490,7 +1490,7 @@ dependencies = [
 
 [[package]]
 name = "dices-version"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "bincode",
  "konst",
