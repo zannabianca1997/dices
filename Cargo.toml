@@ -30,6 +30,7 @@ default_trait_access = "deny"
 single_match_else = "warn"
 uninlined_format_args = "deny"
 wildcard_imports = "warn"
+explicit_into_iter_loop = "deny"
 
 [workspace.package]
 version = "0.3.2"
