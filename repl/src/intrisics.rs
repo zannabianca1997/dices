@@ -56,7 +56,7 @@ impl Clone for Quitted {
 }
 
 impl Data {
-    pub fn new(graphic: Rc<Graphic>, skin: Rc<MadSkin>) -> Self {
+    pub const fn new(graphic: Rc<Graphic>, skin: Rc<MadSkin>) -> Self {
         Self {
             graphic,
             skin,

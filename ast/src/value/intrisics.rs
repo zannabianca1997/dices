@@ -36,7 +36,7 @@ impl<Injected: InjectedIntr> Display for ValueIntrisic<Injected> {
 }
 
 impl<Injected> ValueIntrisic<Injected> {
-    pub fn to_number(&self) -> Result<ValueNumber, ToNumberError> {
+    pub const fn to_number(&self) -> Result<ValueNumber, ToNumberError> {
         Err(ToNumberError::Intrisic)
     }
     pub fn to_list(self) -> Result<ValueList<Injected>, ToListError> {
@@ -44,7 +44,7 @@ impl<Injected> ValueIntrisic<Injected> {
     }
 }
 impl ValueIntrisic<NoInjectedIntrisics> {
-    pub fn with_arbitrary_injected_intrisics<II>(self) -> ValueIntrisic<II> {
+    pub const fn with_arbitrary_injected_intrisics<II>(self) -> ValueIntrisic<II> {
         ValueIntrisic(self.0.with_arbitrary_injected_intrisics())
     }
 }

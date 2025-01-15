@@ -20,7 +20,7 @@ use super::{ToNumberError, ValueList};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ValueNull;
 impl ValueNull {
-    pub fn to_number(self) -> Result<super::ValueNumber, super::ToNumberError> {
+    pub const fn to_number(self) -> Result<super::ValueNumber, super::ToNumberError> {
         Err(ToNumberError::InvalidNull)
     }
     pub fn to_list<InjectedIntrisic>(

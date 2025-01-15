@@ -86,7 +86,7 @@ impl Default for Graphic {
     }
 }
 impl Graphic {
-    fn banner(&self) -> &str {
+    const fn banner(&self) -> &str {
         match self {
             Graphic::None => "",
             Graphic::Ascii => concat!(
@@ -101,21 +101,21 @@ impl Graphic {
             ),
         }
     }
-    fn prompt(&self) -> &str {
+    const fn prompt(&self) -> &str {
         match self {
             Graphic::None => "",
             Graphic::Ascii => ">>> ",
             Graphic::Fancy => "🎲> ",
         }
     }
-    fn prompt_cont(&self) -> &str {
+    const fn prompt_cont(&self) -> &str {
         match self {
             Graphic::None => "",
             Graphic::Ascii => "... ",
             Graphic::Fancy => "🎲. ",
         }
     }
-    fn bye(&self) -> &str {
+    const fn bye(&self) -> &str {
         match self {
             Graphic::None => "",
             Graphic::Ascii => "\nSee you at the next game!",

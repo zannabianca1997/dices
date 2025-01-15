@@ -19,11 +19,11 @@ pub use log::*;
 pub struct ServerIntrisicsDryData {}
 
 impl ServerIntrisicsDryData {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {}
     }
 
-    pub fn hydrate(self, logs: tokio::sync::mpsc::Sender<Log>) -> ServerIntrisicsWetData {
+    pub const fn hydrate(self, logs: tokio::sync::mpsc::Sender<Log>) -> ServerIntrisicsWetData {
         let Self {} = self;
         ServerIntrisicsWetData { logs }
     }

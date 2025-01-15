@@ -272,7 +272,7 @@ impl ManTopicContent {
         }
     }
 
-    pub fn is_page(&self) -> bool {
+    pub const fn is_page(&self) -> bool {
         matches!(self, Self::Page(_))
     }
 }

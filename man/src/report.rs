@@ -5,7 +5,7 @@ use pretty::Pretty;
 pub(super) struct Report<E>(E);
 
 impl<E> Report<E> {
-    pub(super) fn new(error: E) -> Self {
+    pub(super) const fn new(error: E) -> Self {
         Self(error)
     }
 }
