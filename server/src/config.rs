@@ -92,10 +92,10 @@ impl Provider for ConfigArgs {
 /// Build the figment from the multiple configuration sources
 fn figment(config_args: ConfigArgs) -> Figment {
     // First, the defaults values
-    let mut figment = if !config_args.no_defaults {
-        Figment::from(Serialized::defaults(Config::default()))
-    } else {
+    let mut figment = if config_args.no_defaults {
         Figment::new()
+    } else {
+        Figment::from(Serialized::defaults(Config::default()))
     };
     // Then the default config file
     if !config_args.no_default_config_file {

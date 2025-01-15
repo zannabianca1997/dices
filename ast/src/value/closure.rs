@@ -92,12 +92,12 @@ where
                 .append(self.params.len().to_string())
                 .append(" parameters")
         };
-        let text = if !self.captures.is_empty() {
+        let text = if self.captures.is_empty() {
+            text
+        } else {
             text.append(" (captured ")
                 .append(self.captures.len().to_string())
                 .append(" values)")
-        } else {
-            text
         };
         text.append(">")
     }
