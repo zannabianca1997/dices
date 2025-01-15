@@ -27,7 +27,7 @@ pub enum IntrisicError<Injected>
 where
     Injected: InjectedIntr,
 {
-    #[error("Wrong number of params given to the intrisic {}: expected {}, given {given}", called.name(), param_num(called))]
+    #[error("Wrong number of params given to the intrisic {}: expected {}, given {given}", called.name(), param_num(called).unwrap())]
     WrongParamNum {
         called: Intrisic<Injected>,
         given: usize,
@@ -257,19 +257,21 @@ where
     }
 }
 
-fn param_num<Injected>(intr: &Intrisic<Injected>) -> usize {
+const fn param_num<Injected>(intr: &Intrisic<Injected>) -> Option<usize> {
     match intr {
-        Intrisic::Call => 2,
-        Intrisic::ToString | Intrisic::Parse | Intrisic::ToNumber | Intrisic::ToList => 1,
+        Intrisic::Call => Some(2),
+        Intrisic::ToString
+        | Intrisic::Parse
+        | Intrisic::ToNumber
+        | Intrisic::ToList
+        | Intrisic::ToJson
+        | Intrisic::FromJson
+        | Intrisic::RestoreRNG => Some(1),
+        Intrisic::SaveRNG => Some(0),
         Intrisic::Sum
         | Intrisic::Join
         | Intrisic::Mult
         | Intrisic::Injected(_)
-        | Intrisic::SeedRNG => {
-            panic!("These have no fixed param number")
-        }
-        Intrisic::ToJson | Intrisic::FromJson => 1,
-        Intrisic::RestoreRNG => 1,
-        Intrisic::SaveRNG => 0,
+        | Intrisic::SeedRNG => None,
     }
 }
