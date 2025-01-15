@@ -45,7 +45,7 @@ pub struct ValueNumber(pub(super) BigInt);
 impl ValueNumber {
     pub const ZERO: Self = ValueNumber(BigInt::ZERO);
 
-    pub fn to_number(self) -> Result<ValueNumber, super::ToNumberError> {
+    pub const fn to_number(self) -> Result<ValueNumber, super::ToNumberError> {
         Ok(self)
     }
 

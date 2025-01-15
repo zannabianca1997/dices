@@ -123,7 +123,7 @@ impl<RNG, InjectedIntrisic, InjectedIntrisicData>
     }
 
     /// Handler to the data used by the injected intrisics
-    pub fn injected_intrisics_data(&self) -> &InjectedIntrisicData {
+    pub const fn injected_intrisics_data(&self) -> &InjectedIntrisicData {
         &self.injected_intrisics_data
     }
 

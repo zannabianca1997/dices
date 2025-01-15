@@ -52,15 +52,15 @@ impl<InjectedIntrisic> ValueList<InjectedIntrisic> {
         }
     }
 
-    pub fn to_list(self) -> Result<ValueList<InjectedIntrisic>, super::ToListError> {
+    pub const fn to_list(self) -> Result<ValueList<InjectedIntrisic>, super::ToListError> {
         Ok(self)
     }
 
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.0.len()
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 

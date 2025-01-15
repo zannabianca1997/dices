@@ -37,7 +37,7 @@ impl<InjectedIntrisic> Default for ValueMap<InjectedIntrisic> {
 }
 
 impl<InjectedIntrisic> ValueMap<InjectedIntrisic> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self(BTreeMap::new())
     }
 

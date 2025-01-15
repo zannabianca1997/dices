@@ -22,7 +22,7 @@ impl Version {
     }
 
     /// Check if this version is compatible with the remote one
-    pub fn is_compatible_with(&self, remote: &Self) -> Result<(), IncompatibilityReason> {
+    pub const fn is_compatible_with(&self, remote: &Self) -> Result<(), IncompatibilityReason> {
         if self.major != remote.major {
             return Err(IncompatibilityReason::Major {
                 local: self.major,

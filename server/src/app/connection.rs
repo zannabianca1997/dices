@@ -31,7 +31,7 @@ fn default_values() -> String {
 fn default_host() -> String {
     Ipv4Addr::LOCALHOST.to_string()
 }
-fn default_port() -> u16 {
+const fn default_port() -> u16 {
     5432
 }
 

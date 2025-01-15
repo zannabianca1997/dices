@@ -258,7 +258,7 @@ impl<RNG, InjectedIntrisic, InjectedIntrisicData>
 impl<RNG, InjectedIntrisic, InjectedIntrisicData>
     Engine<RNG, InjectedIntrisic, InjectedIntrisicData>
 {
-    pub fn injected_intrisics_data(&self) -> &InjectedIntrisicData {
+    pub const fn injected_intrisics_data(&self) -> &InjectedIntrisicData {
         self.context.injected_intrisics_data()
     }
 

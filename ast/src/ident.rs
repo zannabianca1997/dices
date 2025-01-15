@@ -35,7 +35,7 @@ impl IdentStr {
     ///
     /// # Safety
     /// The user must check that `s` is a match for [`is_valid_ident`]
-    pub unsafe fn new_unchecked(s: &str) -> &Self {
+    pub const unsafe fn new_unchecked(s: &str) -> &Self {
         &*(s as *const str as *const Self)
     }
 

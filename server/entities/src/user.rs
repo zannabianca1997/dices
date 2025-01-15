@@ -44,7 +44,7 @@ impl UserId {
         Self(uuid::Uuid::new_v4())
     }
 
-    pub fn as_bytes(&self) -> &[u8; 16] {
+    pub const fn as_bytes(&self) -> &[u8; 16] {
         self.0.as_bytes()
     }
 }

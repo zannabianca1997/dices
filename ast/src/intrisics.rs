@@ -102,7 +102,7 @@ macro_rules! repetitive_impl {
             }
         }
         impl Intrisic<NoInjectedIntrisics> {
-            pub fn with_arbitrary_injected_intrisics<II>(self) -> Intrisic<II> {
+            pub const fn with_arbitrary_injected_intrisics<II>(self) -> Intrisic<II> {
                 match self {
                     $(
                         Intrisic::$variant => Intrisic::$variant,

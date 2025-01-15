@@ -82,7 +82,7 @@ pub struct FixedSizePaginationParams {
     pub page_size: NonZeroU64,
 }
 
-fn default_page_size() -> NonZeroU64 {
+const fn default_page_size() -> NonZeroU64 {
     NonZeroU64::new(50).unwrap()
 }
 
