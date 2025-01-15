@@ -31,6 +31,7 @@ single_match_else = "warn"
 uninlined_format_args = "deny"
 wildcard_imports = "warn"
 explicit_into_iter_loop = "deny"
+explicit_iter_loop = "deny"
 single_char_pattern = "deny"
 manual_assert = "warn"
 

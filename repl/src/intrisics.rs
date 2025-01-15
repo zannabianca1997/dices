@@ -188,7 +188,7 @@ fn print(
     data: &mut Data,
     params: Box<[Value<REPLIntrisics>]>,
 ) -> Result<Value<REPLIntrisics>, REPLIntrisicsError> {
-    for value in params.iter() {
+    for value in &params {
         match print_value(*data.graphic, &data.skin, value, false) {
             Ok(()) => (),
             Err(err) => {
