@@ -35,7 +35,6 @@ derive_more = { version = "1.0", features = [
     "deref_mut",
     "display",
     "into",
-    "error",
     "add",
     "add_assign",
     "mul",
@@ -60,3 +59,4 @@ serde_bytes = { version = "0.11", optional = true }
 
 dices-version = { path = "../version" }
 dices-ast-macros = { path = "./macros" }
+thiserror = "2.0.11"

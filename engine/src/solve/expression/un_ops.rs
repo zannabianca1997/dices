@@ -15,11 +15,8 @@ where
         &self,
         context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, SolveError<InjectedIntrisic>> {
-        let ExpressionUnOp {
-            op,
-            expression: box a,
-        } = self;
-        let a = a.solve(context)?;
+        let ExpressionUnOp { op, expression } = self;
+        let a = expression.solve(context)?;
         (match op {
             UnOp::Plus => plus,
             UnOp::Neg => neg,

@@ -21,7 +21,7 @@ pub struct Setup {
     /// If the terminal is light or dark
     #[clap(long, short)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(crate) teminal: Option<TerminalLightness>,
+    pub(crate) terminal: Option<TerminalLightness>,
 
     /// The seed to use to initialize the random number generator
     #[clap(long, short)]
@@ -31,7 +31,7 @@ pub struct Setup {
 
 impl Setup {
     /// Extract the setup from the possible configuration sources
-    pub fn extract_setups(file: Option<PathBuf>, cli: Setup) -> Result<Setup, figment::Error> {
+    pub fn extract_setups(file: Option<&PathBuf>, cli: &Setup) -> Result<Setup, figment::Error> {
         // Extracting the setup
         let mut figment = Figment::new().merge(Serialized::defaults(Setup::default()));
         // Seek first the default values

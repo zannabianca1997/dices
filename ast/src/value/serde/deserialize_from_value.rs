@@ -4,7 +4,7 @@
  * A lot of this code is heavily inspired (and in some part straight up copied) from
  * the eccellent work of [dtolnay](https://github.com/dtolnay) in his library `serde_json`
  */
-use derive_more::derive::{Display, Error, From};
+use derive_more::derive::From;
 use num_bigint::BigInt;
 use serde::{
     de::{
@@ -14,6 +14,7 @@ use serde::{
     Deserialize, Deserializer,
 };
 use std::fmt::Display;
+use thiserror::Error;
 
 use crate::{
     intrisics::{InjectedIntr, NoInjectedIntrisics},
@@ -23,12 +24,12 @@ use crate::{
 
 use super::serialize_to_value;
 
-#[derive(Debug, Display, Error, From, Clone)]
+#[derive(Debug, Error, From, Clone)]
 pub enum Error {
-    #[display("{_0}")]
-    Custom(#[error(not(source))] String),
-    #[display("Number {_0} is too big for serde data model")]
-    NumberTooBig(#[error(not(source))] BigInt),
+    #[error("{_0}")]
+    Custom(String),
+    #[error("Number {_0} is too big for serde data model")]
+    NumberTooBig(BigInt),
 }
 
 impl serde::de::Error for Error {

@@ -27,6 +27,7 @@ itertools = "0.14"
 typed-arena = "2.0"
 mdast2minimad = "0.1"
 rand_xoshiro = { version = "0.6", features = ["serde1"] }
+mini-moka = "0.10"
 
 [build-dependencies]
 phf_codegen = "0.11"

@@ -1,5 +1,5 @@
-use derive_more::derive::{Display, Error};
 pub use konst::{primitive::parse_u16, unwrap_ctx};
+use thiserror::Error;
 
 /// Identifies the version of the component
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -40,11 +40,11 @@ impl Version {
     }
 }
 
-#[derive(Debug, Clone, Display, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum IncompatibilityReason {
-    #[display("The local major version ({local}) is diffent from the remote one ({remote})")]
+    #[error("The local major version ({local}) is diffent from the remote one ({remote})")]
     Major { local: u16, remote: u16 },
-    #[display("The local minor version ({local}) is greather of the remote one ({remote})")]
+    #[error("The local minor version ({local}) is greather of the remote one ({remote})")]
     Minor { local: u16, remote: u16 },
 }
 

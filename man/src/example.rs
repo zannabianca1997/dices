@@ -1,6 +1,6 @@
 //! Stuff to help parsing and making sense of code examples
 
-use std::{ops::Deref, str::FromStr};
+use std::{convert::Infallible, ops::Deref, str::FromStr};
 
 use lazy_regex::{regex_captures, regex_if};
 use nunny::NonEmpty;
@@ -21,7 +21,7 @@ impl Deref for CodeExample {
 }
 
 impl FromStr for CodeExample {
-    type Err = !;
+    type Err = Infallible;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         // parse the test

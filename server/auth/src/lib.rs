@@ -1,6 +1,3 @@
-#![feature(error_reporter)]
-#![feature(duration_constructors)]
-
 use utoipa::{
     openapi::security::{Http, HttpAuthScheme, SecurityScheme},
     Modify,

@@ -1,10 +1,3 @@
-#![feature(assert_matches)]
-#![feature(never_type)]
-#![feature(iterator_try_collect)]
-#![feature(iterator_try_reduce)]
-#![feature(box_patterns)]
-#![feature(type_changing_struct_update)]
-
 use std::borrow::Cow;
 
 use dices_version::Version;
@@ -49,7 +42,18 @@ impl Default for EngineBuilder {
 impl<RNG, InjectedIntrisicData> EngineBuilder<RNG, InjectedIntrisicData> {
     /// Add an RNG
     pub fn with_rng<NewRNG>(self, rng: NewRNG) -> EngineBuilder<NewRNG, InjectedIntrisicData> {
-        EngineBuilder { rng, ..self }
+        let Self {
+            rng: _,
+            std,
+            prelude,
+            injected_intrisics_data,
+        } = self;
+        EngineBuilder {
+            rng,
+            std,
+            prelude,
+            injected_intrisics_data,
+        }
     }
 
     /// Add an RNG, seeding it from entropy
@@ -57,10 +61,7 @@ impl<RNG, InjectedIntrisicData> EngineBuilder<RNG, InjectedIntrisicData> {
     where
         NewRNG: SeedableRng,
     {
-        EngineBuilder {
-            rng: NewRNG::from_entropy(),
-            ..self
-        }
+        self.with_rng(NewRNG::from_entropy())
     }
 
     /// Inject the intrisics with data
@@ -68,9 +69,17 @@ impl<RNG, InjectedIntrisicData> EngineBuilder<RNG, InjectedIntrisicData> {
         self,
         data: NewInjectedIntrisicData,
     ) -> EngineBuilder<RNG, NewInjectedIntrisicData> {
+        let Self {
+            rng,
+            std,
+            prelude,
+            injected_intrisics_data: _,
+        } = self;
         EngineBuilder {
             injected_intrisics_data: data,
-            ..self
+            rng,
+            std,
+            prelude,
         }
     }
 

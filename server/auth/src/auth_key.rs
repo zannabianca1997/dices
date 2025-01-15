@@ -18,7 +18,7 @@ pub struct AuthConfig {
 impl Default for AuthConfig {
     fn default() -> Self {
         Self {
-            token_validity: Duration::from_mins(5),
+            token_validity: Duration::from_secs(5 * 60),
         }
     }
 }

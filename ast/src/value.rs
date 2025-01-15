@@ -1,6 +1,6 @@
 //! The value a `dices` variable
 
-use derive_more::derive::{Display, Error, From, TryUnwrap, Unwrap};
+use derive_more::derive::{Display, From, TryUnwrap, Unwrap};
 
 pub use boolean::ValueBool;
 pub use closure::ValueClosure;
@@ -10,6 +10,7 @@ pub use map::ValueMap;
 pub use null::ValueNull;
 pub use number::ValueNumber;
 pub use string::ValueString;
+use thiserror::Error;
 
 use crate::intrisics::{Intrisic, NoInjectedIntrisics};
 
@@ -136,24 +137,24 @@ where
     }
 }
 
-#[derive(Debug, Display, Error, Clone)]
+#[derive(Debug, Error, Clone)]
 pub enum ToNumberError {
     #[cfg(feature = "parse_value")]
-    #[display("The string cannot be converted in a number")]
-    InvalidString(#[error(source)] <Value as std::str::FromStr>::Err),
-    #[display("A list of length {} cannot be interpreted as a number", 0)]
-    WrongListLength(#[error(not(source))] usize),
-    #[display("A map of length {} cannot be interpreted as a number", 0)]
-    WrongMapLength(#[error(not(source))] usize),
-    #[display("Intrisics cannot be interpreted as a number")]
+    #[error("The string cannot be converted in a number")]
+    InvalidString(#[source] <Value as std::str::FromStr>::Err),
+    #[error("A list of length {_0} cannot be interpreted as a number")]
+    WrongListLength(usize),
+    #[error("A map of length {_0} cannot be interpreted as a number")]
+    WrongMapLength(usize),
+    #[error("Intrisics cannot be interpreted as a number")]
     Intrisic,
-    #[display("Closures cannot be interpreted as a number")]
+    #[error("Closures cannot be interpreted as a number")]
     Closure,
-    #[display("`null` cannot be interpreted as a number")]
+    #[error("`null` cannot be interpreted as a number")]
     InvalidNull,
 }
 
-#[derive(Debug, Display, Error, Clone)]
+#[derive(Debug, Error, Clone)]
 pub enum ToListError {}
 
 impl<InjectedIntrisic> From<Intrisic<InjectedIntrisic>> for Value<InjectedIntrisic> {

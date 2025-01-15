@@ -6,7 +6,7 @@ macro_rules! trivial_impl {
         ( $( $type:ty ),* ) => {
             $(
                 impl<InjectedIntrisic: InjectedIntr> crate::solve::Solvable<InjectedIntrisic> for $type {
-                    type Error = !;
+                    type Error = std::convert::Infallible;
 
                     fn solve<R>(
                         &self,
@@ -33,7 +33,7 @@ trivial_impl!(
 impl<InjectedIntrisic: InjectedIntr> crate::solve::Solvable<InjectedIntrisic>
     for ValueClosure<InjectedIntrisic>
 {
-    type Error = !;
+    type Error = std::convert::Infallible;
 
     fn solve<R>(
         &self,

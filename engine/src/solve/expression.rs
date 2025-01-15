@@ -1,7 +1,7 @@
 //! Implementations of Solvable on all types of expressions
 
 use closures::VarUseCalcError;
-use derive_more::{Debug, Display, Error};
+use derive_more::Debug;
 use nunny::NonEmpty;
 
 use dices_ast::{
@@ -16,94 +16,99 @@ use dices_ast::{
     value::{ToListError, ToNumberError, Value, ValueClosure, ValueNull, ValueNumber},
 };
 pub use intrisics::IntrisicError;
+use thiserror::Error;
 
 use crate::{solve::Solvable, DicesRng};
 
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Error)]
 pub enum SolveError<InjectedIntrisic: InjectedIntr> {
-    #[display("The number of repeats must be a number")]
-    RepeatTimesNotANumber(#[error(source)] ToNumberError),
-    #[display("The number of repeats must be positive (given {_0})")]
-    NegativeRepeats(#[error(not(source))] ValueNumber),
-    #[display("The operator {op} needs a number at is right")]
+    #[error("The number of repeats must be a number")]
+    RepeatTimesNotANumber(#[source] ToNumberError),
+    #[error("The number of repeats must be positive (given {_0})")]
+    NegativeRepeats(ValueNumber),
+    #[error("The operator {op} needs a number at is right")]
     RHSIsNotANumber {
         op: BinOp,
-        #[error(source)]
+        #[source]
         source: ToNumberError,
     },
-    #[display("The operator {op} needs a number at is left")]
+    #[error("The operator {op} needs a number at is left")]
     LHSIsNotANumber {
         op: BinOp,
-        #[error(source)]
+        #[source]
         source: ToNumberError,
     },
-    #[display("The operator {op} needs a list at is right")]
+    #[error("The operator {op} needs a list at is right")]
     RHSIsNotAList {
         op: BinOp,
-        #[error(source)]
+        #[source]
         source: ToListError,
     },
-    #[display("The operator {op} needs a list at is left")]
+    #[error("The operator {op} needs a list at is left")]
     LHSIsNotAList {
         op: BinOp,
-        #[error(source)]
+        #[source]
         source: ToListError,
     },
-    #[display("Integer overflow")]
+    #[error("Integer overflow")]
     Overflow,
-    #[display("The filter operator {op} needs a list of number at his left")]
+    #[error("The filter operator {op} needs a list of number at his left")]
     FilterNeedNumber {
         op: BinOp,
-        #[error(source)]
+        #[source]
         source: ToNumberError,
     },
-    #[display("The filter operator {} needs a positive number at his right", op)]
+    #[error("The filter operator {} needs a positive number at his right", op)]
     FilterNeedPositive {
         op: BinOp,
         source: <usize as TryFrom<ValueNumber>>::Error,
     },
-    #[display("The number of dice faces must be a number")]
+    #[error("The number of dice faces must be a number")]
     FacesAreNotANumber {
-        #[error(source)]
+        #[source]
         source: ToNumberError,
     },
-    #[display("The number of dice faces must be positive (given {faces})")]
+    #[error("The number of dice faces must be positive (given {faces})")]
     FacesMustBePositive { faces: ValueNumber },
-    #[display("Cannot convert into a number")]
+    #[error("Cannot convert into a number")]
     CannotMakeANumber {
-        #[error(source)]
+        #[source]
         source: ToNumberError,
     },
-    #[display("`*` operator need at least one scalar")]
+    #[error("`*` operator need at least one scalar")]
     MultNeedAScalar,
-    #[display("Undefined variable {_0}")]
-    InvalidReference(#[error(not(source))] Box<IdentStr>),
-    #[display("{_0} is not callable")]
-    NotCallable(#[error(not(source))] Value<InjectedIntrisic>),
-    #[display("Error during intrisic call")]
-    IntrisicError(#[error(source)] Box<RecursionGuard<IntrisicError<InjectedIntrisic>>>),
-    #[display("Closures requires {required} params, {given} were instead provided.")]
+    #[error("Undefined variable {_0}")]
+    InvalidReference(Box<IdentStr>),
+    #[error("{_0} is not callable")]
+    NotCallable(Value<InjectedIntrisic>),
+    #[error("Error during intrisic call")]
+    IntrisicError(#[source] Box<RecursionGuard<IntrisicError<InjectedIntrisic>>>),
+    #[error("Closures requires {required} params, {given} were instead provided.")]
     WrongNumberOfParams { required: usize, given: usize },
-    #[display("The closure failed to calculate what variables needed to be captured")]
-    ClosureCannotCalculateCaptures(#[error(source)] VarUseCalcError),
-    #[display("{_0} is not indexable")]
-    CannotIndex(#[error(not(source))] Value<InjectedIntrisic>),
-    #[display("A map can be indexed only by strings, not {_0}")]
-    MapIsIndexedByStrings(#[error(not(source))] Value<InjectedIntrisic>),
-    #[display("A string can be indexed only by numbers")]
-    StringIsIndexedByNumbers(#[error(source)] ToNumberError),
-    #[display("A list can be indexed only by numbers")]
-    ListIsIndexedByNumbers(#[error(source)] ToNumberError),
-    #[display("Index {idx} out of range for string of lenght {len}")]
+    #[error("The closure failed to calculate what variables needed to be captured")]
+    ClosureCannotCalculateCaptures(#[source] VarUseCalcError),
+    #[error("{_0} is not indexable")]
+    CannotIndex(Value<InjectedIntrisic>),
+    #[error("A map can be indexed only by strings, not {_0}")]
+    MapIsIndexedByStrings(Value<InjectedIntrisic>),
+    #[error("A string can be indexed only by numbers")]
+    StringIsIndexedByNumbers(#[source] ToNumberError),
+    #[error("A list can be indexed only by numbers")]
+    ListIsIndexedByNumbers(#[source] ToNumberError),
+    #[error("Index {idx} out of range for string of lenght {len}")]
     StringIndexOutOfRange { idx: ValueNumber, len: usize },
-    #[display("Index {idx} out of range for list of lenght {len}")]
+    #[error("Index {idx} out of range for list of lenght {len}")]
     ListIndexOutOfRange { idx: ValueNumber, len: usize },
-    #[display("Key not found: \"{_0}\"")]
-    MissingKey(#[error(not(source))] dices_ast::value::ValueString),
+    #[error("Key not found: \"{_0}\"")]
+    MissingKey(dices_ast::value::ValueString),
+    #[error("Division by zero")]
+    DivisionByZero,
 }
-impl<InjectedIntrisic: InjectedIntr> From<!> for SolveError<InjectedIntrisic> {
-    fn from(value: !) -> Self {
-        value
+impl<InjectedIntrisic: InjectedIntr> From<std::convert::Infallible>
+    for SolveError<InjectedIntrisic>
+{
+    fn from(value: std::convert::Infallible) -> Self {
+        match value {}
     }
 }
 
@@ -147,7 +152,9 @@ where
         context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
         Ok(Value::List(
-            self.iter().map(|i| i.solve(context)).try_collect()?,
+            self.iter()
+                .map(|i| i.solve(context))
+                .collect::<Result<_, _>>()?,
         ))
     }
 }
@@ -165,7 +172,7 @@ where
         Ok(Value::Map(
             self.iter()
                 .map(|(k, v)| v.solve(context).map(|v| (k.clone(), v)))
-                .try_collect()?,
+                .collect::<Result<_, _>>()?,
         ))
     }
 }
@@ -185,21 +192,22 @@ where
         &self,
         context: &mut crate::Context<R, InjectedIntrisic, InjectedIntrisic::Data>,
     ) -> Result<Value<InjectedIntrisic>, Self::Error> {
-        let Self {
-            called: box called,
-            params: box params,
-        } = self;
+        let Self { called, params } = self;
         let called = called.solve(context)?;
-        let params: Box<_> = params.iter().map(|p| p.solve(context)).try_collect()?;
+        let params: Box<_> = params
+            .iter()
+            .map(|p| p.solve(context))
+            .collect::<Result<_, _>>()?;
 
         match called {
             Value::Intrisic(intrisic) => intrisics::call(intrisic, context, params)
                 .map_err(|err| SolveError::IntrisicError(Box::new(RecursionGuard::new(err)))),
-            Value::Closure(box ValueClosure {
-                params: params_names,
-                captures,
-                body,
-            }) => {
+            Value::Closure(closure) => {
+                let ValueClosure {
+                    params: params_names,
+                    captures,
+                    body,
+                } = *closure;
                 if params.len() != params_names.len() {
                     return Err(SolveError::WrongNumberOfParams {
                         required: params_names.len(),
@@ -335,7 +343,7 @@ where
                 let indices: Vec<_> = indices
                     .iter()
                     .map(|index| index.solve(context))
-                    .try_collect()?;
+                    .collect::<Result<_, _>>()?;
                 let mut vars = context.vars_mut();
                 let mut destination = vars
                     .get_mut(root)
@@ -370,7 +378,7 @@ where
                 }
                 *destination = value.clone();
             }
-            Receiver::Let(box v) => context.vars_mut().let_(v.to_owned(), value.clone()),
+            Receiver::Let(v) => context.vars_mut().let_(v.to_owned(), value.clone()),
         }
 
         Ok(value)

@@ -6,58 +6,58 @@ use std::{
     str::FromStr,
 };
 
-use derive_more::{Display, Error};
+use rand::SeedableRng;
+use thiserror::Error;
+
 use dices_ast::{
     expression::{bin_ops::BinOp, Expression, ExpressionBinOp, ExpressionCall},
     intrisics::{InjectedIntr, Intrisic},
     value::{
         serde::{deserialize_from_value, serialize_to_value},
-        ToListError, ToNumberError, Value, ValueIntrisic, ValueNull,
+        ToListError, ToNumberError, Value, ValueIntrisic, ValueList, ValueNull,
     },
 };
-use rand::SeedableRng;
 
 use crate::{solve::Solvable, DicesRng};
 
 use super::SolveError;
 
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Error)]
 pub enum IntrisicError<Injected>
 where
     Injected: InjectedIntr,
 {
-    #[display("Wrong number of params given to the intrisic {}: expected {}, given {given}", called.name(), param_num(called))]
+    #[error("Wrong number of params given to the intrisic {}: expected {}, given {given}", called.name(), param_num(called))]
     WrongParamNum {
         called: Intrisic<Injected>,
         given: usize,
     },
-    #[display("Expression called failed to evaluate")]
-    CallFailed(#[error(source)] SolveError<Injected>),
-    #[display("Error during summing")]
-    SumFailed(#[error(source)] SolveError<Injected>),
-    #[display("Error during multiplying")]
-    MultFailed(#[error(source)] SolveError<Injected>),
-    #[display("Error during joining")]
-    JoinFailed(#[error(source)] SolveError<Injected>),
-    #[display("The second parameter of `call` must be a list of parameters")]
-    CallParamsNotAList(#[error(source)] ToListError),
-    #[display("Cannot convert to a number")]
-    ToNumber(#[error(source)] ToNumberError),
-    #[display("Cannot convert to a list")]
-    ToList(#[error(source)] ToListError),
-    #[display("`parse` must be called on a string, not on {_0}")]
-    CannotParseNonString(#[error(not(source))] Value<Injected>),
-    #[display("`from_json` must be called on a string, not on {_0}")]
-    JsonMustBeString(#[error(not(source))] Value<Injected>),
-    #[display("Failed to parse string")]
-    ParseFailed(#[error(source)] <Value<Injected> as FromStr>::Err),
-
-    #[display("{_0}")]
-    Injected(#[error(source)] Injected::Error),
-    #[display("Cannot deserialize from json")]
-    JsonError(#[error(source)] Rc<serde_json::Error>),
-    #[display("Invalid RNG state")]
-    InvalidRngState(#[error(source)] dices_ast::value::serde::DeserializeFromValueError),
+    #[error("Expression called failed to evaluate")]
+    CallFailed(#[source] SolveError<Injected>),
+    #[error("Error during summing")]
+    SumFailed(#[source] SolveError<Injected>),
+    #[error("Error during multiplying")]
+    MultFailed(#[source] SolveError<Injected>),
+    #[error("Error during joining")]
+    JoinFailed(#[source] SolveError<Injected>),
+    #[error("The second parameter of `call` must be a list of parameters")]
+    CallParamsNotAList(#[source] ToListError),
+    #[error("Cannot convert to a number")]
+    ToNumber(#[source] ToNumberError),
+    #[error("Cannot convert to a list")]
+    ToList(#[source] ToListError),
+    #[error("`parse` must be called on a string, not on {_0}")]
+    CannotParseNonString(Value<Injected>),
+    #[error("`from_json` must be called on a string, not on {_0}")]
+    JsonMustBeString(Value<Injected>),
+    #[error("Failed to parse string")]
+    ParseFailed(#[source] <Value<Injected> as FromStr>::Err),
+    #[error(transparent)]
+    Injected(Injected::Error),
+    #[error("Cannot deserialize from json")]
+    JsonError(#[source] Rc<serde_json::Error>),
+    #[error("Invalid RNG state")]
+    InvalidRngState(#[source] dices_ast::value::serde::DeserializeFromValueError),
 }
 
 pub(super) fn call<R: DicesRng, Injected>(
@@ -72,8 +72,8 @@ where
         // Variadics
         Intrisic::Call => {
             let [called, params] = match Box::<[_; 2]>::try_from(params) {
-                Ok(box [a, b]) => [a, b],
-                Err(box ref s) => {
+                Ok(ab) => *ab,
+                Err(s) => {
                     return Err(IntrisicError::WrongParamNum {
                         called: Intrisic::Call,
                         given: s.len(),
@@ -93,39 +93,51 @@ where
             .solve(context)
             .map_err(IntrisicError::CallFailed)
         }
-        Intrisic::Sum => params
-            .into_vec()
-            .into_iter()
-            .try_reduce(|e1, e2| {
-                Expression::BinOp(ExpressionBinOp::new(BinOp::Add, e1.into(), e2.into()))
+        Intrisic::Sum => {
+            if params.is_empty() {
+                return Ok(Value::Number(0.into()));
+            }
+            let mut params = params.into_vec().into_iter();
+            let mut acc = params.next().unwrap();
+            for p in params {
+                acc = Expression::BinOp(ExpressionBinOp::new(BinOp::Add, acc.into(), p.into()))
                     .solve(context)
-            })
-            .map(|r| r.unwrap_or(Value::Number(0.into())))
-            .map_err(IntrisicError::SumFailed),
-        Intrisic::Join => params
-            .into_vec()
-            .into_iter()
-            .try_reduce(|e1, e2| {
-                Expression::BinOp(ExpressionBinOp::new(BinOp::Join, e1.into(), e2.into()))
+                    .map_err(IntrisicError::SumFailed)?
+            }
+            Ok(acc)
+        }
+        Intrisic::Join => {
+            if params.is_empty() {
+                return Ok(Value::List(ValueList::new()));
+            }
+            let mut params = params.into_vec().into_iter();
+            let mut acc = params.next().unwrap();
+            for p in params {
+                acc = Expression::BinOp(ExpressionBinOp::new(BinOp::Join, acc.into(), p.into()))
                     .solve(context)
-            })
-            .map(|r| r.unwrap_or(Value::List([].into_iter().collect())))
-            .map_err(IntrisicError::JoinFailed),
-        Intrisic::Mult => params
-            .into_vec()
-            .into_iter()
-            .try_reduce(|e1, e2| {
-                Expression::BinOp(ExpressionBinOp::new(BinOp::Mult, e1.into(), e2.into()))
+                    .map_err(IntrisicError::JoinFailed)?
+            }
+            Ok(acc)
+        }
+        Intrisic::Mult => {
+            if params.is_empty() {
+                return Ok(Value::Number(1.into()));
+            }
+            let mut params = params.into_vec().into_iter();
+            let mut acc = params.next().unwrap();
+            for p in params {
+                acc = Expression::BinOp(ExpressionBinOp::new(BinOp::Mult, acc.into(), p.into()))
                     .solve(context)
-            })
-            .map(|r| r.unwrap_or(Value::Number(1.into())))
-            .map_err(IntrisicError::MultFailed),
+                    .map_err(IntrisicError::MultFailed)?
+            }
+            Ok(acc)
+        }
 
         // Conversions
         Intrisic::ToNumber => {
             let [value] = match Box::<[_; 1]>::try_from(params) {
-                Ok(box [a]) => [a],
-                Err(box ref s) => {
+                Ok(a) => *a,
+                Err(s) => {
                     return Err(IntrisicError::WrongParamNum {
                         called: Intrisic::ToNumber,
                         given: s.len(),
@@ -139,8 +151,8 @@ where
         }
         Intrisic::ToList => {
             let [value] = match Box::<[_; 1]>::try_from(params) {
-                Ok(box [a]) => [a],
-                Err(box ref s) => {
+                Ok(a) => *a,
+                Err(s) => {
                     return Err(IntrisicError::WrongParamNum {
                         called: Intrisic::ToList,
                         given: s.len(),
@@ -154,8 +166,8 @@ where
         }
         Intrisic::ToString => {
             let [value] = match Box::<[_; 1]>::try_from(params) {
-                Ok(box [a]) => [a],
-                Err(box ref s) => {
+                Ok(a) => *a,
+                Err(s) => {
                     return Err(IntrisicError::WrongParamNum {
                         called: Intrisic::ToString,
                         given: s.len(),
@@ -165,10 +177,12 @@ where
             Ok(Value::String(value.to_string().into()))
         }
         Intrisic::Parse => {
-            let [value] = match Box::<[_; 1]>::try_from(params) {
-                Ok(box [Value::String(s)]) => [s],
-                Ok(box [a]) => return Err(IntrisicError::CannotParseNonString(a)),
-                Err(box ref s) => {
+            let value = match Box::<[_; 1]>::try_from(params) {
+                Ok(s) => match *s {
+                    [Value::String(value_string)] => value_string,
+                    [a] => return Err(IntrisicError::CannotParseNonString(a)),
+                },
+                Err(s) => {
                     return Err(IntrisicError::WrongParamNum {
                         called: Intrisic::Parse,
                         given: s.len(),
@@ -180,8 +194,8 @@ where
 
         Intrisic::ToJson => {
             let [value] = match Box::<[_; 1]>::try_from(params) {
-                Ok(box [v]) => [v],
-                Err(box ref s) => {
+                Ok(v) => *v,
+                Err(s) => {
                     return Err(IntrisicError::WrongParamNum {
                         called: Intrisic::ToJson,
                         given: s.len(),
@@ -193,10 +207,12 @@ where
                 .map_err(|err| IntrisicError::JsonError(Rc::new(err)))
         }
         Intrisic::FromJson => {
-            let [value] = match Box::<[_; 1]>::try_from(params) {
-                Ok(box [Value::String(s)]) => [s],
-                Ok(box [a]) => return Err(IntrisicError::JsonMustBeString(a)),
-                Err(box ref s) => {
+            let value = match Box::<[_; 1]>::try_from(params) {
+                Ok(s) => match *s {
+                    [Value::String(value_string)] => value_string,
+                    [a] => return Err(IntrisicError::JsonMustBeString(a)),
+                },
+                Err(s) => {
                     return Err(IntrisicError::WrongParamNum {
                         called: Intrisic::FromJson,
                         given: s.len(),
@@ -222,8 +238,8 @@ where
             .expect("The RNG should be always serializable to a value")),
         Intrisic::RestoreRNG => {
             let [value] = match Box::<[_; 1]>::try_from(params) {
-                Ok(box [v]) => [v],
-                Err(box ref s) => {
+                Ok(v) => *v,
+                Err(s) => {
                     return Err(IntrisicError::WrongParamNum {
                         called: Intrisic::RestoreRNG,
                         given: s.len(),

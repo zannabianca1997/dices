@@ -1,10 +1,11 @@
-#![feature(error_reporter)]
+use std::process::ExitCode;
 
-use std::error::Report;
+use dices_repl::{repl, ClapParser, ReplCli};
 
-use dices_repl::{repl, ClapParser, ReplCli, ReplFatalError};
-
-fn main() -> Result<(), Report<ReplFatalError>> {
+fn main() -> ExitCode {
     let args = ReplCli::parse();
-    repl(args).map_err(|err| Report::new(err).pretty(true))
+    match repl(&args) {
+        Ok(_) => ExitCode::SUCCESS,
+        Err(_) => ExitCode::FAILURE,
+    }
 }

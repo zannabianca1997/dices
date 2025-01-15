@@ -6,7 +6,7 @@
  */
 use std::fmt::Display;
 
-use derive_more::derive::{Display, Error, From};
+use derive_more::derive::From;
 use serde::{
     ser::{
         SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
@@ -14,6 +14,7 @@ use serde::{
     },
     Serialize, Serializer,
 };
+use thiserror::Error;
 
 use crate::{
     intrisics::NoInjectedIntrisics,
@@ -21,18 +22,18 @@ use crate::{
     Value,
 };
 
-#[derive(Debug, Display, Error, From, Clone)]
+#[derive(Debug, From, Clone, Error)]
 pub enum Error {
-    #[display("{_0}")]
+    #[error("{_0}")]
     #[from(skip)]
-    Custom(#[error(not(source))] String),
+    Custom(String),
     #[from(skip)]
-    #[display("All keys must be string, not {_0}")]
-    NonStringKey(#[error(not(source))] Value),
-    #[display("A f32 did not fit in a ValueNumber")]
-    F32TooBig(FloatTooBig<f32>),
-    #[display("A f64 did not fit in a ValueNumber")]
-    F64TooBig(FloatTooBig<f64>),
+    #[error("All keys must be string, not {_0}")]
+    NonStringKey(Value),
+    #[error("A f32 did not fit in a ValueNumber")]
+    F32TooBig(#[source] FloatTooBig<f32>),
+    #[error("A f64 did not fit in a ValueNumber")]
+    F64TooBig(#[source] FloatTooBig<f64>),
 }
 
 impl serde::ser::Error for Error {
