@@ -100,9 +100,9 @@ impl<'de> bincode::BorrowDecode<'de> for &'de IdentStr {
     fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
         decoder: &mut D,
     ) -> Result<Self, bincode::error::DecodeError> {
-        let decoded = bincode::BorrowDecode::borrow_decode(decoder)?;
-        IdentStr::new(decoded).ok_or_else(|| {
-            bincode::error::DecodeError::OtherString(format!("Invalid identifier {decoded}"))
+        let ident = bincode::BorrowDecode::borrow_decode(decoder)?;
+        IdentStr::new(ident).ok_or_else(|| {
+            bincode::error::DecodeError::OtherString(format!("Invalid identifier {ident}"))
         })
     }
 }

@@ -42,6 +42,7 @@ used_underscore_binding = "deny"
 match_bool = "warn"
 match_same_arms = "warn"
 implicit_clone = "warn"
+similar_names = "warn"
 
 [workspace.package]
 version = "0.3.2"
