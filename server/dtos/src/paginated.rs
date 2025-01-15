@@ -7,7 +7,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use chrono::{DateTime, FixedOffset, Utc};
+use chrono::{DateTime, FixedOffset};
 use sea_orm::{ConnectionTrait, DbErr, ItemsAndPagesNumber, Paginator, SelectorTrait};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, IntoResponses, ToSchema};
