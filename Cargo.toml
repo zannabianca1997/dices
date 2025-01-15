@@ -28,6 +28,7 @@ ignored_unit_patterns = "deny"
 redundant_closure_for_method_calls = "warn"
 default_trait_access = "deny"
 single_match_else = "warn"
+uninlined_format_args = "deny"
 
 [workspace.package]
 version = "0.3.2"
