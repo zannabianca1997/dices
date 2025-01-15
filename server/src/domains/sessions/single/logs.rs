@@ -1,23 +1,21 @@
 //! Endpoints to access the session history
 
-use std::thread::panicking;
 
 use axum::{
     debug_handler,
     extract::{FromRef, State},
 };
-use chrono::{FixedOffset, Local};
+use chrono::Local;
 use dices_server_dtos::{
     engine::LogsGetError,
     paginated::{
-        FixedSizePaginationParams, LimitAlign, PaginatedDto, TimePageInfo, TimePaginationParams,
+        LimitAlign, PaginatedDto, TimePageInfo, TimePaginationParams,
     },
     session::SessionPathData,
 };
 use dices_server_entities::{log, user::UserId};
 use sea_orm::{
     ColumnTrait as _, DatabaseConnection, EntityTrait as _, PaginatorTrait as _, QueryFilter as _,
-    QueryOrder as _,
 };
 use utoipa_axum::{router::OpenApiRouter, routes};
 

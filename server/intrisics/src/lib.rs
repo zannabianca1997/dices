@@ -1,3 +1,5 @@
+#![allow(clippy::boxed_local)]
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use bincode::{Decode, Encode};
