@@ -1,4 +1,4 @@
-# `dices` 0.3.1
+# `dices` 0.3.2
 This is a program able to simulate dice-throwing. It supports traditional dice notation, but also mathematical operations, variables, and closures. 
 
 ## Running
