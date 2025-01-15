@@ -26,6 +26,7 @@ map_unwrap_or = "warn"
 semicolon_if_nothing_returned = "deny"
 ignored_unit_patterns = "deny"
 redundant_closure_for_method_calls = "warn"
+default_trait_access = "deny"
 
 [workspace.package]
 version = "0.3.2"
