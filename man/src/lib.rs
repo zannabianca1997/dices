@@ -366,9 +366,11 @@ fn markdown_one_line(name: &str) -> Vec<Node> {
     else {
         panic!("`to_mdast` should always emit a `Root` node")
     };
-    if children.len() > 1 {
-        panic!("The name should contain a single paragrah")
-    }
+    assert_eq!(
+        children.len(),
+        1,
+        "The name should contain a single paragrah"
+    );
     let Node::Paragraph(mdast::Paragraph {
         children,
         position: _,
