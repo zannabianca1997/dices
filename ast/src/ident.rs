@@ -22,6 +22,7 @@ pub struct IdentStr(str);
 impl IdentStr {
     /// Check if the string is a valid identifier, then convert the reference to
     /// a reference to this type.
+    #[must_use]
     pub fn new(s: &str) -> Option<&Self> {
         if !is_valid_ident(s) {
             return None;
@@ -36,6 +37,7 @@ impl IdentStr {
     ///
     /// # Safety
     /// The user must check that `s` is a match for [`is_valid_ident`]
+    #[must_use]
     pub const unsafe fn new_unchecked(s: &str) -> &Self {
         &*(s as *const str as *const Self)
     }
@@ -56,6 +58,7 @@ impl IdentStr {
     ///
     /// # Safety
     /// The user must check that `s` is a match for [`is_valid_ident`]
+    #[must_use]
     pub unsafe fn new_boxed_unchecked(s: Box<str>) -> Box<Self> {
         Box::from_raw(Box::into_raw(s) as _)
     }

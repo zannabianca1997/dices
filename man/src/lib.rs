@@ -51,6 +51,7 @@ impl Default for RenderOptions {
 }
 
 /// Parse options used to parse the manual pages markdown
+#[must_use]
 pub const fn man_parse_options() -> ParseOptions {
     mdast2minimad::md_parse_options()
 }
@@ -249,6 +250,7 @@ pub enum ManTopicContent {
 }
 impl ManTopicContent {
     /// The ast of the topic
+    #[must_use]
     pub fn rendered<'r>(&self, options: RenderOptions) -> impl Deref<Target = Node> + 'r {
         enum RenderedRef<P: Deref<Target = Node>, I: Deref<Target = Node>> {
             Page(P),
@@ -271,7 +273,7 @@ impl ManTopicContent {
             }
         }
     }
-
+    #[must_use]
     pub const fn is_page(&self) -> bool {
         matches!(self, Self::Page(_))
     }
@@ -381,6 +383,7 @@ fn markdown_one_line(name: &str) -> Vec<Node> {
 }
 
 /// Lookup a specific topic
+#[must_use]
 pub fn search(topic: &str) -> Option<ManTopicContent> {
     let mut topic = topic.split('/');
     let name = topic.next_back()?;
@@ -399,6 +402,7 @@ pub fn search(topic: &str) -> Option<ManTopicContent> {
         ManItem::Dir(dir) => ManTopicContent::Index(dir),
     })
 }
+#[must_use]
 pub fn index() -> ManTopicContent {
     search("index").unwrap()
 }

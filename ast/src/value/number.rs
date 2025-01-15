@@ -55,6 +55,7 @@ impl ValueNumber {
         Ok(ValueList::from_iter([self.into()]))
     }
 
+    #[must_use]
     pub fn abs(self) -> Self {
         Self(BigInt::from_biguint(
             num_bigint::Sign::Plus,

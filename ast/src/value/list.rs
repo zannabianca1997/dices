@@ -37,6 +37,7 @@ use super::Value;
 )]
 pub struct ValueList<InjectedIntrisic>(Box<[Value<InjectedIntrisic>]>);
 impl<InjectedIntrisic> ValueList<InjectedIntrisic> {
+    #[must_use]
     pub fn new() -> Self {
         Self([].into())
     }
@@ -56,10 +57,12 @@ impl<InjectedIntrisic> ValueList<InjectedIntrisic> {
         Ok(self)
     }
 
+    #[must_use]
     pub const fn len(&self) -> usize {
         self.0.len()
     }
 
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.0.is_empty()
     }

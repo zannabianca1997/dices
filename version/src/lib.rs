@@ -13,6 +13,7 @@ pub struct Version {
 }
 impl Version {
     /// Construct a new version
+    #[must_use]
     pub const fn new(major: &str, minor: &str, patch: &str) -> Self {
         Self {
             major: unwrap_ctx!(parse_u16(major)),

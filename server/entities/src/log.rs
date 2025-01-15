@@ -36,6 +36,7 @@ impl Model {
     /// Order of the logs in the chat
     ///
     /// First they are ordered by creation date, then by id to ensure consistency
+    #[must_use]
     pub fn log_order(&self, other: &Self) -> Ordering {
         self.created_at
             .cmp(&other.created_at)

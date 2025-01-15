@@ -102,7 +102,7 @@ macro_rules! repetitive_impl {
             }
         }
         impl Intrisic<NoInjectedIntrisics> {
-            pub const fn with_arbitrary_injected_intrisics<II>(self) -> Intrisic<II> {
+            #[must_use]pub const fn with_arbitrary_injected_intrisics<II>(self) -> Intrisic<II> {
                 match self {
                     $(
                         Intrisic::$variant => Intrisic::$variant,
@@ -137,6 +137,7 @@ where
     Injected: InjectedIntr,
 {
     /// Build a module containing all the intrisics, to include in the standard library
+    #[must_use]
     pub fn all() -> ValueMap<Injected> {
         ValueMap::from_iter(Self::iter().into_iter().map(|v| {
             (

@@ -25,6 +25,7 @@ pub struct EngineBuilder<RNG = (), InjectedIntrisicData = ()> {
 }
 impl EngineBuilder {
     /// Start building a new engine
+    #[must_use]
     pub fn new() -> Self {
         Self {
             rng: (),
@@ -188,6 +189,7 @@ impl<RNG, InjectedIntrisic, InjectedIntrisicData>
     /// Initialize a new engine
     ///
     /// This will use the entropy to initialize the rng
+    #[must_use]
     pub fn new() -> Self
     where
         RNG: SeedableRng,

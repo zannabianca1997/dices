@@ -44,6 +44,7 @@ impl<Injected> ValueIntrisic<Injected> {
     }
 }
 impl ValueIntrisic<NoInjectedIntrisics> {
+    #[must_use]
     pub const fn with_arbitrary_injected_intrisics<II>(self) -> ValueIntrisic<II> {
         ValueIntrisic(self.0.with_arbitrary_injected_intrisics())
     }
