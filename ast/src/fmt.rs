@@ -27,7 +27,7 @@ pub fn escaped(mut s: &str, f: &mut Formatter<'_>) -> std::fmt::Result {
             }
 
             _ => write!(f, r"\u{{{:x}}}", ch as u32),
-        }?
+        }?;
     }
     f.write_str(s)?;
     Ok(())

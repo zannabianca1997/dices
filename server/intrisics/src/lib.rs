@@ -54,7 +54,7 @@ impl ServerIntrisicsWetData {
                 created_at,
                 content,
             })
-            .expect("The send should be infallible")
+            .expect("The send should be infallible");
     }
 }
 

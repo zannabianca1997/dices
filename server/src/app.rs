@@ -177,5 +177,5 @@ async fn shutdown_signal() {
         _ = ctrl_c => {},
         _ = terminate => {},
     };
-    tracing::info!("Received shutdown signal")
+    tracing::info!("Received shutdown signal");
 }

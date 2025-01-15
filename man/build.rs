@@ -24,7 +24,7 @@ impl ToTokens for ManPage {
         let title = &*self.title;
         let content = &*self.content;
 
-        quote!(ManPage::new(#title, #content)).to_tokens(tokens)
+        quote!(ManPage::new(#title, #content)).to_tokens(tokens);
     }
 }
 
@@ -56,7 +56,7 @@ impl ToTokens for ManDir {
             .to_string()
             .parse()
             .expect("The builder should produce valid rust");
-        quote! (ManDir::new(#name, #content)).to_tokens(tokens)
+        quote! (ManDir::new(#name, #content)).to_tokens(tokens);
     }
 }
 
@@ -76,7 +76,7 @@ impl ToTokens for ManItem {
             ManItem::Dir(dir) => quote!(ManItem::Dir(#dir)),
             ManItem::Index => quote!(ManItem::Index(ManIndex::new())),
         }
-        .to_tokens(tokens)
+        .to_tokens(tokens);
     }
 }
 

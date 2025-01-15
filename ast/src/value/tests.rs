@@ -9,7 +9,7 @@ mod roundtrips {
         assert_eq!(
             value, reparsed,
             "The value parsed is different from the original"
-        )
+        );
     }
 
     #[cfg(feature = "pretty")]
@@ -28,7 +28,7 @@ mod roundtrips {
         assert_eq!(
             value, reparsed,
             "The value parsed is different from the original"
-        )
+        );
     }
 
     macro_rules! roundtrips {

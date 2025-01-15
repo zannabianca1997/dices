@@ -19,7 +19,7 @@ pub(crate) fn test_inner(test: &str, _tags: &[&str]) {
                 "The result number {} was {}, not satisfing the matcher",
                 n + 1,
                 res
-            )
+            );
         }
     }
 }

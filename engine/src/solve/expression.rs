@@ -220,7 +220,7 @@ where
                         params_names.into_vec().into_iter(),
                         params.into_vec(),
                     )) {
-                        context.vars_mut().let_(name, value)
+                        context.vars_mut().let_(name, value);
                     }
                     // solving in the jailed context
                     body.solve(context)

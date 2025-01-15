@@ -290,9 +290,9 @@ fn repl_with_setup(
     skin.print_text(graphic.banner());
 
     if atty::is(atty::Stream::Stdin) {
-        interactive_repl(graphic.clone(), skin.clone(), &mut engine)?
+        interactive_repl(graphic.clone(), skin.clone(), &mut engine)?;
     } else {
-        detached_repl(graphic.clone(), skin.clone(), &mut engine)?
+        detached_repl(graphic.clone(), skin.clone(), &mut engine)?;
     };
 
     // Print the out banner
@@ -326,7 +326,7 @@ pub fn interactive_repl(
                         Quitted::No => (),
                         Quitted::Fatal(repl_fatal_error) => return Err(repl_fatal_error),
                     }
-                    print_err::<false>(*graphic, &skin, err)?
+                    print_err::<false>(*graphic, &skin, err)?;
                 }
             },
             Signal::CtrlD => {
@@ -361,7 +361,7 @@ pub fn detached_repl(
                     Quitted::No => (),
                     Quitted::Fatal(repl_fatal_error) => return Err(repl_fatal_error),
                 }
-                print_err::<false>(*graphic, &skin, err)?
+                print_err::<false>(*graphic, &skin, err)?;
             }
         };
     }

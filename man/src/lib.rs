@@ -193,7 +193,7 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
         // print the result
         value.clear();
         doc.render_fmt(options.width, value)
-            .expect("Rendering should be infallible")
+            .expect("Rendering should be infallible");
     }
     ast
 }
@@ -388,7 +388,7 @@ pub fn search(topic: &str) -> Option<ManTopicContent> {
     let mut dir = &MANUAL;
     for part in topic {
         if let ManItem::Dir(child) = dir.content.get(part)? {
-            dir = child
+            dir = child;
         } else {
             return None;
         }
@@ -433,7 +433,7 @@ pub fn std_library_is_represented<InjectedIntrisic: dices_ast::intrisics::Inject
             }
             // if a map, recurse
             if let Value::Map(map) = value {
-                paths.push((path, map))
+                paths.push((path, map));
             }
         }
     }
