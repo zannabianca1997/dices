@@ -1,6 +1,8 @@
 //! Definitions about `dices` identifiers
 #![allow(unsafe_code)]
 
+use std::ptr;
+
 use derive_more::derive::{AsRef, Deref, Display};
 use lazy_regex::{regex, Lazy, Regex};
 use phf::phf_set;
@@ -39,7 +41,7 @@ impl IdentStr {
     /// The user must check that `s` is a match for [`is_valid_ident`]
     #[must_use]
     pub const unsafe fn new_unchecked(s: &str) -> &Self {
-        &*(s as *const str as *const Self)
+        &*(ptr::from_ref(s) as *const Self)
     }
 
     /// Check if the boxed string is a valid identifier, then convert the reference to
