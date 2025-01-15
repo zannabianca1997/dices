@@ -14,6 +14,7 @@ pub mod content;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, ToSchema)]
 #[sea_orm(table_name = "log")]
+#[schema(as=Log)]
 /// Log item
 pub struct Model {
     /// Consecutive unique id of the log item

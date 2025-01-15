@@ -1,5 +1,7 @@
+use std::num::NonZeroU64;
+
 use dices_server_dtos::{
-    paginated::{PageInfo, PaginatedDto, PaginationParams},
+    paginated::{FixedSizePageInfo, FixedSizePaginationParams, PaginatedDto},
     session::SessionShortQueryDto,
 };
 use futures::FutureExt;
@@ -22,9 +24,9 @@ async fn should_get_list() {
             let response = infrastructure
                 .server()
                 .get("/sessions")
-                .add_query_params(PaginationParams {
+                .add_query_params(FixedSizePaginationParams {
                     page: 0,
-                    page_size: 10,
+                    page_size: NonZeroU64::new(10).unwrap(),
                 })
                 .authorization_bearer(token)
                 .expect_success()
@@ -32,15 +34,15 @@ async fn should_get_list() {
 
             response.assert_status_ok();
 
-            let PaginatedDto { data, page } = response.json();
+            let PaginatedDto::<_, FixedSizePageInfo> { data, page } = response.json();
 
             assert_eq!(
                 page,
-                PageInfo {
-                    current: 0,
+                FixedSizePageInfo {
+                    page: 0,
                     number_of_pages: 1,
                     number_of_items: ids.len() as _,
-                    size: 10,
+                    page_size: 10,
                     next: None,
                     prev: None
                 }
@@ -97,9 +99,9 @@ async fn should_not_contain_sessions_that_user_is_not_member_of() {
             let response = infrastructure
                 .server()
                 .get("/sessions")
-                .add_query_params(PaginationParams {
+                .add_query_params(FixedSizePaginationParams {
                     page: 0,
-                    page_size: 10,
+                    page_size: NonZeroU64::new(10).unwrap(),
                 })
                 .authorization_bearer(token)
                 .expect_success()
@@ -107,15 +109,15 @@ async fn should_not_contain_sessions_that_user_is_not_member_of() {
 
             response.assert_status_ok();
 
-            let PaginatedDto { data, page } = response.json();
+            let PaginatedDto::<_, FixedSizePageInfo> { data, page } = response.json();
 
             assert_eq!(
                 page,
-                PageInfo {
-                    current: 0,
+                FixedSizePageInfo {
+                    page: 0,
                     number_of_pages: 1,
                     number_of_items: 5,
-                    size: 10,
+                    page_size: 10,
                     next: None,
                     prev: None
                 }

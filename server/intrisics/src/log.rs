@@ -17,7 +17,7 @@ pub enum LogContent {
     /// A value resulting either from a user command, or a `print` intrisic
     Value(dices_ast::Value<crate::ServerIntrisics>),
     /// A manual page, requsted with the `help` intrisic
-    Manual(String),
+    Manual(Box<str>),
     /// A runtime error
     Error { msg: String, sources: Box<[String]> },
 }
