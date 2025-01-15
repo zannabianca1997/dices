@@ -42,6 +42,7 @@ impl<InjectedIntrisic> ValueClosure<InjectedIntrisic> {
 
 impl ValueClosure<NoInjectedIntrisics> {
     // Add any intrisic type to a intrisic-less value
+    #[must_use]
     pub fn with_arbitrary_injected_intrisics<II>(self) -> ValueClosure<II> {
         let ValueClosure {
             params,

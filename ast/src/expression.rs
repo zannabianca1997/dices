@@ -69,6 +69,7 @@ pub enum Expression<InjectedIntrisic> {
 }
 
 impl Expression<NoInjectedIntrisics> {
+    #[must_use]
     pub fn with_arbitrary_injected_intrisics<II>(&self) -> Expression<II> {
         todo!("Implement injecting arbitrary intrisics in expressions")
     }

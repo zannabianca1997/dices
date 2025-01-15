@@ -122,6 +122,7 @@ fn parse_token(token: &str, auth_key: &AuthKey) -> Result<UserClaims, InvalidTok
 }
 
 /// Create a password hash to store safely passwords in the database
+#[must_use]
 pub fn hash_password(id: UserId, password: &str) -> (Autenticated<UserId>, PasswordHash) {
     (
         Autenticated(id), // we can give this, as the hash was here
@@ -137,6 +138,7 @@ pub fn hash_password(id: UserId, password: &str) -> (Autenticated<UserId>, Passw
     )
 }
 
+#[must_use]
 pub fn new_token(id: Autenticated<UserId>, auth_key: &AuthKey) -> UserToken {
     let issued_at = SystemTime::now()
         .duration_since(UNIX_EPOCH)

@@ -6,7 +6,7 @@ pub fn banner() {
 }
 
 static BANNER: &str = const_format::formatcp!(
-    r###"
+    r"
 ****************************************************************
 *  ______    ________  ______   ______   ______                *
 * /_____/\  /_______/\/_____/\ /_____/\ /_____/\    v{version} *
@@ -24,7 +24,7 @@ static BANNER: &str = const_format::formatcp!(
 *     \_____\/ \_____\/ \_\/ \_\/ \___/_(   \_____\/ \_\/ \_\/ *
 *                                                              *
 ****************************************************************
-"###,
+",
     version = const_format::concatcp!(
         env!("CARGO_PKG_VERSION"),
         const_format::str_repeat!(" ", "{version}".len() - env!("CARGO_PKG_VERSION").len())

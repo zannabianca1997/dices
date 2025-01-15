@@ -40,10 +40,11 @@ pub struct Model {
 pub struct UserId(Uuid);
 
 impl UserId {
+    #[must_use]
     pub fn gen() -> Self {
         Self(uuid::Uuid::new_v4())
     }
-
+    #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 16] {
         self.0.as_bytes()
     }
@@ -66,6 +67,7 @@ impl Nullable for UserId {
 pub struct PasswordHash(String);
 
 impl PasswordHash {
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
