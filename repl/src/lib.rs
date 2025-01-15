@@ -86,7 +86,7 @@ impl Default for Graphic {
     }
 }
 impl Graphic {
-    fn banner(&self) -> &str {
+    const fn banner(&self) -> &str {
         match self {
             Graphic::None => "",
             Graphic::Ascii => concat!(
@@ -101,21 +101,21 @@ impl Graphic {
             ),
         }
     }
-    fn prompt(&self) -> &str {
+    const fn prompt(&self) -> &str {
         match self {
             Graphic::None => "",
             Graphic::Ascii => ">>> ",
             Graphic::Fancy => "🎲> ",
         }
     }
-    fn prompt_cont(&self) -> &str {
+    const fn prompt_cont(&self) -> &str {
         match self {
             Graphic::None => "",
             Graphic::Ascii => "... ",
             Graphic::Fancy => "🎲. ",
         }
     }
-    fn bye(&self) -> &str {
+    const fn bye(&self) -> &str {
         match self {
             Graphic::None => "",
             Graphic::Ascii => "\nSee you at the next game!",
@@ -123,7 +123,7 @@ impl Graphic {
         }
     }
 
-    fn skin(&self, light: Option<TerminalLightness>) -> termimad::MadSkin {
+    fn skin(self, light: Option<TerminalLightness>) -> termimad::MadSkin {
         let mut skin = match self {
             Graphic::None | Graphic::Ascii => termimad::MadSkin::no_style(),
             Graphic::Fancy => match light {
@@ -219,7 +219,7 @@ pub fn repl(
         },
         err,
     ) = match setup::Setup::extract_setups(file_setup.as_ref(), cli_setup).map(|setup| {
-        let repl_result = repl_with_setup(interactive, run, &setup);
+        let repl_result = repl_with_setup(*interactive, run.as_deref(), &setup);
         (setup, repl_result)
     }) {
         Ok((_, Ok(()))) => return Ok(()),
@@ -235,8 +235,8 @@ pub fn repl(
 }
 
 fn repl_with_setup(
-    interactive: &bool,
-    run: &Option<Vec<String>>,
+    interactive: bool,
+    run: Option<&[String]>,
     setup::Setup {
         graphic,
         terminal,
@@ -274,9 +274,9 @@ fn repl_with_setup(
             *graphic,
             &skin,
             &value,
-            *interactive, // skip printing `null` if the console is interactive
+            interactive, // skip printing `null` if the console is interactive
         )?;
-        if !(*interactive && value.is_null()) {
+        if !(interactive && value.is_null()) {
             println!();
         }
 
@@ -290,9 +290,9 @@ fn repl_with_setup(
     skin.print_text(graphic.banner());
 
     if atty::is(atty::Stream::Stdin) {
-        interactive_repl(graphic.clone(), skin.clone(), &mut engine)?
+        interactive_repl(graphic.clone(), skin.clone(), &mut engine)?;
     } else {
-        detached_repl(graphic.clone(), skin.clone(), &mut engine)?
+        detached_repl(graphic.clone(), skin.clone(), &mut engine)?;
     };
 
     // Print the out banner
@@ -326,7 +326,7 @@ pub fn interactive_repl(
                         Quitted::No => (),
                         Quitted::Fatal(repl_fatal_error) => return Err(repl_fatal_error),
                     }
-                    print_err::<false>(*graphic, &skin, err)?
+                    print_err::<false>(*graphic, &skin, err)?;
                 }
             },
             Signal::CtrlD => {
@@ -361,7 +361,7 @@ pub fn detached_repl(
                     Quitted::No => (),
                     Quitted::Fatal(repl_fatal_error) => return Err(repl_fatal_error),
                 }
-                print_err::<false>(*graphic, &skin, err)?
+                print_err::<false>(*graphic, &skin, err)?;
             }
         };
     }
@@ -380,7 +380,7 @@ fn print_value(
         return Ok(());
     }
     if graphic == Graphic::None {
-        println!("{}", value);
+        println!("{value}");
         return Ok(());
     }
     let arena = pretty::Arena::<()>::new();

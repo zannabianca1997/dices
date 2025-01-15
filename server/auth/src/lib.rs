@@ -24,7 +24,7 @@ impl<T> std::ops::Deref for Autenticated<T> {
 }
 
 impl<T> Autenticated<T> {
-    pub fn inner(&self) -> &T {
+    pub const fn inner(&self) -> &T {
         &self.0
     }
     pub fn into_inner(self) -> T {

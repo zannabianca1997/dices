@@ -1,4 +1,7 @@
 //! Definitions about `dices` identifiers
+#![allow(unsafe_code)]
+
+use std::ptr;
 
 use derive_more::derive::{AsRef, Deref, Display};
 use lazy_regex::{regex, Lazy, Regex};
@@ -21,6 +24,7 @@ pub struct IdentStr(str);
 impl IdentStr {
     /// Check if the string is a valid identifier, then convert the reference to
     /// a reference to this type.
+    #[must_use]
     pub fn new(s: &str) -> Option<&Self> {
         if !is_valid_ident(s) {
             return None;
@@ -35,8 +39,9 @@ impl IdentStr {
     ///
     /// # Safety
     /// The user must check that `s` is a match for [`is_valid_ident`]
-    pub unsafe fn new_unchecked(s: &str) -> &Self {
-        &*(s as *const str as *const Self)
+    #[must_use]
+    pub const unsafe fn new_unchecked(s: &str) -> &Self {
+        &*(ptr::from_ref(s) as *const Self)
     }
 
     /// Check if the boxed string is a valid identifier, then convert the reference to
@@ -55,6 +60,7 @@ impl IdentStr {
     ///
     /// # Safety
     /// The user must check that `s` is a match for [`is_valid_ident`]
+    #[must_use]
     pub unsafe fn new_boxed_unchecked(s: Box<str>) -> Box<Self> {
         Box::from_raw(Box::into_raw(s) as _)
     }
@@ -96,9 +102,9 @@ impl<'de> bincode::BorrowDecode<'de> for &'de IdentStr {
     fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
         decoder: &mut D,
     ) -> Result<Self, bincode::error::DecodeError> {
-        let decoded = bincode::BorrowDecode::borrow_decode(decoder)?;
-        IdentStr::new(decoded).ok_or_else(|| {
-            bincode::error::DecodeError::OtherString(format!("Invalid identifier {decoded}"))
+        let ident = bincode::BorrowDecode::borrow_decode(decoder)?;
+        IdentStr::new(ident).ok_or_else(|| {
+            bincode::error::DecodeError::OtherString(format!("Invalid identifier {ident}"))
         })
     }
 }

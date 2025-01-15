@@ -37,14 +37,14 @@ struct InjectedIntrVariantInput {
     prelude: bool,
 }
 
-pub fn injected_intr(input: DeriveInput) -> TokenStream {
+pub fn injected_intr(input: &DeriveInput) -> TokenStream {
     let InjectedIntrDeriveInput {
         ident,
         generics,
         data: Data::Enum(mut variants),
         data_ty,
         error_ty,
-    } = (match InjectedIntrDeriveInput::from_derive_input(&input) {
+    } = (match InjectedIntrDeriveInput::from_derive_input(input) {
         Ok(v) => v,
         Err(e) => return e.write_errors(),
     })
@@ -64,7 +64,7 @@ pub fn injected_intr(input: DeriveInput) -> TokenStream {
             *name = Some(LitStr::new(
                 &ident.to_string().to_case(Case::Snake),
                 ident.span(),
-            ))
+            ));
         }
         if *prelude {
             std.push(LitStr::new("prelude.", Span::call_site()));
@@ -121,7 +121,7 @@ pub fn injected_intr(input: DeriveInput) -> TokenStream {
     let variants_paths = variants.iter().map(|v| {
         let paths = v.std.iter().map(|p| {
             let mut path = p.value();
-            if path.ends_with(".") {
+            if path.ends_with('.') {
                 path.push_str(&v.name.as_ref().unwrap().value());
             }
             let components = path.split('.').map(|s| LitStr::new(s, p.span()));

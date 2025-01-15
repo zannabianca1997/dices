@@ -8,13 +8,13 @@ use crate::{search, std_library_is_represented, MANUAL};
 /// The introduction must exist as it is shown when calling `help()`
 #[test]
 fn introduction_exist() {
-    assert!(search("introduction").is_some())
+    assert!(search("introduction").is_some());
 }
 
 /// The index must exist as it is shown when calling `help` with an invalid topic
 #[test]
 fn index_exist() {
-    assert!(search("index").is_some())
+    assert!(search("index").is_some());
 }
 
 /// Check that the links to manual page are all to existing manual pages
@@ -52,7 +52,7 @@ fn manual_internal_links_are_not_dangling() {
                 assert!(
                     search(topic).is_some(),
                     "The topic {topic} was referenced but does not exist"
-                )
+                );
             }
         }
     }
@@ -61,5 +61,5 @@ fn manual_internal_links_are_not_dangling() {
 /// Check that the default std library is fully documented
 #[test]
 fn default_std_library_is_represented() {
-    std_library_is_represented::<NoInjectedIntrisics>()
+    std_library_is_represented::<NoInjectedIntrisics>();
 }

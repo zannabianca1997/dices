@@ -35,14 +35,14 @@ mod check_order {
 
     #[test]
     fn admin_gt_player() {
-        assert!(Admin > Player)
+        assert!(Admin > Player);
     }
     #[test]
     fn admin_gt_observer() {
-        assert!(Admin > Observer)
+        assert!(Admin > Observer);
     }
     #[test]
     fn player_gt_observer() {
-        assert!(Player > Observer)
+        assert!(Player > Observer);
     }
 }

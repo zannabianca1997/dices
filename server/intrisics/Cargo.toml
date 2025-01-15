@@ -6,6 +6,9 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 dices-ast = { path = "../../ast" }
 rand_xoshiro = { version = "0.6", features = ["serde1"] }

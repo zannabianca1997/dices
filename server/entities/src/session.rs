@@ -29,6 +29,7 @@ pub struct Model {
 pub struct SessionId(Uuid);
 
 impl SessionId {
+    #[must_use]
     pub fn gen() -> Self {
         Self(Uuid::new_v4())
     }

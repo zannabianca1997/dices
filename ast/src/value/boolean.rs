@@ -30,9 +30,10 @@ impl ValueBool {
     pub const FALSE: Self = ValueBool(false);
 
     pub fn to_number(self) -> Result<ValueNumber, ToNumberError> {
-        Ok(match self.0 {
-            true => ValueNumber::from(1),
-            false => ValueNumber::ZERO,
+        Ok(if self.0 {
+            ValueNumber::from(1)
+        } else {
+            ValueNumber::ZERO
         })
     }
 
@@ -50,9 +51,6 @@ where
     D: ?Sized + pretty::DocAllocator<'a, A>,
 {
     fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
-        allocator.text(match self.0 {
-            true => "true",
-            false => "false",
-        })
+        allocator.text(if self.0 { "true" } else { "false" })
     }
 }

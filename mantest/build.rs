@@ -92,9 +92,7 @@ impl ManTests<'_, '_, ManPage> {
             // find a name
             let name = rustify(
                 &e.position
-                    .as_ref()
-                    .map(|p| format!("line_{}", p.start.line)) // use the line number
-                    .unwrap_or_else(|| format!("example_{}", i + 1)), // or fall back to numbering the examples
+                    .as_ref().map_or_else(|| format!("example_{}", i + 1), |p| format!("line_{}", p.start.line)), // or fall back to numbering the examples
                 &mut names,
             );
 
@@ -150,7 +148,7 @@ fn main() -> Result<()> {
 
 fn rustify(s: &str, name_pool: &mut BTreeSet<Ident>) -> Ident {
     // removing all unicode chars, adding a leading _ if starting with a number
-    let mut slug = slugify(s).replace("-", "_");
+    let mut slug = slugify(s).replace('-', "_");
     if slug.starts_with(|ch: char| ch.is_ascii_digit()) {
         slug = "_".to_owned() + &slug;
     }
@@ -158,7 +156,7 @@ fn rustify(s: &str, name_pool: &mut BTreeSet<Ident>) -> Ident {
     let mut i: usize = 1;
     while !name_pool.insert(ident.clone()) {
         i += 1;
-        ident = format_ident!("{}_{}", slug, i)
+        ident = format_ident!("{}_{}", slug, i);
     }
     ident
 }

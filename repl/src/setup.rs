@@ -39,13 +39,13 @@ impl Setup {
             // Then if the user has an home directory,
             let home_file = home.join("Dices.toml"); //  search a file called `Dices.toml` inside it
             if home_file.exists() {
-                figment = figment.merge(Toml::file_exact(home_file))
+                figment = figment.merge(Toml::file_exact(home_file));
             }
         }
         figment = figment.merge(Toml::file("./Dices.toml"));
         // Then any file called `Dices.toml` in this directory or superior ones
         if let Some(file_setup) = file {
-            figment = figment.merge(Toml::file_exact(file_setup)) // If the user provided a setup file, look into it
+            figment = figment.merge(Toml::file_exact(file_setup)); // If the user provided a setup file, look into it
         }
         figment = figment
             .merge(Env::prefixed("DICES_")) // Then all environmental variable

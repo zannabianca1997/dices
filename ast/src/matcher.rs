@@ -1,4 +1,4 @@
-use crate::value::*;
+use crate::value::Value;
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Hash)]

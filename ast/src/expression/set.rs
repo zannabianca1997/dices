@@ -49,7 +49,8 @@ pub struct MemberReceiver<InjectedIntrisic> {
     pub indices: Vec<Expression<InjectedIntrisic>>,
 }
 impl<II> MemberReceiver<II> {
-    pub fn new(root: Box<IdentStr>, indices: Vec<Expression<II>>) -> Self {
+    #[must_use]
+    pub const fn new(root: Box<IdentStr>, indices: Vec<Expression<II>>) -> Self {
         Self { root, indices }
     }
 }

@@ -22,7 +22,8 @@ impl<InjectedIntrisic> DerefMut for ExpressionScope<InjectedIntrisic> {
 }
 
 impl<InjectedIntrisic> ExpressionScope<InjectedIntrisic> {
-    pub fn new(exprs: Box<NonEmpty<[Expression<InjectedIntrisic>]>>) -> Self {
+    #[must_use]
+    pub const fn new(exprs: Box<NonEmpty<[Expression<InjectedIntrisic>]>>) -> Self {
         Self(exprs)
     }
 }

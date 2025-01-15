@@ -51,6 +51,7 @@ impl Default for RenderOptions {
 }
 
 /// Parse options used to parse the manual pages markdown
+#[must_use]
 pub const fn man_parse_options() -> ParseOptions {
     mdast2minimad::md_parse_options()
 }
@@ -193,7 +194,7 @@ fn render_examples(mut ast: Node, options: &RenderOptions) -> Node {
         // print the result
         value.clear();
         doc.render_fmt(options.width, value)
-            .expect("Rendering should be infallible")
+            .expect("Rendering should be infallible");
     }
     ast
 }
@@ -249,6 +250,7 @@ pub enum ManTopicContent {
 }
 impl ManTopicContent {
     /// The ast of the topic
+    #[must_use]
     pub fn rendered<'r>(&self, options: RenderOptions) -> impl Deref<Target = Node> + 'r {
         enum RenderedRef<P: Deref<Target = Node>, I: Deref<Target = Node>> {
             Page(P),
@@ -271,15 +273,15 @@ impl ManTopicContent {
             }
         }
     }
-
-    pub fn is_page(&self) -> bool {
+    #[must_use]
+    pub const fn is_page(&self) -> bool {
         matches!(self, Self::Page(_))
     }
 }
 
 /// Create the index of a page
 fn render_index(dir: &ManDir) -> Node {
-    use markdown::mdast::*;
+    use markdown::mdast::{Heading, InlineCode, List, ListItem, Node, Paragraph, Root, Text};
 
     fn list_item(name: &str, key: &str) -> Paragraph {
         // parse the name as markdown
@@ -364,9 +366,11 @@ fn markdown_one_line(name: &str) -> Vec<Node> {
     else {
         panic!("`to_mdast` should always emit a `Root` node")
     };
-    if children.len() > 1 {
-        panic!("The name should contain a single paragrah")
-    }
+    assert_eq!(
+        children.len(),
+        1,
+        "The name should contain a single paragrah"
+    );
     let Node::Paragraph(mdast::Paragraph {
         children,
         position: _,
@@ -381,6 +385,7 @@ fn markdown_one_line(name: &str) -> Vec<Node> {
 }
 
 /// Lookup a specific topic
+#[must_use]
 pub fn search(topic: &str) -> Option<ManTopicContent> {
     let mut topic = topic.split('/');
     let name = topic.next_back()?;
@@ -388,7 +393,7 @@ pub fn search(topic: &str) -> Option<ManTopicContent> {
     let mut dir = &MANUAL;
     for part in topic {
         if let ManItem::Dir(child) = dir.content.get(part)? {
-            dir = child
+            dir = child;
         } else {
             return None;
         }
@@ -399,10 +404,12 @@ pub fn search(topic: &str) -> Option<ManTopicContent> {
         ManItem::Dir(dir) => ManTopicContent::Index(dir),
     })
 }
+#[must_use]
 pub fn index() -> ManTopicContent {
     search("index").unwrap()
 }
 
+#[allow(clippy::unreadable_literal)]
 pub static MANUAL: ManDir = include!(env!("MANUAL_RS"));
 
 #[cfg(test)]
@@ -433,7 +440,7 @@ pub fn std_library_is_represented<InjectedIntrisic: dices_ast::intrisics::Inject
             }
             // if a map, recurse
             if let Value::Map(map) = value {
-                paths.push((path, map))
+                paths.push((path, map));
             }
         }
     }

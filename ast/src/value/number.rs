@@ -45,7 +45,7 @@ pub struct ValueNumber(pub(super) BigInt);
 impl ValueNumber {
     pub const ZERO: Self = ValueNumber(BigInt::ZERO);
 
-    pub fn to_number(self) -> Result<ValueNumber, super::ToNumberError> {
+    pub const fn to_number(self) -> Result<ValueNumber, super::ToNumberError> {
         Ok(self)
     }
 
@@ -55,6 +55,7 @@ impl ValueNumber {
         Ok(ValueList::from_iter([self.into()]))
     }
 
+    #[must_use]
     pub fn abs(self) -> Self {
         Self(BigInt::from_biguint(
             num_bigint::Sign::Plus,
@@ -212,14 +213,11 @@ mod serde {
         where
             S: serde::Serializer,
         {
-            match i64::try_from(&self.0) {
-                Ok(small) => Serialized::Small(small),
-                Err(_) => {
-                    let (sign, bytes) = self.0.to_bytes_le();
-                    Serialized::Nested {
-                        sign,
-                        bytes: ByteBuf::from(bytes),
-                    }
+            if let Ok(small) = i64::try_from(&self.0) { Serialized::Small(small) } else {
+                let (sign, bytes) = self.0.to_bytes_le();
+                Serialized::Nested {
+                    sign,
+                    bytes: ByteBuf::from(bytes),
                 }
             }
             .serialize(serializer)

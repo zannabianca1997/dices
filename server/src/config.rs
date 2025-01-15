@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use clap::Args;
 use figment::{
@@ -22,7 +22,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            serve: Default::default(),
+            serve: ServeConfig::default(),
             logging: default_tracing_config(),
         }
     }
@@ -71,12 +71,12 @@ impl Provider for ConfigArgs {
             for component in components {
                 let figment::value::Value::Dict(_, new_data) =
                     data.entry(component.to_string()).or_insert_with(|| {
-                        figment::value::Value::Dict(Tag::Default, Default::default())
+                        figment::value::Value::Dict(Tag::Default, BTreeMap::default())
                     })
                 else {
                     unreachable!()
                 };
-                data = new_data
+                data = new_data;
             }
 
             data.insert(name.to_owned(), v.parse().unwrap());
@@ -92,27 +92,27 @@ impl Provider for ConfigArgs {
 /// Build the figment from the multiple configuration sources
 fn figment(config_args: ConfigArgs) -> Figment {
     // First, the defaults values
-    let mut figment = if !config_args.no_defaults {
-        Figment::from(Serialized::defaults(Config::default()))
-    } else {
+    let mut figment = if config_args.no_defaults {
         Figment::new()
+    } else {
+        Figment::from(Serialized::defaults(Config::default()))
     };
     // Then the default config file
     if !config_args.no_default_config_file {
-        figment = figment.merge(Toml::file("DicesServer.toml"))
+        figment = figment.merge(Toml::file("DicesServer.toml"));
     }
     // Then the one provided by the user
     if let Some(config_file) = &config_args.config_file {
-        figment = figment.merge(Toml::file_exact(config_file))
+        figment = figment.merge(Toml::file_exact(config_file));
     }
     // Then, the enviroment variables and the arguments
     if !config_args.no_env {
-        dotenv::dotenv().map(|_| ()).unwrap_or_else(|err| {
-            if !err.not_found() {
-                eprintln!("Cannot open `.env` to load enviroment variable: {err}")
-            }
-        });
-        figment = figment.merge(Env::raw().split("__").global())
+        match dotenv::dotenv() {
+            Ok(_) => (),
+            Err(err) if err.not_found() => (),
+            Err(err) => eprintln!("Cannot open `.env` to load enviroment variable: {err}"),
+        };
+        figment = figment.merge(Env::raw().split("__").global());
     }
     // Finally the cli arguments
     figment.merge(config_args)

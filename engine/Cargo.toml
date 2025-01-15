@@ -6,6 +6,9 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 eval_str = ["dices-ast/parse_expression", "dep:either"]
 bincode = ["dices-ast/bincode", "dep:bincode"]
