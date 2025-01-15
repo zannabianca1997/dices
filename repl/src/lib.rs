@@ -13,11 +13,11 @@ use clap::ValueEnum;
 use derive_more::derive::{Debug, Display, Error, From};
 use dices_ast::value::{Value, ValueNull};
 use dices_engine::Engine;
+use intrisics::{Quitted, REPLIntrisics};
 use pretty::Pretty;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use reedline::{Prompt, PromptEditMode, PromptHistorySearchStatus, PromptViMode, Reedline, Signal};
-use repl_intrisics::{Quitted, REPLIntrisics};
 use serde::{Deserialize, Serialize};
 use setup::Setup;
 use termimad::{
@@ -26,7 +26,7 @@ use termimad::{
 };
 use typed_arena::Arena;
 
-mod repl_intrisics;
+mod intrisics;
 mod setup;
 
 #[derive(Debug, Clone, ClapParser)]
@@ -252,7 +252,7 @@ fn repl_with_setup(
     let skin = Rc::new(graphic.skin(*terminal));
     // Initializing the engine
     let engine_builder = dices_engine::EngineBuilder::new()
-        .inject_intrisics_data(repl_intrisics::Data::new(graphic.clone(), skin.clone()));
+        .inject_intrisics_data(intrisics::Data::new(graphic.clone(), skin.clone()));
     let engine_builder = if let Some(seed) = seed {
         let mut hasher = DefaultHasher::new();
         seed.hash(&mut hasher);
@@ -305,7 +305,7 @@ fn repl_with_setup(
 pub fn interactive_repl(
     graphic: Rc<Graphic>,
     skin: Rc<MadSkin>,
-    engine: &mut Engine<Xoshiro256PlusPlus, REPLIntrisics, repl_intrisics::Data>,
+    engine: &mut Engine<Xoshiro256PlusPlus, REPLIntrisics, intrisics::Data>,
 ) -> Result<(), ReplFatalError> {
     // Creating the editor
     let mut line_editor = Reedline::create();
@@ -342,7 +342,7 @@ pub fn interactive_repl(
 pub fn detached_repl(
     graphic: Rc<Graphic>,
     skin: Rc<MadSkin>,
-    engine: &mut Engine<Xoshiro256PlusPlus, REPLIntrisics, repl_intrisics::Data>,
+    engine: &mut Engine<Xoshiro256PlusPlus, REPLIntrisics, intrisics::Data>,
 ) -> Result<(), ReplFatalError> {
     // REPL loop
     for line in stdin().lines() {
@@ -414,9 +414,9 @@ fn print_err<const FATAL: bool>(
         let mut source = Some(source);
 
         text.lines.push(Line::raw_str(""));
-        text.lines.push(Line::new_paragraph(
-            vec![Compound::raw_str("Caused by:").italic()],
-        ));
+        text.lines.push(Line::new_paragraph(vec![
+            Compound::raw_str("Caused by:").italic()
+        ]));
 
         while let Some(current) = source {
             source = current.source();
