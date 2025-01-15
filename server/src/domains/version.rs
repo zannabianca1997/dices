@@ -55,6 +55,6 @@ pub fn router<S: Clone + Send + Sync + 'static>() -> OpenApiRouter<S> {
         .routes(routes!(server))
         .routes(routes!(ast))
         .routes(routes!(engine));
-    super::tag_api(router.get_openapi_mut(), "Version".to_owned());
+    super::tag_api(router.get_openapi_mut(), "Version");
     router
 }

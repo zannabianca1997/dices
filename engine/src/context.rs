@@ -88,6 +88,7 @@ impl<RNG, InjectedIntrisic, InjectedIntrisicData>
     }
 
     /// run code in a local scope, with the same RNG and no local variables
+    #[allow(unsafe_code)]
     pub fn scoped<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
         self.scopes.push(Scope::new());
         let res = f(self);

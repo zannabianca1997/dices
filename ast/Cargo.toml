@@ -6,6 +6,9 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 # Add the ability of parsing a value from a string
 parse_value = ["dep:peg", "dep:either"]

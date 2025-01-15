@@ -6,6 +6,9 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 dices-ast = { path = "../../ast", features = ["serde"] }
 dices-engine = { path = "../../engine", features = ["bincode"] }

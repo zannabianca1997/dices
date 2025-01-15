@@ -38,7 +38,7 @@ use dices_server_entities::{
     session_user,
     user::UserId,
 };
-use dices_server_intrisics::ServerIntrisics;
+use dices_server_intrisics::{ServerIntrisics, ServerIntrisicsWetData};
 
 #[utoipa::path(
     get,
@@ -369,7 +369,7 @@ fn solve_command(
 
     // Put the engine back to be saved
     engine_model.state.set_if_not_equals(DatabaseEngine(
-        engine.map_injected_intrisics_data(|wet| wet.dehydrate()),
+        engine.map_injected_intrisics_data(ServerIntrisicsWetData::dehydrate),
     ));
 
     engine_model

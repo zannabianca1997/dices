@@ -17,6 +17,14 @@ members = [
 default-members = ["repl"]
 resolver = "2"
 
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+missing_const_for_fn = "warn"
+map_unwrap_or = "warn"
+redundant_closure_for_method_calls = "warn"
+
 [workspace.package]
 version = "0.3.2"
 edition = "2021"

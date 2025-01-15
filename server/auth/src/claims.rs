@@ -95,13 +95,13 @@ where
             .await
             .map_err(UserClaimsRejection::TokenRejection)?;
         let auth_key = AuthKey::from_ref(state);
-        parse_token(auth_header.0.token(), auth_key).map_err(UserClaimsRejection::InvalidToken)
+        parse_token(auth_header.0.token(), &auth_key).map_err(UserClaimsRejection::InvalidToken)
     }
 }
 
-fn parse_token(token: &str, auth_key: AuthKey) -> Result<UserClaims, InvalidTokenError> {
+fn parse_token(token: &str, auth_key: &AuthKey) -> Result<UserClaims, InvalidTokenError> {
     let received_at = SystemTime::now();
-    match token.verify_with_key(&auth_key) {
+    match token.verify_with_key(auth_key) {
         Ok(UserClaims { expiration, .. })
             if SystemTime::UNIX_EPOCH + Duration::from_secs(expiration) < received_at =>
         {
@@ -137,7 +137,7 @@ pub fn hash_password(id: UserId, password: &str) -> (Autenticated<UserId>, Passw
     )
 }
 
-pub fn new_token(id: Autenticated<UserId>, auth_key: AuthKey) -> UserToken {
+pub fn new_token(id: Autenticated<UserId>, auth_key: &AuthKey) -> UserToken {
     let issued_at = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
@@ -153,7 +153,7 @@ pub fn new_token(id: Autenticated<UserId>, auth_key: AuthKey) -> UserToken {
     };
 
     let token = claims
-        .sign_with_key(&auth_key)
+        .sign_with_key(auth_key)
         .expect("The signing process should be infallible");
 
     UserToken(Authorization::bearer(&token).expect("The token should be a valid bearer token"))
@@ -164,7 +164,7 @@ pub use argon2::password_hash::Error as CheckPasswordError;
 pub fn check_password(
     id: UserId,
     hash: &PasswordHash,
-    provided: String,
+    provided: &str,
 ) -> Result<Autenticated<UserId>, CheckPasswordError> {
     Argon2::default()
         .verify_password(
