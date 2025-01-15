@@ -1,19 +1,5 @@
 [workspace]
-members = [
-    "ast",
-    "engine",
-    "man",
-    "mantest",
-    "repl",
-    "server",
-    "server/migration",
-    "server/entities",
-    "server/dtos",
-    "server/auth",
-    "server/intrisics",
-    "version",
-    "ast/macros",
-]
+members = ["ast", "engine", "man", "mantest", "repl", "version", "ast/macros"]
 default-members = ["repl"]
 resolver = "2"
 
