@@ -7,6 +7,7 @@ license.workspace = true
 [dependencies]
 derive_more = { workspace = true, features = ["full"] }
 num = { version = "0.4.3", features = ["num-bigint", "rand", "serde"] }
+serde.workspace = true
 snafu.workspace = true
 yoke = "0.8.3"
 

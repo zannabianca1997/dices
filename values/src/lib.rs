@@ -3,16 +3,24 @@
 use derive_more::{Display, From, IsVariant, TryInto, TryUnwrap, Unwrap};
 
 use crate::{
-    bool::ValueBool, int::ValueInt, list::ValueList, map::ValueMap, null::ValueNull, string::ValueString
+    bool::ValueBool, int::ValueInt, list::ValueList, map::ValueMap, null::ValueNull,
+    string::ValueString,
 };
 
+pub mod serde {
+    pub mod de;
+    pub mod ser;
+}
+
 pub mod bool;
+pub mod injected;
 pub mod int;
 pub mod list;
+pub mod map;
 pub mod null;
 pub mod string;
-pub mod map;
 
+/// A dices value
 #[derive(
     Debug,
     Clone,
@@ -34,5 +42,5 @@ pub enum Value {
     Int(ValueInt),
     String(ValueString),
     List(ValueList),
-    Map(ValueMap)
+    Map(ValueMap),
 }

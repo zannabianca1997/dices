@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap}, fmt::Display, ops::Deref, sync::Arc};
+use std::{collections::BTreeMap, fmt::Display, ops::Deref, sync::Arc};
 
 use crate::{Value, string::ValueString};
 
@@ -39,7 +39,7 @@ impl Display for ValueMap {
 pub type IntoIter = std::collections::btree_map::IntoIter<ValueString, Value>;
 
 impl IntoIterator for ValueMap {
-    type Item=(ValueString,Value);
+    type Item = (ValueString, Value);
     type IntoIter = IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {

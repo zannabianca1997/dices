@@ -3,7 +3,8 @@ use std::{
     hash::Hash,
     ops::Deref,
     slice::SliceIndex,
-    sync::Arc, vec,
+    sync::Arc,
+    vec,
 };
 
 use yoke::Yoke;
@@ -61,7 +62,7 @@ impl Deref for ValueList {
 pub struct IntoIter(IntoIterInner);
 enum IntoIterInner {
     Cloning(Yoke<&'static [Value], Arc<Vec<Value>>>),
-    FromVec(vec::IntoIter<Value>)
+    FromVec(vec::IntoIter<Value>),
 }
 
 impl IntoIterator for ValueList {
@@ -69,13 +70,15 @@ impl IntoIterator for ValueList {
     type IntoIter = IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
-        if self.len() == self.0.backing_cart().len()  {
+        if self.len() == self.0.backing_cart().len() {
             match Arc::try_unwrap(self.0.into_backing_cart()) {
                 Ok(v) => IntoIter(IntoIterInner::FromVec(v.into_iter())),
-                Err(arc) => IntoIter(IntoIterInner::Cloning(Yoke::attach_to_cart(arc, |c| c.as_slice()))),
+                Err(arc) => IntoIter(IntoIterInner::Cloning(Yoke::attach_to_cart(arc, |c| {
+                    c.as_slice()
+                }))),
             }
         } else {
-        IntoIter(IntoIterInner::Cloning(self.0))
+            IntoIter(IntoIterInner::Cloning(self.0))
         }
     }
 }
@@ -87,9 +90,11 @@ impl Iterator for IntoIter {
         match &mut self.0 {
             IntoIterInner::Cloning(yoke) => {
                 let res = yoke.with_mut_return(|s| s.split_off_first().cloned());
-                if res.is_none() { *self = Self(IntoIterInner::FromVec(vec![].into_iter()))}
+                if res.is_none() {
+                    *self = Self(IntoIterInner::FromVec(vec![].into_iter()))
+                }
                 res
-            },
+            }
             IntoIterInner::FromVec(vec_iter) => vec_iter.next(),
         }
     }
