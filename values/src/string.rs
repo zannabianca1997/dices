@@ -1,41 +1,36 @@
 //! Strings
 
 use std::{
+    borrow::Borrow,
     fmt::{Debug, Display, Write},
     hash::Hash,
     io::Write as _,
     num::ParseIntError,
     ops::Deref,
+    slice::SliceIndex,
     sync::Arc,
 };
 
 use snafu::{OptionExt, ResultExt, Snafu};
-use yoke::{Yoke, erased::ErasedArcCart};
+use yoke::Yoke;
 
 /// A string
 ///
 /// Cheaply clonable and sliceable
 #[derive(Clone)]
-pub struct ValueString(Yoke<&'static str, ErasedArcCart>);
+pub struct ValueString(Yoke<&'static str, Option<Arc<String>>>);
 
 impl ValueString {
     /// Create a new string
-    pub fn new<T>(value: T) -> Self
-    where
-        T: AsRef<str> + Send + Sync + 'static,
-    {
-        Self::new_allocated(Arc::new(value))
+    pub fn new(value: String) -> Self {
+        let content = Yoke::attach_to_cart(Arc::new(value), |cart| &**cart).wrap_cart_in_option();
+
+        Self(content)
     }
 
-    /// Create a new string
-    ///
-    /// This reuse the [`Arc`], avoiding an allocation
-    pub fn new_allocated<T>(value: Arc<T>) -> Self
-    where
-        T: AsRef<str> + Send + Sync + 'static,
-    {
-        // Convert the source in an arc
-        let content = Yoke::attach_to_cart(value, |cart| cart.as_ref()).erase_arc_cart();
+    /// Create a new string from static data
+    pub fn new_static(value: &'static str) -> Self {
+        let content = Yoke::new_owned(value);
 
         Self(content)
     }
@@ -43,6 +38,20 @@ impl ValueString {
     /// Value as a string
     pub fn as_str(&self) -> &str {
         self.0.get()
+    }
+
+    /// Get a substring
+    ///
+    /// This will obtain a substring that references the same backing string
+    pub fn slice<I>(&self, i: I) -> Option<Self>
+    where
+        I: SliceIndex<str, Output = str>,
+    {
+        let inner = self
+            .0
+            .try_map_project_cloned(|s, _| s.get(i).ok_or(()))
+            .ok()?;
+        Some(Self(inner))
     }
 }
 
@@ -66,6 +75,12 @@ impl Deref for ValueString {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
+        self.as_str()
+    }
+}
+
+impl Borrow<str> for ValueString {
+    fn borrow(&self) -> &str {
         self.as_str()
     }
 }
@@ -188,7 +203,7 @@ impl ValueString {
             result.push(unescaped);
         }
 
-        Ok(Self::new(result.into_boxed_str()))
+        Ok(Self::new(result))
     }
 
     /// Escape the string
@@ -205,7 +220,7 @@ impl ValueString {
 
         write!(result, "{}", self.display_content(escape)).unwrap();
 
-        Self::new(result.into_boxed_str())
+        Self::new(result)
     }
 
     /// Display the string content, escaped
