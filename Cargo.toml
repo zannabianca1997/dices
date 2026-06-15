@@ -6,8 +6,9 @@ members = ["values"]
 edition = "2024"
 license = "MIT"
 
+[workspace.dependencies]
+derive_more = { version = "2.1.1", features = ["full"] }
+snafu = "0.9.1"
+
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
-
-[workspace.dependencies]
-snafu = "0.9.1"

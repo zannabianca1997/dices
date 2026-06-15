@@ -5,9 +5,7 @@ use std::{
     fmt::{self, Display},
     hash::Hash,
     num::IntErrorKind,
-    ops::{
-        Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
-    },
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
     str::FromStr,
     sync::Arc,
 };
@@ -384,7 +382,12 @@ impl Num for ValueInt {
             Ok(v) => Ok(Self(Inner::Inline(v))),
             // Only retry on the big path when the string was a valid number that
             // simply overflowed `i64`; genuine parse errors stay inline errors.
-            Err(e) if matches!(e.kind(), IntErrorKind::PosOverflow | IntErrorKind::NegOverflow) => {
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    IntErrorKind::PosOverflow | IntErrorKind::NegOverflow
+                ) =>
+            {
                 let big = BigInt::from_str_radix(str, radix).context(HeapSnafu)?;
                 Ok(Self::from_bigint(big))
             }

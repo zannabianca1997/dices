@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+derive_more = { workspace = true, features = ["full"] }
 num = { version = "0.4.3", features = ["num-bigint", "rand", "serde"] }
 snafu.workspace = true
 
