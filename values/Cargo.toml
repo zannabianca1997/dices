@@ -1,0 +1,12 @@
+[package]
+name = "dices-values"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+num = { version = "0.4.3", features = ["num-bigint", "rand", "serde"] }
+snafu.workspace = true
+
+[lints]
+workspace = true
