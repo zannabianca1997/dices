@@ -1,0 +1,13 @@
+[workspace]
+resolver = "3"
+members = ["values"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.dependencies]
+snafu = "0.9.1"
