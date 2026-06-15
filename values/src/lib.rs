@@ -7,10 +7,7 @@ use crate::{
     string::ValueString,
 };
 
-pub mod serde {
-    pub mod de;
-    pub mod ser;
-}
+pub mod serde;
 
 pub mod bool;
 pub mod injected;
@@ -35,7 +32,9 @@ pub mod string;
     Unwrap,
     TryUnwrap,
     IsVariant,
+    strum::EnumDiscriminants,
 )]
+#[strum_discriminants(name(Type), derive(strum::Display, Hash), doc = "Types of a [`Value`]")]
 pub enum Value {
     Null(ValueNull),
     Bool(ValueBool),

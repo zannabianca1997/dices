@@ -312,3 +312,27 @@ impl Display for ValueString {
         write!(f, "\"{}\"", self.display_content(Escape::default()))
     }
 }
+
+impl From<ValueString> for String {
+    fn from(value: ValueString) -> Self {
+        // If the whole string is covered, copy the string directly
+        if value
+            .0
+            .backing_cart()
+            .as_deref()
+            .is_some_and(|cart| cart.len() == value.len())
+        {
+            let cart = Arc::unwrap_or_clone(value.0.into_backing_cart().unwrap());
+            return cart;
+        }
+
+        // Fallback to copy the substring
+        value.as_str().to_owned()
+    }
+}
+
+impl From<String> for ValueString {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}

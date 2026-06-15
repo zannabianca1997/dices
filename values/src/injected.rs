@@ -2,7 +2,7 @@ use std::{any::Any, error::Error, fmt::Debug, sync::Arc};
 
 use serde::Serialize;
 
-use crate::{Value, serde::ser::ValueSerializer};
+use crate::Value;
 
 #[derive(Debug)]
 pub struct ValueInjected(Arc<dyn Injected>);
@@ -123,15 +123,18 @@ pub trait InjectedWithSerde: Serialize + Debug + DynEq + 'static {
 
 impl<T> Injected for T
 where
-    T: InjectedWithSerde ,
+    T: InjectedWithSerde,
 {
     fn human_description(&self) -> &str {
         <T as InjectedWithSerde>::human_description(&self)
     }
 }
 
-impl<T> Readable for T where T:InjectedWithSerde {
+impl<T> Readable for T
+where
+    T: InjectedWithSerde,
+{
     fn read(&self) -> Result<Value, Box<dyn Error>> {
-        self.serialize(ValueSerializer).map_err(|err| Box::new(err))
+        crate::serde::to_value(self).map_err(|err| Box::new(err) as Box<dyn Error>)
     }
 }
