@@ -17,8 +17,11 @@
 
 use std::collections::BTreeMap;
 
-use num::NumCast;
-use serde::{Serialize, Serializer, ser};
+use num::{NumCast, ToPrimitive};
+use serde::{
+    Serialize, Serializer,
+    ser::{self, SerializeMap as _, SerializeSeq as _},
+};
 
 use super::error::{Error, Result};
 use crate::{
@@ -604,5 +607,59 @@ impl Serializer for MapKeySerializer {
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         Err(Error::InvalidMapKey { found: "enum" })
+    }
+}
+
+/// Serialize a [`Value`] onto any [`Serializer`].
+///
+/// This is the mirror of [`ValueDeserializer::deserialize_any`], so a value
+/// fed through [`ValueSerializer`] reproduces itself exactly. The integer probe
+/// order (`i64` → `u64` → `i128` → `u128`) matches the deserializer.
+///
+/// Integers larger than `u128` have no representation in the `serde` data model
+/// and produce an error, mirroring [`ValueDeserializer`], which already rejects
+/// them on the way out.
+///
+/// [`ValueDeserializer`]: crate::serde::de::ValueDeserializer
+/// [`ValueDeserializer::deserialize_any`]: crate::serde::de::ValueDeserializer
+impl Serialize for Value {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Value::Null(_) => serializer.serialize_unit(),
+            Value::Bool(b) => serializer.serialize_bool(b.get()),
+            Value::Int(n) => {
+                if let Some(v) = n.to_i64() {
+                    serializer.serialize_i64(v)
+                } else if let Some(v) = n.to_u64() {
+                    serializer.serialize_u64(v)
+                } else if let Some(v) = n.to_i128() {
+                    serializer.serialize_i128(v)
+                } else if let Some(v) = n.to_u128() {
+                    serializer.serialize_u128(v)
+                } else {
+                    Err(ser::Error::custom(format!(
+                        "integer {n} is too large to serialize (exceeds u128)"
+                    )))
+                }
+            }
+            Value::String(s) => serializer.serialize_str(s.as_str()),
+            Value::List(list) => {
+                let mut seq = serializer.serialize_seq(Some(list.len()))?;
+                for item in list.iter() {
+                    seq.serialize_element(item)?;
+                }
+                seq.end()
+            }
+            Value::Map(map) => {
+                let mut entries = serializer.serialize_map(Some(map.len()))?;
+                for (key, value) in map.iter() {
+                    entries.serialize_entry(key.as_str(), value)?;
+                }
+                entries.end()
+            }
+        }
     }
 }

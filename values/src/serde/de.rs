@@ -9,15 +9,23 @@
 //! no float kind), so a serialize/deserialize round trip through a float will
 //! generally fail at serialization time, not here.
 
+use std::collections::BTreeMap;
+
 use num::{NumCast, ToPrimitive};
-use serde::de::{
-    self, DeserializeOwned, DeserializeSeed, EnumAccess, IntoDeserializer, MapAccess, SeqAccess,
-    VariantAccess, Visitor,
+use serde::{
+    Deserialize,
+    de::{
+        self, DeserializeOwned, DeserializeSeed, EnumAccess, IntoDeserializer, MapAccess,
+        SeqAccess, Unexpected, VariantAccess, Visitor,
+    },
 };
 use snafu::OptionExt;
 
 use super::error::{Error, IntegerOutOfRangeSnafu, Result};
-use crate::Value;
+use crate::{
+    Value, bool::ValueBool, int::ValueInt, list::ValueList, map::ValueMap, null::ValueNull,
+    string::ValueString,
+};
 
 /// Deserialize a value out of a [`Value`].
 pub fn from_value<T: DeserializeOwned>(value: Value) -> Result<T> {
@@ -620,5 +628,166 @@ impl<'de> VariantAccess<'de> for VariantDeserializer {
             reason: "struct variant is missing its content",
         })?;
         de::Deserializer::deserialize_map(ValueDeserializer(value), visitor)
+    }
+}
+
+/// Build a [`ValueInt`] from any primitive integer fed to the visitor.
+///
+/// Every primitive integer fits in a [`ValueInt`] (which is unbounded), so the
+/// cast can never fail.
+fn value_int<T: ToPrimitive + Copy + std::fmt::Debug>(n: T) -> ValueInt {
+    NumCast::from(n).expect("every primitive integer fits in an unbounded ValueInt")
+}
+
+/// Deserialize a [`Value`] from any [`Deserializer`].
+///
+/// This is the mirror of [`Value`]'s [`Serialize`] impl: it accepts every shape
+/// that the value serializer produces (and, being driven through
+/// `deserialize_any`, works with any self-describing format too).
+///
+/// [`Serialize`]: serde::Serialize
+/// [`Deserializer`]: de::Deserializer
+impl<'de> Deserialize<'de> for Value {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        deserializer.deserialize_any(ValueVisitor)
+    }
+}
+
+/// Builds a [`Value`] from whatever the driving deserializer offers.
+struct ValueVisitor;
+
+/// Implement a `visit_*` integer method producing a [`Value::Int`].
+macro_rules! visit_int {
+    ($method:ident, $ty:ty) => {
+        fn $method<E>(self, v: $ty) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Value::Int(value_int(v)))
+        }
+    };
+}
+
+impl<'de> Visitor<'de> for ValueVisitor {
+    type Value = Value;
+
+    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str("a dices value")
+    }
+
+    fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(Value::Bool(ValueBool::from(v)))
+    }
+
+    visit_int!(visit_i8, i8);
+    visit_int!(visit_i16, i16);
+    visit_int!(visit_i32, i32);
+    visit_int!(visit_i64, i64);
+    visit_int!(visit_i128, i128);
+    visit_int!(visit_u8, u8);
+    visit_int!(visit_u16, u16);
+    visit_int!(visit_u32, u32);
+    visit_int!(visit_u64, u64);
+    visit_int!(visit_u128, u128);
+
+    fn visit_f32<E>(self, v: f32) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Err(E::invalid_type(Unexpected::Float(v as f64), &self))
+    }
+
+    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Err(E::invalid_type(Unexpected::Float(v), &self))
+    }
+
+    fn visit_char<E>(self, v: char) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(Value::String(ValueString::new(v.to_string())))
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(Value::String(ValueString::new(v.to_owned())))
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(Value::String(ValueString::new(v)))
+    }
+
+    fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        let items = v.iter().map(|b| Value::Int(value_int(*b))).collect();
+        Ok(Value::List(ValueList::new(items)))
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(Value::Null(ValueNull))
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        Value::deserialize(deserializer)
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(Value::Null(ValueNull))
+    }
+
+    fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        Value::deserialize(deserializer)
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut items = Vec::with_capacity(seq.size_hint().unwrap_or(0));
+        while let Some(item) = seq.next_element::<Value>()? {
+            items.push(item);
+        }
+        Ok(Value::List(ValueList::new(items)))
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        // Keys are always strings in the value model.
+        let mut entries = BTreeMap::new();
+        while let Some(key) = map.next_key::<String>()? {
+            let value = map.next_value::<Value>()?;
+            entries.insert(ValueString::new(key), value);
+        }
+        Ok(Value::Map(ValueMap::new(entries)))
     }
 }

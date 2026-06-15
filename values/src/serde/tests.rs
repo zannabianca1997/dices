@@ -216,3 +216,63 @@ fn integer_out_of_range_is_an_error() {
     let err = u8::deserialize(ValueDeserializer(value)).unwrap_err();
     assert!(matches!(err, Error::IntegerOutOfRange { .. }));
 }
+
+/// Assert a [`Value`] is reproduced exactly in both serde directions.
+fn assert_value_roundtrip(value: Value) {
+    assert_eq!(
+        to_value(&value),
+        value,
+        "serialize-through-ValueSerializer is identity"
+    );
+    let back: Value = from_value(value.clone());
+    assert_eq!(
+        back, value,
+        "deserialize-through-ValueDeserializer is identity"
+    );
+}
+
+#[test]
+fn value_self_roundtrip() {
+    assert_value_roundtrip(Value::Null(crate::null::ValueNull));
+    assert_value_roundtrip(Value::Bool(true.into()));
+    assert_value_roundtrip(Value::Bool(false.into()));
+
+    // Integers across every width band the serializer probes.
+    assert_value_roundtrip(to_value(&7_i32));
+    assert_value_roundtrip(to_value(&i64::MIN));
+    assert_value_roundtrip(to_value(&u64::MAX));
+    assert_value_roundtrip(to_value(&i128::MIN));
+    assert_value_roundtrip(to_value(&u128::MAX));
+
+    assert_value_roundtrip(Value::String(ValueString::new_static("hello")));
+
+    // Lists: empty and nested.
+    assert_value_roundtrip(to_value(&Vec::<i32>::new()));
+    assert_value_roundtrip(to_value(&vec![vec![1_i32, 2], vec![3]]));
+
+    // Maps: empty and a mix of scalar, list and map values.
+    assert_value_roundtrip(to_value(&BTreeMap::<String, i32>::new()));
+    let mut nested = BTreeMap::new();
+    nested.insert("scalar".to_owned(), to_value(&1_i32));
+    nested.insert("list".to_owned(), to_value(&vec![1_i32, 2, 3]));
+    let mut inner = BTreeMap::new();
+    inner.insert("k".to_owned(), to_value(&true));
+    nested.insert("map".to_owned(), to_value(&inner));
+    assert_value_roundtrip(to_value(&nested));
+}
+
+#[test]
+fn value_survives_as_a_field() {
+    // A `Value` embedded in another serde type round-trips through the bridge.
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    struct Holder {
+        name: String,
+        payload: Value,
+    }
+
+    let holder = Holder {
+        name: "answer".to_owned(),
+        payload: to_value(&42_i32),
+    };
+    assert_roundtrip(holder);
+}
