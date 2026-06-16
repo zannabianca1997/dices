@@ -14,16 +14,19 @@ use crate::Value;
 
 /// A list of values
 ///
-/// Cheaply clonable and sliceable
+/// Cheaply cloneable and sliceable
 #[derive(Clone)]
-pub struct ValueList(Yoke<&'static [Value], Arc<Vec<Value>>>);
+pub struct ValueList(Yoke<&'static [Value], Option<Arc<Vec<Value>>>>);
 
 impl ValueList {
     /// Create a new list
     pub fn new(values: Vec<Value>) -> Self {
-        Self(Yoke::attach_to_cart(Arc::new(values), |cart| {
-            cart.as_slice()
-        }))
+        Self(Yoke::attach_to_cart(Arc::new(values), |cart| cart.as_slice()).wrap_cart_in_option())
+    }
+
+    /// The empty list
+    pub const fn empty() -> Self {
+        Self(Yoke::new_owned(&[]))
     }
 
     /// Slice of values
@@ -62,7 +65,7 @@ impl Deref for ValueList {
 
 pub struct IntoIter(IntoIterInner);
 enum IntoIterInner {
-    Cloning(Yoke<&'static [Value], Arc<Vec<Value>>>),
+    Cloning(Yoke<&'static [Value], Option<Arc<Vec<Value>>>>),
     FromVec(vec::IntoIter<Value>),
 }
 
@@ -71,12 +74,17 @@ impl IntoIterator for ValueList {
     type IntoIter = IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
-        if self.len() == self.0.backing_cart().len() {
-            match Arc::try_unwrap(self.0.into_backing_cart()) {
+        if self
+            .0
+            .backing_cart()
+            .as_deref()
+            .is_some_and(|cart| cart.len() == self.len())
+        {
+            match Arc::try_unwrap(self.0.into_backing_cart().unwrap()) {
                 Ok(v) => IntoIter(IntoIterInner::FromVec(v.into_iter())),
-                Err(arc) => IntoIter(IntoIterInner::Cloning(Yoke::attach_to_cart(arc, |c| {
-                    c.as_slice()
-                }))),
+                Err(arc) => IntoIter(IntoIterInner::Cloning(
+                    Yoke::attach_to_cart(arc, |c| c.as_slice()).wrap_cart_in_option(),
+                )),
             }
         } else {
             IntoIter(IntoIterInner::Cloning(self.0))
