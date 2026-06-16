@@ -21,26 +21,6 @@ use snafu::{ResultExt, Snafu};
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct ValueInt(Inner);
 
-/// Require all traits we need here in a single list
-const _: () = {
-    const fn assert_necessary_traits<T>()
-    where
-        T: Integer
-            + NumRef
-            + RefNum<T>
-            + NumAssignOps
-            + NumAssignRef
-            + NumCast
-            + Signed
-            + ToPrimitive
-            + Hash
-            + Display
-            + FromStr,
-    {
-    }
-
-    assert_necessary_traits::<ValueInt>();
-};
 
 /// Content of an integer
 ///
