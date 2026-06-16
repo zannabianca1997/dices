@@ -1,6 +1,7 @@
 use std::{
     fmt::{Debug, Display, Write},
     hash::Hash,
+    iter::FusedIterator,
     ops::Deref,
     slice::SliceIndex,
     sync::Arc,
@@ -109,6 +110,23 @@ impl ExactSizeIterator for IntoIter {
         match &self.0 {
             IntoIterInner::Cloning(yoke) => yoke.get().len(),
             IntoIterInner::FromVec(iter) => iter.len(),
+        }
+    }
+}
+
+impl FusedIterator for IntoIter {}
+
+impl DoubleEndedIterator for IntoIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        match &mut self.0 {
+            IntoIterInner::Cloning(yoke) => {
+                let res = yoke.with_mut_return(|s| s.split_off_last().cloned());
+                if res.is_none() {
+                    *self = Self(IntoIterInner::FromVec(vec![].into_iter()))
+                }
+                res
+            }
+            IntoIterInner::FromVec(vec_iter) => vec_iter.next_back(),
         }
     }
 }

@@ -13,14 +13,13 @@ use std::{
 use num::{
     BigInt, BigUint, Integer, Num, NumCast, One, Signed, ToPrimitive, Zero,
     bigint::Sign,
-    traits::{ConstOne, ConstZero, NumAssignOps, NumAssignRef, NumRef, RefNum},
+    traits::{ConstOne, ConstZero},
 };
 use snafu::{ResultExt, Snafu};
 
 /// A boundless integer
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct ValueInt(Inner);
-
 
 /// Content of an integer
 ///
