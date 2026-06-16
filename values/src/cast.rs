@@ -21,6 +21,57 @@ use crate::{
     string::ValueString,
 };
 
+#[derive(Debug, Snafu)]
+pub enum CastError {
+    #[snafu(transparent)]
+    CastIntoNull { source: CastIntoNullError },
+    #[snafu(transparent)]
+    CastInjected { source: CastInjectedError },
+    #[snafu(transparent)]
+    CastIntoInt { source: CastIntoIntError },
+    #[snafu(transparent)]
+    CastIntoMap { source: CastIntoMapError },
+    #[snafu(transparent)]
+    UnsupportedCast { source: UnsupportedCast },
+}
+
+/// Try to cast `value` into one of the `to` types.
+///
+/// Casts are tried in order. Return the first successful in [`Ok`], or the
+/// errors in [`Err`]
+pub fn fall_through_cast(value: Value, to: &[Type]) -> Result<Value, Vec<CastError>> {
+    let mut errs = Vec::new();
+    for to in to {
+        match match to {
+            Type::Null => ValueNull::try_from(value.clone())
+                .map(Value::from)
+                .map_err(CastError::from),
+            Type::Bool => ValueBool::try_from(value.clone())
+                .map(Value::from)
+                .map_err(CastError::from),
+            Type::Int => ValueInt::try_from(value.clone())
+                .map(Value::from)
+                .map_err(CastError::from),
+            Type::String => ValueString::try_from(value.clone())
+                .map(Value::from)
+                .map_err(CastError::from),
+            Type::List => ValueList::try_from(value.clone())
+                .map(Value::from)
+                .map_err(CastError::from),
+            Type::Map => ValueMap::try_from(value.clone())
+                .map(Value::from)
+                .map_err(CastError::from),
+            Type::Injected => ValueInjected::try_from(value.clone())
+                .map(Value::from)
+                .map_err(CastError::from),
+        } {
+            Ok(value) => return Ok(value),
+            Err(err) => errs.push(err),
+        }
+    }
+    Err(errs)
+}
+
 // Some common machinery
 
 #[derive(Debug, Snafu)]
@@ -58,6 +109,91 @@ macro_rules! from_injected {
             }
         }
     };
+}
+
+// ValueNull
+//
+// All casts except the identity and read injected are unsupported
+
+#[derive(Debug, Snafu)]
+pub enum CastIntoNullError {
+    #[snafu(transparent)]
+    UnsupportedCast { source: UnsupportedCast },
+    #[snafu(transparent)]
+    CastInjected { source: CastInjectedError },
+}
+
+impl TryFrom<ValueBool> for ValueNull {
+    type Error = UnsupportedCast;
+
+    fn try_from(_: ValueBool) -> Result<Self, Self::Error> {
+        Err(UnsupportedCast {
+            from: Type::Bool,
+            to: Type::Null,
+        })
+    }
+}
+
+impl TryFrom<ValueInt> for ValueNull {
+    type Error = UnsupportedCast;
+
+    fn try_from(_: ValueInt) -> Result<Self, Self::Error> {
+        Err(UnsupportedCast {
+            from: Type::Int,
+            to: Type::Null,
+        })
+    }
+}
+
+impl TryFrom<ValueString> for ValueNull {
+    type Error = UnsupportedCast;
+
+    fn try_from(_: ValueString) -> Result<Self, Self::Error> {
+        Err(UnsupportedCast {
+            from: Type::String,
+            to: Type::Null,
+        })
+    }
+}
+
+impl TryFrom<ValueList> for ValueNull {
+    type Error = UnsupportedCast;
+
+    fn try_from(_: ValueList) -> Result<Self, Self::Error> {
+        Err(UnsupportedCast {
+            from: Type::List,
+            to: Type::Null,
+        })
+    }
+}
+
+impl TryFrom<ValueMap> for ValueNull {
+    type Error = UnsupportedCast;
+
+    fn try_from(_: ValueMap) -> Result<Self, Self::Error> {
+        Err(UnsupportedCast {
+            from: Type::Map,
+            to: Type::Null,
+        })
+    }
+}
+
+from_injected!(ValueNull, err = CastIntoNullError);
+
+impl TryFrom<Value> for ValueNull {
+    type Error = CastIntoNullError;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        Ok(match value {
+            Value::Null(value) => value,
+            Value::Bool(value) => value.try_into()?,
+            Value::Int(value) => value.try_into()?,
+            Value::String(value) => value.try_into()?,
+            Value::List(value) => value.try_into()?,
+            Value::Map(value) => value.try_into()?,
+            Value::Injected(value) => value.try_into()?,
+        })
+    }
 }
 
 // ValueBool
@@ -409,6 +545,92 @@ impl TryFrom<Value> for ValueMap {
             Value::List(value) => value.try_into()?,
             Value::Map(value) => value,
             Value::Injected(value) => value.try_into()?,
+        })
+    }
+}
+
+// ValueInjected
+//
+// All casts except the identity are unsupported
+
+impl TryFrom<ValueNull> for ValueInjected {
+    type Error = UnsupportedCast;
+
+    fn try_from(_: ValueNull) -> Result<Self, Self::Error> {
+        Err(UnsupportedCast {
+            from: Type::Null,
+            to: Type::Injected,
+        })
+    }
+}
+
+impl TryFrom<ValueBool> for ValueInjected {
+    type Error = UnsupportedCast;
+
+    fn try_from(_: ValueBool) -> Result<Self, Self::Error> {
+        Err(UnsupportedCast {
+            from: Type::Bool,
+            to: Type::Injected,
+        })
+    }
+}
+
+impl TryFrom<ValueInt> for ValueInjected {
+    type Error = UnsupportedCast;
+
+    fn try_from(_: ValueInt) -> Result<Self, Self::Error> {
+        Err(UnsupportedCast {
+            from: Type::Int,
+            to: Type::Injected,
+        })
+    }
+}
+
+impl TryFrom<ValueString> for ValueInjected {
+    type Error = UnsupportedCast;
+
+    fn try_from(_: ValueString) -> Result<Self, Self::Error> {
+        Err(UnsupportedCast {
+            from: Type::String,
+            to: Type::Injected,
+        })
+    }
+}
+
+impl TryFrom<ValueList> for ValueInjected {
+    type Error = UnsupportedCast;
+
+    fn try_from(_: ValueList) -> Result<Self, Self::Error> {
+        Err(UnsupportedCast {
+            from: Type::List,
+            to: Type::Injected,
+        })
+    }
+}
+
+impl TryFrom<ValueMap> for ValueInjected {
+    type Error = UnsupportedCast;
+
+    fn try_from(_: ValueMap) -> Result<Self, Self::Error> {
+        Err(UnsupportedCast {
+            from: Type::Map,
+            to: Type::Injected,
+        })
+    }
+}
+
+impl TryFrom<Value> for ValueInjected {
+    type Error = UnsupportedCast;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        Ok(match value {
+            Value::Null(value) => value.try_into()?,
+            Value::Bool(value) => value.try_into()?,
+            Value::Int(value) => value.try_into()?,
+            Value::String(value) => value.try_into()?,
+            Value::List(value) => value.try_into()?,
+            Value::Map(value) => value.try_into()?,
+            Value::Injected(value) => value,
         })
     }
 }
