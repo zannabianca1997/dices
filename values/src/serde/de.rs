@@ -84,6 +84,10 @@ impl<'de> de::Deserializer<'de> for ValueDeserializer {
                 iter: map.into_iter(),
                 value: None,
             }),
+            Value::Injected(value_injected) => Err(de::Error::custom(format_args!(
+                "Injected value `{}` is not deserializable",
+                value_injected.description()
+            ))),
         }
     }
 

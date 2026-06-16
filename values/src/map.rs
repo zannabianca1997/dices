@@ -5,7 +5,7 @@ use crate::{Value, string::ValueString};
 /// Map of strings to values
 ///
 /// Cheap to clone
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 pub struct ValueMap(Arc<BTreeMap<ValueString, Value>>);
 
 impl ValueMap {
@@ -44,5 +44,11 @@ impl IntoIterator for ValueMap {
 
     fn into_iter(self) -> Self::IntoIter {
         Arc::unwrap_or_clone(self.0).into_iter()
+    }
+}
+
+impl FromIterator<(ValueString, Value)> for ValueMap {
+    fn from_iter<T: IntoIterator<Item = (ValueString, Value)>>(iter: T) -> Self {
+        Self::new(FromIterator::from_iter(iter))
     }
 }

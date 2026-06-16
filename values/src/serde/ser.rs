@@ -660,6 +660,10 @@ impl Serialize for Value {
                 }
                 entries.end()
             }
+            Value::Injected(value_injected) => Err(ser::Error::custom(format_args!(
+                "Injected value `{}` is not serializable",
+                value_injected.description()
+            ))),
         }
     }
 }

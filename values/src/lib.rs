@@ -3,8 +3,8 @@
 use derive_more::{Display, From, IsVariant, TryInto, TryUnwrap, Unwrap};
 
 use crate::{
-    bool::ValueBool, int::ValueInt, list::ValueList, map::ValueMap, null::ValueNull,
-    string::ValueString,
+    bool::ValueBool, injected::ValueInjected, int::ValueInt, list::ValueList, map::ValueMap,
+    null::ValueNull, string::ValueString,
 };
 
 pub mod serde;
@@ -24,7 +24,6 @@ pub mod string;
     PartialEq,
     Eq,
     PartialOrd,
-    Ord,
     Hash,
     Display,
     From,
@@ -42,4 +41,5 @@ pub enum Value {
     String(ValueString),
     List(ValueList),
     Map(ValueMap),
+    Injected(ValueInjected),
 }
