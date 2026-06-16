@@ -1,5 +1,7 @@
 #![doc = include_str!("../README.md")]
 
+use std::{fmt::Debug, hash::Hash};
+
 use derive_more::{Display, From, IsVariant, TryInto, TryUnwrap, Unwrap};
 
 use crate::{
@@ -17,6 +19,8 @@ pub mod map;
 pub mod null;
 pub mod string;
 
+pub mod cast;
+
 /// A dices value
 #[derive(
     Debug,
@@ -27,13 +31,17 @@ pub mod string;
     Hash,
     Display,
     From,
-    TryInto,
     Unwrap,
     TryUnwrap,
     IsVariant,
     strum::EnumDiscriminants,
 )]
-#[strum_discriminants(name(Type), derive(strum::Display, Hash), doc = "Types of a [`Value`]")]
+#[strum_discriminants(
+    name(Type),
+    derive(strum::Display, Hash),
+    doc = "Types of a [`Value`]",
+    vis(pub)
+)]
 pub enum Value {
     Null(ValueNull),
     Bool(ValueBool),
@@ -42,4 +50,10 @@ pub enum Value {
     List(ValueList),
     Map(ValueMap),
     Injected(ValueInjected),
+}
+
+impl Value {
+    pub fn typ(&self) -> Type {
+        self.into()
+    }
 }

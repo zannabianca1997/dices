@@ -46,7 +46,7 @@ impl ValueInjected {
     }
 
     /// Create a new value from a static implementor
-    pub fn new_static(injected: &'static impl Injectable) -> Self {
+    pub const fn new_static(injected: &'static impl Injectable) -> Self {
         Self(Yoke::new_owned(injected as &dyn Injectable))
     }
 

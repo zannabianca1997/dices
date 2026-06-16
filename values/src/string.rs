@@ -29,7 +29,7 @@ impl ValueString {
     }
 
     /// Create a new string from static data
-    pub fn new_static(value: &'static str) -> Self {
+    pub const fn new_static(value: &'static str) -> Self {
         let content = Yoke::new_owned(value);
 
         Self(content)

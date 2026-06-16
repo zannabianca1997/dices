@@ -98,6 +98,19 @@ impl Iterator for IntoIter {
             IntoIterInner::FromVec(vec_iter) => vec_iter.next(),
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len(), Some(self.len()))
+    }
+}
+
+impl ExactSizeIterator for IntoIter {
+    fn len(&self) -> usize {
+        match &self.0 {
+            IntoIterInner::Cloning(yoke) => yoke.get().len(),
+            IntoIterInner::FromVec(iter) => iter.len(),
+        }
+    }
 }
 
 impl FromIterator<Value> for ValueList {
