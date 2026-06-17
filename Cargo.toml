@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["ast", "parser", "values"]
+members = ["ast", "engine", "parser", "values"]
 
 [workspace.package]
 edition = "2024"
@@ -8,6 +8,7 @@ license = "MIT"
 
 [workspace.dependencies]
 dices-ast = { path = "ast" }
+dices-engine = { path = "engine" }
 dices-parser = { path = "parser" }
 dices-values = { path = "values" }
 

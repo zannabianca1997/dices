@@ -1,0 +1,12 @@
+[package]
+name = "dices-engine"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+dices-ast.workspace = true
+dices-values.workspace = true
+
+[lints]
+workspace = true
