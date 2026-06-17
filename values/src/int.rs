@@ -312,10 +312,57 @@ impl ToPrimitive for ValueInt {
     }
 
     fn to_f64(&self) -> Option<f64> {
-        match &self.0 {
-            Inner::Inline(a) => Some(*a as f64),
-            _ => self.to_bigint().to_f64(),
+        if let Inner::Inline(a) = &self.0 {
+            Some(*a as f64)
+        } else {
+            self.to_bigint().to_f64()
         }
+    }
+}
+
+impl FromPrimitive for ValueInt {
+    fn from_i64(n: i64) -> Option<Self> {
+        Some(Self(Inner::Inline(n)))
+    }
+
+    fn from_u64(n: u64) -> Option<Self> {
+        Some(if let Some(a) = n.to_i64() {
+            Self(Inner::Inline(a))
+        } else {
+            Self::from_bigint(BigInt::from(n))
+        })
+    }
+
+    fn from_usize(n: usize) -> Option<Self> {
+        Some(if let Some(a) = n.to_i64() {
+            Self(Inner::Inline(a))
+        } else {
+            Self::from_bigint(BigInt::from(n))
+        })
+    }
+
+    fn from_i128(n: i128) -> Option<Self> {
+        Some(if let Some(a) = n.to_i64() {
+            Self(Inner::Inline(a))
+        } else {
+            Self::from_bigint(BigInt::from(n))
+        })
+    }
+
+    fn from_u128(n: u128) -> Option<Self> {
+        Some(if let Some(a) = n.to_i64() {
+            Self(Inner::Inline(a))
+        } else {
+            Self::from_bigint(BigInt::from(n))
+        })
+    }
+
+    fn from_f32(n: f32) -> Option<Self> {
+        BigInt::from_f32(n).map(Self::from_bigint)
+    }
+
+    fn from_f64(n: f64) -> Option<Self> {
+        BigInt::from_f64(n).map(Self::from_bigint)
     }
 }
 
