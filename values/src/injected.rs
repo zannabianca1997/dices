@@ -9,7 +9,7 @@ use std::{
 use snafu::{OptionExt, Snafu};
 use yoke::Yoke;
 
-use crate::Value;
+use crate::{Value, injected::read::ValueOrInject};
 use describable::Description;
 use read::ReadValue;
 use required_traits::RequiredTraits;
@@ -76,15 +76,20 @@ impl ValueInjected {
             ReadValue::Value(value) => value,
             ReadValue::Map(map) => Value::Map(
                 map.into_iter()
-                    .map(|(k, v)| (k, unsafe { self.attach_read_value_to_cart(v) }))
+                    .map(|(k, v)| (k, unsafe { self.attach_value_or_inject_to_cart(v) }))
                     .collect(),
             ),
             ReadValue::List(list) => Value::List(
                 list.into_iter()
-                    .map(|v| unsafe { self.attach_read_value_to_cart(v) })
+                    .map(|v| unsafe { self.attach_value_or_inject_to_cart(v) })
                     .collect(),
             ),
-            ReadValue::Inject(injected) => {
+        }
+    }
+    /// Safety: `self` must be borrowing _only_ from the cart allocation
+    unsafe fn attach_value_or_inject_to_cart<'a>(&'a self, value: ValueOrInject<'a>) -> Value {
+        match value {
+            ValueOrInject::Inject(injected) => {
                 let attached = self.0.map_project_cloned(|_, _| unsafe {
                     // Safety: we are extending the lifetime to 'static, but
                     // also wrapping into a `Yoke` that will stop any longer
@@ -93,6 +98,7 @@ impl ValueInjected {
                 });
                 Value::Injected(ValueInjected(attached))
             }
+            ValueOrInject::Value(value) => unsafe { self.attach_read_value_to_cart(value) },
         }
     }
 }

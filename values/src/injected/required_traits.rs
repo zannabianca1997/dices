@@ -42,6 +42,10 @@ where
         if let Some(other) = other.downcast_ref::<Self>() {
             self.cmp(other)
         } else {
+            // Use the type id ordering
+            //
+            // TODO: is this ok? This means that different compilers will order
+            // values differently...
             self.type_id().cmp(&other.type_id())
         }
     }

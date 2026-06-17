@@ -6,8 +6,12 @@ use crate::{Value, injected::Injectable, string::ValueString};
 
 pub enum ReadValue<'a> {
     Value(Value),
-    Map(BTreeMap<ValueString, ReadValue<'a>>),
-    List(Vec<ReadValue<'a>>),
+    Map(BTreeMap<ValueString, ValueOrInject<'a>>),
+    List(Vec<ValueOrInject<'a>>),
+}
+
+pub enum ValueOrInject<'a> {
+    Value(ReadValue<'a>),
     Inject(&'a dyn Injectable),
 }
 
