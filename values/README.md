@@ -1,3 +1,3 @@
-# Value library
+# Values
 
 Values handled in `dices`
