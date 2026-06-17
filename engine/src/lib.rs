@@ -14,24 +14,27 @@ pub mod context;
 mod eval;
 mod utils;
 
-type RngImpl = rand_pcg::Lcg64Xsh32;
+pub trait Evaluator {
+    fn eval(&mut self, stmt: &Statement) -> Result<Value, EvalError>;
+}
 
 /// An engine evaluating dices statements
 #[derive(Debug, Clone)]
 pub struct Engine {
-    rng: RngImpl,
+    rng: rand_pcg::Lcg64Xsh32,
 }
 
 impl Engine {
     /// Create a new engine
-    pub fn new(seed: <RngImpl as SeedableRng>::Seed) -> Self {
+    pub fn new(seed: [u8; 16]) -> Self {
         Self {
-            rng: RngImpl::from_seed(seed),
+            rng: SeedableRng::from_seed(seed),
         }
     }
+}
 
-    /// Evaluate a statement
-    pub fn eval(&mut self, stmt: &Statement) -> Result<Value, EvalError> {
+impl Evaluator for Engine {
+    fn eval(&mut self, stmt: &Statement) -> Result<Value, EvalError> {
         eval::statement::eval(stmt, &mut Context::new(self))
     }
 }

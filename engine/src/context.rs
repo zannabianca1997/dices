@@ -1,10 +1,12 @@
 //! Evaluation context
 
+use dices_ast::statement::Statement;
+use dices_values::Value;
 use dices_values::int::ValueInt;
 use num::traits::ConstOne;
 use rand::Rng;
 
-use crate::Engine;
+use crate::{Engine, EvalError, Evaluator};
 
 /// Evaluation context
 pub struct Context<'engine> {
@@ -25,5 +27,11 @@ impl<'engine> Context<'engine> {
             faces..=ValueInt::ONE
         };
         self.engine.rng.gen_range(range)
+    }
+}
+
+impl Evaluator for Context<'_> {
+    fn eval(&mut self, stmt: &Statement) -> Result<Value, EvalError> {
+        crate::eval::statement::eval(stmt, self)
     }
 }
