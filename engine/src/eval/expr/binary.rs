@@ -70,7 +70,16 @@ fn eval_sub(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
 }
 
 fn eval_mul(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    todo!()
+    match ValueInt::try_from(lhs.clone()) {
+        Ok(lhs) => deep_apply(rhs, &mut |value| Ok(lhs.clone() * value)),
+        Err(lhs_err) => match ValueInt::try_from(rhs) {
+            Ok(rhs) => deep_apply(lhs, &mut |value| Ok(value * rhs.clone())),
+            Err(rhs_err) => Err(EvalError::MulBetweenNonScalars {
+                lhs: lhs_err,
+                rhs: rhs_err
+            })
+        },
+    }
 }
 
 fn eval_div(lhs: Value, rhs: Value) -> Result<Value, EvalError> {

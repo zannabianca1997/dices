@@ -68,10 +68,21 @@ pub fn deep_sum(values: impl IntoIterator<Item = Value>) -> Result<ValueInt, Eva
 
 /// Force the value to integer and apply a fallible function. If the value is a
 /// collection, mantain it's shape and do it on it's elements instead.
-pub fn deep_apply(value: Value, op: &mut impl FnMut(ValueInt) -> Result<ValueInt, EvalError>) -> Result<Value, EvalError> {
+pub fn deep_apply(
+    value: Value,
+    op: &mut impl FnMut(ValueInt) -> Result<ValueInt, EvalError>,
+) -> Result<Value, EvalError> {
     match push_down_if_injected(value)? {
-        Value::List(values) => values.into_iter().map(|value| deep_apply(value, op)).try_collect().map(Value::List),
-        Value::Map(values) => values.into_iter().map(|(key, value)| deep_apply(value, op).map(|value| (key, value))).try_collect().map(Value::Map),
+        Value::List(values) => values
+            .into_iter()
+            .map(|value| deep_apply(value, op))
+            .try_collect()
+            .map(Value::List),
+        Value::Map(values) => values
+            .into_iter()
+            .map(|(key, value)| deep_apply(value, op).map(|value| (key, value)))
+            .try_collect()
+            .map(Value::Map),
         other => op(ValueInt::try_from(other)?).map(Value::Int),
     }
 }
@@ -99,7 +110,6 @@ impl DicesOrd {
         }
     }
 }
-
 
 impl PartialEq for DicesOrd {
     fn eq(&self, other: &Self) -> bool {
