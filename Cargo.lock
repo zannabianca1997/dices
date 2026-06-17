@@ -135,8 +135,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aa79e62e7697b8e29b513a68abacf485adcd1fe8284a4316c5ae868e6633327"
 dependencies = [
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "serde",
+ "wasm-bindgen",
  "windows-link",
 ]
 
@@ -309,13 +311,16 @@ dependencies = [
 name = "dices-tui"
 version = "0.4.0"
 dependencies = [
+ "chrono",
  "clap",
+ "crossterm",
  "derive_more",
  "dices-engine",
  "dices-parser",
  "directories",
  "error_reporter",
  "figment",
+ "nu-ansi-term",
  "pretty",
  "rand_seeder",
  "reedline",
@@ -637,6 +642,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
+ "serde",
  "windows-sys 0.61.2",
 ]
 

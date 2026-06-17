@@ -11,7 +11,6 @@ license = "MIT"
 dices-ast = { path = "ast" }
 dices-engine = { path = "engine" }
 dices-parser = { path = "parser" }
-dices-tui = { path = "tui" }
 dices-values = { path = "values" }
 
 derive_more = { version = "2.1.1", features = ["full"] }

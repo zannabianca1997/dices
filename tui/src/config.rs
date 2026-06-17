@@ -1,18 +1,17 @@
 use std::fs::{self, File};
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use directories::ProjectDirs;
+use figment::Figment;
 use figment::providers::{Env, Format, Serialized, Toml};
-use figment::value::magic::Either;
-use figment::{Figment, value::magic::RelativePathBuf};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    cli::CliConfig,
-    config::skin::{SelectedSkin, Skins},
-};
+use crate::cli::CliConfig;
+use history::HistoryConfig;
+use skin::{SelectedSkin, Skins};
 
+pub mod history;
 pub mod skin;
 
 fn directories() -> Option<ProjectDirs> {
@@ -22,7 +21,7 @@ fn directories() -> Option<ProjectDirs> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     /// History file
-    pub history: Either<RelativePathBuf, Option<PathBuf>>,
+    pub history: HistoryConfig,
     /// Skin to use
     pub skin: SelectedSkin,
     /// Skins for the TUI
@@ -75,7 +74,7 @@ fn write_config_file_if_not_exists(config: &Path) -> io::Result<()> {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            history: Either::Right(directories().map(|dirs| dirs.data_dir().join("history.txt"))),
+            history: Default::default(),
             skin: Default::default(),
             skins: Default::default(),
         }

@@ -8,6 +8,7 @@ use std::str::FromStr;
 
 use clap::builder::{PossibleValue, TypedValueParser};
 use pretty::termcolor::{Color, ColorSpec};
+use reedline::{DefaultPrompt, DefaultPromptSegment, Prompt};
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
@@ -74,8 +75,7 @@ pub struct Skin {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Elements {
     /// The prompt
-    #[serde(with = "color_spec")]
-    pub prompts: ColorSpec,
+    pub prompts: Prompts,
     /// `null` value
     #[serde(with = "color_spec")]
     pub nulls: ColorSpec,
@@ -96,10 +96,7 @@ pub struct Elements {
 impl Elements {
     pub fn colored() -> Self {
         Self {
-            prompts: ColorSpec::new()
-                .set_fg(Some(Color::Cyan))
-                .set_italic(true)
-                .clone(),
+            prompts: Prompts::colored(),
             nulls: ColorSpec::new()
                 .set_fg(Some(Color::White))
                 .set_dimmed(true)
@@ -116,12 +113,39 @@ impl Elements {
     pub fn plain() -> Self {
         let null_color = ColorSpec::new().set_reset(false).clone();
         Self {
-            prompts: null_color.clone(),
+            prompts: Prompts::plain(),
             nulls: null_color.clone(),
             bools: null_color.clone(),
             integers: null_color.clone(),
             strings: null_color.clone(),
             punctuators: null_color.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Prompts {
+    pub prompt: reedline::Color,
+    pub multiline: nu_ansi_term::Color,
+    pub indicator: reedline::Color,
+    pub right: reedline::Color,
+}
+
+impl Prompts {
+    pub fn colored() -> Self {
+        Self {
+            prompt: reedline::Color::Green,
+            multiline: nu_ansi_term::Color::LightBlue,
+            indicator: reedline::Color::Cyan,
+            right: reedline::Color::AnsiValue(5),
+        }
+    }
+    pub fn plain() -> Self {
+        Self {
+            prompt: reedline::Color::Reset,
+            multiline: nu_ansi_term::Color::White,
+            indicator: reedline::Color::Reset,
+            right: reedline::Color::Reset,
         }
     }
 }
