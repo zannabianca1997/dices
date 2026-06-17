@@ -2,18 +2,12 @@ use dices_ast::expr::Expr;
 use dices_values::string::ValueString;
 use pest::iterators::Pair;
 
-use crate::{
-    ParseError, Rule,
-    literal,
-};
+use crate::{ParseError, Rule, literal};
 
 pub(crate) mod binary;
 pub(crate) mod unary;
 
-pub(crate) fn build_expr(
-    pair: Pair<Rule>,
-    input: &ValueString,
-) -> Result<Expr, ParseError> {
+pub(crate) fn build_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseError> {
     use dices_ast::expr::binary::BinOp;
 
     match pair.as_rule() {
@@ -30,9 +24,7 @@ pub(crate) fn build_expr(
         Rule::and => binary::build_binary_chain(pair, BinOp::And, input),
         Rule::cmp => binary::build_operator_chain(pair, binary::cmp_op_to_binop, input),
         Rule::add => binary::build_operator_chain(pair, binary::add_op_to_binop, input),
-        Rule::mul => {
-            binary::build_operator_chain(pair, binary::mul_op_to_binop, input)
-        }
+        Rule::mul => binary::build_operator_chain(pair, binary::mul_op_to_binop, input),
         Rule::unary => unary::build_unary(pair, input),
         Rule::repeat => binary::build_binary_chain(pair, BinOp::Repeat, input),
         Rule::dice_unary => unary::build_dice_unary(pair, input),
@@ -47,5 +39,22 @@ pub(crate) fn build_expr(
         Rule::bool => literal::build_bool(pair),
         Rule::null => Ok(literal::build_null(pair)),
         r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+
+    use dices_ast::{expr::Expr, statement::Statement};
+
+    use crate::tests::parse_err;
+
+    pub fn expr(expr: Expr) -> Statement {
+        Statement::Expr(expr)
+    }
+
+    #[test]
+    fn error_unclosed_paren() {
+        assert!(parse_err("(1 + 2").is_pest());
     }
 }

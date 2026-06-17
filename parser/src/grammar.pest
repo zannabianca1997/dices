@@ -1,7 +1,9 @@
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
 COMMENT    = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" | "//" ~ (!"\n" ~ ANY)* }
 
-main = { SOI ~ expr ~ EOI }
+main = { SOI ~ statement ~ EOI }
+
+statement = { expr }
 
 expr = { join }
 

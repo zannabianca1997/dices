@@ -1,9 +1,12 @@
 //! Literal values
 
+use derive_more::{From, IsVariant, TryInto, TryUnwrap, Unwrap};
 use dices_values::{Value, bool::ValueBool, int::ValueInt, null::ValueNull, string::ValueString};
 
 /// A literal value
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, IsVariant, TryUnwrap, From, TryInto, Unwrap,
+)]
 pub enum Literal {
     /// A literal null
     Null(ValueNull),
