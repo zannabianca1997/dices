@@ -173,13 +173,17 @@ impl TryFrom<ValueString> for ValueNull {
 }
 
 impl TryFrom<ValueList> for ValueNull {
-    type Error = UnsupportedCast;
+    type Error = CastIntoNullError;
 
-    fn try_from(_: ValueList) -> Result<Self, Self::Error> {
+    fn try_from(value: ValueList) -> Result<Self, Self::Error> {
+        if value.len() == 1 {
+            return value.into_iter().next().unwrap().try_into();
+        }
         Err(UnsupportedCast {
             from: Type::List,
             to: Type::Null,
-        })
+        }
+        .into())
     }
 }
 
@@ -303,13 +307,17 @@ impl TryFrom<ValueString> for ValueInt {
 }
 
 impl TryFrom<ValueList> for ValueInt {
-    type Error = UnsupportedCast;
+    type Error = CastIntoIntError;
 
-    fn try_from(_: ValueList) -> Result<Self, Self::Error> {
+    fn try_from(value: ValueList) -> Result<Self, Self::Error> {
+        if value.len() == 1 {
+            return value.into_iter().next().unwrap().try_into();
+        }
         Err(UnsupportedCast {
-            from: Type::String,
+            from: Type::List,
             to: Type::Int,
-        })
+        }
+        .into())
     }
 }
 
@@ -616,7 +624,10 @@ impl TryFrom<ValueString> for ValueInjected {
 impl TryFrom<ValueList> for ValueInjected {
     type Error = UnsupportedCast;
 
-    fn try_from(_: ValueList) -> Result<Self, Self::Error> {
+    fn try_from(value: ValueList) -> Result<Self, Self::Error> {
+        if value.len() == 1 {
+            return value.into_iter().next().unwrap().try_into();
+        }
         Err(UnsupportedCast {
             from: Type::List,
             to: Type::Injected,
