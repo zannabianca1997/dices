@@ -31,31 +31,6 @@ impl Not for ValueBool {
     }
 }
 
-/// Implement a binary logical operator (owned and `&`-rhs), delegating to the
-/// matching `bool` operator.
-macro_rules! impl_op {
-    ($trait:ident, $method:ident) => {
-        impl $trait for ValueBool {
-            type Output = ValueBool;
-
-            fn $method(self, rhs: Self) -> Self::Output {
-                Self($trait::$method(self.0, rhs.0))
-            }
-        }
-
-        impl $trait<&ValueBool> for ValueBool {
-            type Output = ValueBool;
-
-            fn $method(self, rhs: &ValueBool) -> Self::Output {
-                Self($trait::$method(self.0, rhs.0))
-            }
-        }
-    };
-}
-
-impl_op!(BitAnd, bitand);
-impl_op!(BitOr, bitor);
-impl_op!(BitXor, bitxor);
 
 #[cfg(test)]
 mod tests {
@@ -80,12 +55,7 @@ mod tests {
     }
 
     #[test]
-    fn logical_ops() {
+    fn logical_not() {
         assert_eq!(!ValueBool::TRUE, ValueBool::FALSE);
-        assert_eq!(ValueBool::TRUE & ValueBool::FALSE, ValueBool::FALSE);
-        assert_eq!(ValueBool::TRUE | ValueBool::FALSE, ValueBool::TRUE);
-        assert_eq!(ValueBool::TRUE ^ ValueBool::TRUE, ValueBool::FALSE);
-        // `&`-rhs forms delegate to the same logic.
-        assert_eq!(ValueBool::TRUE & &ValueBool::TRUE, ValueBool::TRUE);
     }
 }

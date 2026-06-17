@@ -8,6 +8,7 @@ mod unary;
 
 pub fn eval(expr: &Expr, cx: &mut Context<'_>) -> Result<Value, EvalError> {
     match expr {
+        Expr::Const(value) => Ok(Value::clone(value)),
         Expr::Literal(literal) => super::literal::eval(literal, cx),
         Expr::Binary(binary_expr) => binary::eval(binary_expr, cx),
         Expr::Unary(unary_expr) => unary::eval(unary_expr, cx),

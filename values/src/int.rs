@@ -11,10 +11,9 @@ use std::{
 };
 
 use num::{
-    BigInt, BigUint, Integer, Num, NumCast, One, Signed, ToPrimitive, Zero,
-    bigint::Sign,
-    traits::{ConstOne, ConstZero},
+    BigInt, BigUint, FromPrimitive, Integer, Num, NumCast, One, Signed, ToPrimitive, Zero, bigint::{RandBigInt, Sign}, traits::{ConstOne, ConstZero}
 };
+use rand::distributions::uniform::{SampleBorrow, SampleUniform, UniformSampler};
 use snafu::{ResultExt, Snafu};
 
 /// A boundless integer
@@ -436,6 +435,90 @@ impl Integer for ValueInt {
         }
         let (q, r) = self.to_bigint().div_rem(&other.to_bigint());
         (Self::from_bigint(q), Self::from_bigint(r))
+    }
+
+    fn dec(&mut self)
+    {
+        match &mut self.0 {
+            Inner::BigNegative(Reverse(magnitude)) => Arc::make_mut(magnitude).inc(),
+            Inner::Inline(value) => {
+                if let Some(dec) = value.checked_sub(1) {
+                    *value = dec
+                } else {
+                    // fell out of inline range
+
+                    let mut magnitude = BigInt::from(*value);
+                    magnitude.dec();
+                    *self = Self::from_bigint(magnitude)
+                }
+            },
+            Inner::BigPositive(magnitude) => {
+                let magnitude = Arc::make_mut(magnitude);
+                magnitude.dec();
+                if let Some(magnitude) = magnitude.to_i64() {
+                    // fell into inline range
+
+                    self.0 = Inner::Inline(magnitude)
+                }
+            },
+        }
+    }
+}
+
+impl SampleUniform for ValueInt {
+    type Sampler = Sampler;
+}
+
+pub struct Sampler(SamplerInner);
+enum SamplerInner {
+    Small(<i64 as SampleUniform>::Sampler),
+    Big { lbound: BigInt, ubound: BigInt },
+}
+
+impl UniformSampler for Sampler {
+    type X = ValueInt;
+
+    fn new<B1, B2>(low: B1, high: B2) -> Self
+    where
+        B1: SampleBorrow<Self::X> + Sized,
+        B2: SampleBorrow<Self::X> + Sized,
+    {
+        Self(
+            if let (Inner::Inline(low), Inner::Inline(high)) = (&low.borrow().0, &high.borrow().0) {
+                SamplerInner::Small(UniformSampler::new(*low, *high))
+            } else {
+                let lbound = low.borrow().to_bigint();
+                let ubound = high.borrow().to_bigint();
+
+                SamplerInner::Big { lbound, ubound }
+            },
+        )
+    }
+
+    fn new_inclusive<B1, B2>(low: B1, high: B2) -> Self
+    where
+        B1: SampleBorrow<Self::X> + Sized,
+        B2: SampleBorrow<Self::X> + Sized,
+    {
+        Self(
+            if let (Inner::Inline(low), Inner::Inline(high)) = (&low.borrow().0, &high.borrow().0) {
+                SamplerInner::Small(UniformSampler::new_inclusive(*low, *high))
+            } else {
+                let lbound = low.borrow().to_bigint();
+                let ubound = high.borrow().to_bigint() + 1;
+
+                SamplerInner::Big { lbound, ubound }
+            },
+        )
+    }
+
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> Self::X {
+        match &self.0 {
+            SamplerInner::Small(sampler) => ValueInt(Inner::Inline(sampler.sample(rng))),
+            SamplerInner::Big { lbound, ubound } => {
+                ValueInt::from_bigint(RandBigInt::gen_bigint_range(rng, lbound, ubound))
+            }
+        }
     }
 }
 

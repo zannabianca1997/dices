@@ -1,7 +1,11 @@
 #![doc = include_str!("../README.md")]
 
 use dices_ast::statement::Statement;
-use dices_values::{Value, cast::CastInjectedError};
+use dices_values::{
+    Value,
+    cast::{CastInjectedError, CastIntoIntError},
+};
+use rand::SeedableRng;
 use snafu::Snafu;
 
 use crate::context::Context;
@@ -10,14 +14,20 @@ pub mod context;
 mod eval;
 mod utils;
 
+type RngImpl = rand_pcg::Lcg64Xsh32;
+
 /// An engine evaluating dices statements
 #[derive(Debug, Clone)]
-pub struct Engine {}
+pub struct Engine {
+    rng: RngImpl,
+}
 
 impl Engine {
     /// Create a new engine
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(seed: <RngImpl as SeedableRng>::Seed) -> Self {
+        Self {
+            rng: RngImpl::from_seed(seed),
+        }
     }
 
     /// Evaluate a statement
@@ -30,4 +40,6 @@ impl Engine {
 pub enum EvalError {
     #[snafu(transparent)]
     CastInjected { source: CastInjectedError },
+    #[snafu(transparent)]
+    CastIntoInt { source: CastIntoIntError },
 }

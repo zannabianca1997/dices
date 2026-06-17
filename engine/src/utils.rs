@@ -1,11 +1,13 @@
-use std::{collections::BTreeMap, mem};
+use std::{collections::BTreeMap, mem, ops::Add};
 
 use dices_values::{
-    Value, cast::push_down_if_injected, list::ValueList, map::ValueMap, string::ValueString,
+    Value, cast::push_down_if_injected, int::ValueInt, list::ValueList, map::ValueMap,
+    string::ValueString,
 };
 use itertools::Itertools;
+use num::traits::ConstZero;
 
-use crate::{EvalError, context::Context};
+use crate::EvalError;
 
 /// Push down all injected values
 fn push_down_all_injected(values: &mut [Value]) -> Result<(), EvalError> {
@@ -16,7 +18,7 @@ fn push_down_all_injected(values: &mut [Value]) -> Result<(), EvalError> {
     Ok(())
 }
 
-pub fn join_all(values: &mut [Value], _cx: &mut Context<'_>) -> Result<Value, EvalError> {
+pub fn join_all(values: &mut [Value]) -> Result<Value, EvalError> {
     push_down_all_injected(values)?;
 
     // Map merge if all map
@@ -48,4 +50,18 @@ pub fn join_all(values: &mut [Value], _cx: &mut Context<'_>) -> Result<Value, Ev
         .tree_reduce(ValueList::concat)
         .unwrap_or_default();
     return Ok(res.into());
+}
+
+/// Sum all the values, recursing inside containers
+///
+/// Used to implement sums and subs so that `3d6 + 3` works
+pub fn deep_sum(values: impl IntoIterator<Item = Value>) -> Result<ValueInt, EvalError> {
+    values
+        .into_iter()
+        .map(|value| match push_down_if_injected(value)? {
+            Value::List(values) => deep_sum(values),
+            Value::Map(value) => deep_sum(value.values().cloned()),
+            other => Ok(ValueInt::try_from(other)?),
+        })
+        .try_fold(ValueInt::ZERO, |a, b| b.map(|b| a + b))
 }

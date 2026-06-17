@@ -119,7 +119,7 @@ macro_rules! from_injected {
             type Error = $err;
 
             fn try_from(value: ValueInjected) -> Result<Self, Self::Error> {
-                let value = read_injected(value)?;
+                let value = push_down_injected(value)?;
                 let value = value.try_into()?;
                 Ok(value)
             }
