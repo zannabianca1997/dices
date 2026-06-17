@@ -13,6 +13,7 @@ dices-parser = { path = "parser" }
 dices-values = { path = "values" }
 
 derive_more = { version = "2.1.1", features = ["full"] }
+itertools = "0.15.0"
 serde = "1.0.228"
 snafu = "0.9.1"
 

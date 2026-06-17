@@ -75,9 +75,9 @@ pub fn fall_through_cast(value: Value, to: &[Type]) -> Result<Value, Vec<CastErr
 /// Remove the possible injected value
 ///
 /// This won't ever return `Ok(Value::Injected(_))`.
-pub fn cast_away_injected(value: Value) -> Result<Value, CastInjectedError> {
+pub fn push_down_if_injected(value: Value) -> Result<Value, CastInjectedError> {
     if let Value::Injected(value) = value {
-        read_injected(value)
+        push_down_injected(value)
     } else {
         Ok(value)
     }
@@ -86,7 +86,7 @@ pub fn cast_away_injected(value: Value) -> Result<Value, CastInjectedError> {
 /// Read an injected value
 ///
 /// This won't ever return `Ok(Value::Injected(_))`.
-pub fn read_injected(value: ValueInjected) -> Result<Value, CastInjectedError> {
+pub fn push_down_injected(value: ValueInjected) -> Result<Value, CastInjectedError> {
     value.read().map_err(|err| match err {
         ReadError::NotReadable => CastInjectedError::NotReadable { value },
         ReadError::ReadFailed { source } => CastInjectedError::Read { source },

@@ -1,18 +1,14 @@
 #![doc = include_str!("../README.md")]
 
 use dices_ast::statement::Statement;
-use dices_values::Value;
+use dices_values::{Value, cast::CastInjectedError};
+use snafu::Snafu;
 
-pub mod context {
-    //! Evaluation context
+use crate::context::Context;
 
-    use crate::Engine;
-
-    /// Evaluation context
-    pub struct Context<'engine> {
-        engine: &'engine mut Engine,
-    }
-}
+pub mod context;
+mod eval;
+mod utils;
 
 /// An engine evaluating dices statements
 #[derive(Debug, Clone)]
@@ -25,7 +21,13 @@ impl Engine {
     }
 
     /// Evaluate a statement
-    pub fn eval(&mut self, stmt: &Statement) -> Value {
-        todo!()
+    pub fn eval(&mut self, stmt: &Statement) -> Result<Value, EvalError> {
+        eval::statement::eval(stmt, &mut Context::new(self))
     }
+}
+
+#[derive(Debug, Snafu)]
+pub enum EvalError {
+    #[snafu(transparent)]
+    CastInjected { source: CastInjectedError },
 }

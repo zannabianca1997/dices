@@ -53,6 +53,21 @@ impl ValueString {
             .ok()?;
         Some(Self(inner))
     }
+
+    /// Concatenate two strings
+    pub fn concat(self, other: Self) -> Self {
+        if self.is_empty() {
+            return other;
+        }
+        if other.is_empty() {
+            return self;
+        }
+
+        let mut this = String::from(self);
+        this.push_str(other.as_str());
+
+        Self::new(this)
+    }
 }
 
 #[derive(Debug, Snafu)]
@@ -334,5 +349,11 @@ impl From<ValueString> for String {
 impl From<String> for ValueString {
     fn from(value: String) -> Self {
         Self::new(value)
+    }
+}
+
+impl Default for ValueString {
+    fn default() -> Self {
+        Self::new_static("")
     }
 }

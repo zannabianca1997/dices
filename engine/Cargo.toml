@@ -8,5 +8,8 @@ license.workspace = true
 dices-ast.workspace = true
 dices-values.workspace = true
 
+itertools.workspace = true
+snafu.workspace = true
+
 [lints]
 workspace = true

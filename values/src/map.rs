@@ -5,12 +5,30 @@ use crate::{Value, string::ValueString};
 /// Map of strings to values
 ///
 /// Cheap to clone
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct ValueMap(Arc<BTreeMap<ValueString, Value>>);
 
 impl ValueMap {
     pub fn new(map: BTreeMap<ValueString, Value>) -> Self {
         Self(Arc::new(map))
+    }
+
+    /// Join two maps, with the keys from `other` taking precedence
+    pub fn join(mut self, other: Self) -> Self {
+        // `self` is fully covered by `other` (or empty)
+        if self.keys().all(|k| other.contains_key(k)) {
+            return other;
+        }
+        // `other` is empty
+        if other.is_empty() {
+            return self;
+        }
+
+        let map = Arc::make_mut(&mut self.0);
+        for (k, v) in other.0.iter() {
+            map.insert(k.clone(), v.clone());
+        }
+        self
     }
 }
 

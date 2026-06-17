@@ -1,7 +1,7 @@
 use std::{
     fmt::{Debug, Display, Write},
     hash::Hash,
-    iter::FusedIterator,
+    iter::{FusedIterator, chain},
     ops::Deref,
     slice::SliceIndex,
     sync::Arc,
@@ -46,6 +46,18 @@ impl ValueList {
             .try_map_project_cloned(|s, _| s.get(i).ok_or(()))
             .ok()?;
         Some(Self(inner))
+    }
+
+    /// Concatenate two lists
+    pub fn concat(self, other: Self) -> Self {
+        if self.is_empty() {
+            return other;
+        }
+        if other.is_empty() {
+            return self;
+        }
+
+        Self::from_iter(chain(self, other))
     }
 }
 
@@ -211,5 +223,11 @@ impl Display for ValueList {
             }
         }
         f.write_char(']')
+    }
+}
+
+impl Default for ValueList {
+    fn default() -> Self {
+        Self::empty()
     }
 }
