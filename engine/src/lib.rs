@@ -42,4 +42,5 @@ pub enum EvalError {
     CastInjected { source: CastInjectedError },
     #[snafu(transparent)]
     CastIntoInt { source: CastIntoIntError },
+    DivisionByZero,
 }

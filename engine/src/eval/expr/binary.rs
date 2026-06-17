@@ -10,12 +10,12 @@ use dices_ast::expr::{
     unary::{UnOp, UnaryExpr},
 };
 use dices_values::{Value, bool::ValueBool, int::ValueInt, list::ValueList};
-use num::{Integer, ToPrimitive, traits::ConstZero};
+use num::{Integer, ToPrimitive, Zero, traits::ConstZero};
 
 use crate::{
     EvalError,
     context::Context,
-    utils::{DicesOrd, deep_sum, join_all},
+    utils::{DicesOrd, deep_apply, deep_sum, join_all},
 };
 
 pub fn eval(expr: &BinaryExpr, cx: &mut Context<'_>) -> Result<Value, EvalError> {
@@ -74,11 +74,19 @@ fn eval_mul(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
 }
 
 fn eval_div(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    todo!()
+    let rhs = ValueInt::try_from(rhs)?;
+    if rhs.is_zero() {
+        return Err(EvalError::DivisionByZero);
+    }
+    deep_apply(lhs, &mut |value| Ok(value / rhs.clone()))
 }
 
 fn eval_rem(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    todo!()
+    let rhs = ValueInt::try_from(rhs)?;
+    if rhs.is_zero() {
+        return Err(EvalError::DivisionByZero);
+    }
+    deep_apply(lhs, &mut |value| Ok(value % rhs.clone()))
 }
 
 fn eval_eq(lhs: Value, rhs: Value) -> Result<Value, EvalError> {

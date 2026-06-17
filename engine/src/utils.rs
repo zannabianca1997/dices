@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::BTreeMap, mem, ops::Add};
+use std::{cmp::Ordering, collections::BTreeMap, mem};
 
 use dices_values::{
     Value, cast::push_down_if_injected, int::ValueInt, list::ValueList, map::ValueMap,
@@ -60,17 +60,27 @@ pub fn deep_sum(values: impl IntoIterator<Item = Value>) -> Result<ValueInt, Eva
         .into_iter()
         .map(|value| match push_down_if_injected(value)? {
             Value::List(values) => deep_sum(values),
-            Value::Map(value) => deep_sum(value.values().cloned()),
+            Value::Map(values) => deep_sum(values.values().cloned()),
             other => Ok(ValueInt::try_from(other)?),
         })
         .try_fold(ValueInt::ZERO, |a, b| b.map(|b| a + b))
+}
+
+/// Force the value to integer and apply a fallible function. If the value is a
+/// collection, mantain it's shape and do it on it's elements instead.
+pub fn deep_apply(value: Value, op: &mut impl FnMut(ValueInt) -> Result<ValueInt, EvalError>) -> Result<Value, EvalError> {
+    match push_down_if_injected(value)? {
+        Value::List(values) => values.into_iter().map(|value| deep_apply(value, op)).try_collect().map(Value::List),
+        Value::Map(values) => values.into_iter().map(|(key, value)| deep_apply(value, op).map(|value| (key, value))).try_collect().map(Value::Map),
+        other => op(ValueInt::try_from(other)?).map(Value::Int),
+    }
 }
 
 /// Wrapper around a value that implements PartialOrd and Eq how the console should see it
 ///
 /// [`Value`] has an implementation of `Ord`, but ordering between injected is
 /// compiler-dependant. This fixes that, and also makes incomparable different classes of values
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct DicesOrd(pub Value);
 
@@ -90,6 +100,15 @@ impl DicesOrd {
     }
 }
 
+
+impl PartialEq for DicesOrd {
+    fn eq(&self, other: &Self) -> bool {
+        self.partial_cmp(other) == Some(Ordering::Equal)
+    }
+}
+
+impl Eq for DicesOrd {}
+
 impl PartialOrd for DicesOrd {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (&self.0, &other.0) {
@@ -102,9 +121,11 @@ impl PartialOrd for DicesOrd {
             (Value::List(a), Value::List(b)) => {
                 Self::from_slice_ref(a.as_slice()).partial_cmp(Self::from_slice_ref(b.as_slice()))
             }
-            // Maps: compare lexicographically the tuples of items sorted by key, with the values wrapped in itself.
+            // Maps: compare lexicographically the tuples of items sorted by
+            // key, with the values wrapped in itself.
             (Value::Map(a), Value::Map(b)) => {
-                // Ensure the backing map is still a btreemap. If this fail, the iterators must be ordered
+                // Ensure the backing map is still a btreemap. If this fail, the
+                // iterators must be ordered with respect of the keys.
                 let a: &BTreeMap<ValueString, _> = a;
                 let b: &BTreeMap<ValueString, _> = b;
 
