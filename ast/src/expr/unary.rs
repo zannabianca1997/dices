@@ -15,9 +15,9 @@ pub enum UnOp {
     Dice,
 }
 
-/// A binary expression
+/// A unary expression
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UnaryExpr {
-    op: UnOp,
-    operand: Expr,
+    pub op: UnOp,
+    pub operand: Expr,
 }
