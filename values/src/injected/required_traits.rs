@@ -17,14 +17,14 @@ pub trait RequiredTraits: Debug + 'static {
     fn type_id(&self) -> TypeId;
 
     fn dyn_eq(&self, other: &dyn RequiredTraits) -> bool;
-    fn dyn_partial_cmp(&self, other: &dyn RequiredTraits) -> Option<Ordering>;
+    fn dyn_cmp(&self, other: &dyn RequiredTraits) -> Ordering;
     fn dyn_hash(&self, state: &mut dyn Hasher);
 
     fn dyn_description(&self, f: &mut Formatter<'_>) -> fmt::Result;
 }
 impl<T> RequiredTraits for T
 where
-    T: Eq + PartialOrd + Hash + Debug + Describable + 'static,
+    T: Eq + Ord + Hash + Debug + Describable + 'static,
 {
     fn type_id(&self) -> TypeId {
         TypeId::of::<T>()
@@ -38,11 +38,11 @@ where
         }
     }
 
-    fn dyn_partial_cmp(&self, other: &dyn RequiredTraits) -> Option<Ordering> {
+    fn dyn_cmp(&self, other: &dyn RequiredTraits) -> Ordering {
         if let Some(other) = other.downcast_ref::<Self>() {
-            self.partial_cmp(other)
+            self.cmp(other)
         } else {
-            None
+            self.type_id().cmp(&other.type_id())
         }
     }
 

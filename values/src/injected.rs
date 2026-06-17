@@ -123,7 +123,13 @@ impl Display for ValueInjected {
 
 impl PartialOrd for ValueInjected {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.get().dyn_partial_cmp(*other.0.get())
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ValueInjected {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.get().dyn_cmp(*other.0.get())
     }
 }
 

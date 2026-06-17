@@ -5,7 +5,7 @@ use crate::{Value, string::ValueString};
 /// Map of strings to values
 ///
 /// Cheap to clone
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ValueMap(Arc<BTreeMap<ValueString, Value>>);
 
 impl ValueMap {

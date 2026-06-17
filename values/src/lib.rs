@@ -28,6 +28,7 @@ pub mod cast;
     PartialEq,
     Eq,
     PartialOrd,
+    Ord,
     Hash,
     Display,
     From,

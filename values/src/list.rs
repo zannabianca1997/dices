@@ -189,6 +189,11 @@ where
         self.as_slice().partial_cmp(other)
     }
 }
+impl Ord for ValueList {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.as_slice().cmp(other.as_slice())
+    }
+}
 
 impl Hash for ValueList {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
