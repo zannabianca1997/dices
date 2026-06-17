@@ -110,7 +110,7 @@ impl<T: Injectable> Inject for T {}
 
 impl PartialEq for ValueInjected {
     fn eq(&self, other: &Self) -> bool {
-        self.0.get().dyn_eq(other.0.get().as_dyn_traits())
+        self.0.get().dyn_eq(*other.0.get())
     }
 }
 impl Eq for ValueInjected {}
@@ -123,7 +123,7 @@ impl Display for ValueInjected {
 
 impl PartialOrd for ValueInjected {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.get().dyn_partial_cmp(other.0.get().as_dyn_traits())
+        self.0.get().dyn_partial_cmp(*other.0.get())
     }
 }
 

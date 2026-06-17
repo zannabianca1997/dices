@@ -1,5 +1,5 @@
 use std::{
-    any::Any,
+    any::TypeId,
     cmp::Ordering,
     fmt::{self, Debug, Display, Formatter},
     hash::{Hash, Hasher},
@@ -14,8 +14,7 @@ use crate::injected::describable::Describable;
 pub trait RequiredTraits: Debug + 'static {
     // dynamic dispatch friendly methods
 
-    fn as_any(&self) -> &dyn Any;
-    fn as_dyn_traits(&self) -> &dyn RequiredTraits;
+    fn type_id(&self) -> TypeId;
 
     fn dyn_eq(&self, other: &dyn RequiredTraits) -> bool;
     fn dyn_partial_cmp(&self, other: &dyn RequiredTraits) -> Option<Ordering>;
@@ -25,16 +24,14 @@ pub trait RequiredTraits: Debug + 'static {
 }
 impl<T> RequiredTraits for T
 where
-    T: Any + Eq + PartialOrd + Hash + Debug + Describable + 'static,
+    T: Eq + PartialOrd + Hash + Debug + Describable + 'static,
 {
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn type_id(&self) -> TypeId {
+        TypeId::of::<T>()
     }
-    fn as_dyn_traits(&self) -> &dyn RequiredTraits {
-        self
-    }
+
     fn dyn_eq(&self, other: &dyn RequiredTraits) -> bool {
-        if let Some(other) = other.as_any().downcast_ref::<Self>() {
+        if let Some(other) = other.downcast_ref::<Self>() {
             self == other
         } else {
             false
@@ -42,7 +39,7 @@ where
     }
 
     fn dyn_partial_cmp(&self, other: &dyn RequiredTraits) -> Option<Ordering> {
-        if let Some(other) = other.as_any().downcast_ref::<Self>() {
+        if let Some(other) = other.downcast_ref::<Self>() {
             self.partial_cmp(other)
         } else {
             None
@@ -84,5 +81,20 @@ where
 
     fn dyn_description(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.description().fmt(f)
+    }
+}
+
+impl dyn RequiredTraits {
+    /// Reimplementation of some of the "Any" machinery to avoid an indirection
+    fn downcast_ref<T: RequiredTraits>(&self) -> Option<&T> {
+        if TypeId::of::<T>() == self.type_id() {
+            // SAFETY: just checked whether we are pointing to the correct type,
+            // and we can rely on that check for memory safety because
+            // RequiredTraits is not reachable and cannot be implemented outside
+            // this crate.
+            unsafe { Some(&*(self as *const dyn RequiredTraits as *const T)) }
+        } else {
+            None
+        }
     }
 }
