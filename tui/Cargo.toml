@@ -23,6 +23,7 @@ reedline = "0.48.0"
 serde.workspace = true
 snafu.workspace = true
 strum.workspace = true
+toml = "1.1.2"
 
 [lints]
 workspace = true

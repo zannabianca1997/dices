@@ -15,9 +15,9 @@ pub enum Error {
 
 pub fn main(Cli { config, seed: _ }: Cli) -> Result<(), Error> {
     let Config {
-        history: _,
-        skin: _,
-        skins: _,
+        history,
+        skin,
+        skins,
     } = Config::extract(config)?;
     todo!()
 }

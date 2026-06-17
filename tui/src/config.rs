@@ -1,5 +1,10 @@
+use std::fs::{self, File};
+use std::io::{self, Write};
+use std::path::{Path, PathBuf};
+
 use directories::ProjectDirs;
 use figment::providers::{Env, Format, Serialized, Toml};
+use figment::value::magic::Either;
 use figment::{Figment, value::magic::RelativePathBuf};
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +22,7 @@ fn directories() -> Option<ProjectDirs> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     /// History file
-    pub history: Option<RelativePathBuf>,
+    pub history: Either<RelativePathBuf, Option<PathBuf>>,
     /// Skin to use
     pub skin: SelectedSkin,
     /// Skins for the TUI
@@ -37,7 +42,7 @@ impl Config {
         if !no_default_config {
             if let Some(dirs) = directories()
                 && let config = dirs.config_dir().join("Config.toml")
-                && config.try_exists().is_ok_and(|e| e)
+                && write_config_file_if_not_exists(&config).is_ok()
             {
                 figment = figment.merge(Toml::file_exact(config));
             }
@@ -56,10 +61,21 @@ impl Config {
     }
 }
 
+fn write_config_file_if_not_exists(config: &Path) -> io::Result<()> {
+    fs::create_dir_all(config.parent().unwrap())?;
+    let mut file = match File::create_new(config) {
+        Ok(file) => file,
+        Err(err) if err.kind() == io::ErrorKind::AlreadyExists => return Ok(()),
+        Err(err) => return Err(err),
+    };
+    let config = toml::to_string_pretty(&Config::default()).unwrap();
+    file.write_all(config.as_bytes())
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
-            history: directories().map(|dirs| dirs.data_dir().join("history.txt").into()),
+            history: Either::Right(directories().map(|dirs| dirs.data_dir().join("history.txt"))),
             skin: Default::default(),
             skins: Default::default(),
         }
