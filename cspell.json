@@ -2,6 +2,13 @@
   "words": [
     "sublist",
     "binop",
-    "Seedable"
+    "Seedable",
+    "serde",
+    "itertools",
+    "hexdigit",
+    "zannabianca"
+  ],
+  "userWords": [
+    "impl Default for Config"
   ]
 }

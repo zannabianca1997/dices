@@ -12,7 +12,7 @@ paste = "1.0.15"
 rand.workspace = true
 serde.workspace = true
 snafu.workspace = true
-strum = { version = "0.28.0", features = ["derive"] }
+strum = { workspace = true, features = ["derive"] }
 yoke = "0.8.3"
 
 [dev-dependencies]

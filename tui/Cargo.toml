@@ -1,0 +1,28 @@
+[package]
+name = "dices-tui"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "dices"
+path = "src/main.rs"
+
+[dependencies]
+dices-engine.workspace = true
+dices-parser.workspace = true
+
+clap = { version = "4.6.1", features = ["derive", "env", "string", "wrap_help"] }
+derive_more.workspace = true
+directories = "6.0.0"
+error_reporter = "1.0.0"
+figment = { version = "0.10.19", features = ["env", "toml"] }
+pretty = { version = "0.12.5", features = ["termcolor"] }
+rand_seeder = "0.5.0"
+serde.workspace = true
+snafu.workspace = true
+strum.workspace = true
+reedline = "0.48.0"
+
+[lints]
+workspace = true

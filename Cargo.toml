@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["ast", "engine", "parser", "values"]
+members = ["ast", "engine", "parser", "tui", "values"]
 
 [workspace.package]
 edition = "2024"
@@ -10,14 +10,17 @@ license = "MIT"
 dices-ast = { path = "ast" }
 dices-engine = { path = "engine" }
 dices-parser = { path = "parser" }
+dices-tui = { path = "tui" }
 dices-values = { path = "values" }
 
 derive_more = { version = "2.1.1", features = ["full"] }
 itertools = "0.15.0"
 num = { version = "0.4.3", features = ["num-bigint", "rand", "serde"] }
 rand = "0.8.6"
-serde = "1.0.228"
+serde = { version = "1.0.228", features = ["derive"] }
 snafu = "0.9.1"
+
+strum = { version = "0.28.0", features = ["derive"] }
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
