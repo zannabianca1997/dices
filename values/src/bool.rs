@@ -1,6 +1,6 @@
 //! Boolean value
 
-use std::ops::{BitAnd, BitOr, BitXor, Not};
+use std::ops::Not;
 
 use derive_more::{Display, From, Into};
 

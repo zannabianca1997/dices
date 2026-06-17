@@ -39,13 +39,14 @@ impl Engine {
 #[derive(Debug, Snafu)]
 pub enum EvalError {
     #[snafu(transparent)]
-    CastInjected {
-        source: CastInjectedError,
-    },
+    CastInjected { source: CastInjectedError },
     #[snafu(transparent)]
-    CastIntoInt {
-        source: CastIntoIntError,
-    },
+    CastIntoInt { source: CastIntoIntError },
+    #[snafu(display("Division by zero"))]
     DivisionByZero,
-    MulBetweenNonScalars { lhs: dices_values::cast::CastIntoIntError, rhs: dices_values::cast::CastIntoIntError },
+    #[snafu(display("Multiplication between two non scalar"))]
+    MulBetweenNonScalars {
+        lhs: CastIntoIntError,
+        rhs: CastIntoIntError,
+    },
 }

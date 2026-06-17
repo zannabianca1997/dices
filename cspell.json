@@ -1,6 +1,7 @@
 {
   "words": [
     "sublist",
-    "binop"
+    "binop",
+    "Seedable"
   ]
 }
