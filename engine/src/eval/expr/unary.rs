@@ -2,10 +2,8 @@
 // them yet; the real implementations land in a follow-up.
 #![allow(unused_variables)]
 
-use std::ops::Not;
-
 use dices_ast::expr::unary::{UnOp, UnaryExpr};
-use dices_values::{Value, bool::ValueBool, int::ValueInt};
+use dices_values::{Value, int::ValueInt};
 
 use crate::{EvalError, context::Context, utils::deep_sum};
 

@@ -31,7 +31,6 @@ impl Not for ValueBool {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

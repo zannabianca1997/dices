@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, mem, ops::Add};
+use std::{cmp::Ordering, collections::BTreeMap, mem, ops::Add};
 
 use dices_values::{
     Value, cast::push_down_if_injected, int::ValueInt, list::ValueList, map::ValueMap,
@@ -64,4 +64,63 @@ pub fn deep_sum(values: impl IntoIterator<Item = Value>) -> Result<ValueInt, Eva
             other => Ok(ValueInt::try_from(other)?),
         })
         .try_fold(ValueInt::ZERO, |a, b| b.map(|b| a + b))
+}
+
+/// Wrapper around a value that implements PartialOrd and Eq how the console should see it
+///
+/// [`Value`] has an implementation of `Ord`, but ordering between injected is
+/// compiler-dependant. This fixes that, and also makes incomparable different classes of values
+#[derive(Debug, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct DicesOrd(pub Value);
+
+impl DicesOrd {
+    fn from_ref(value: &Value) -> &Self {
+        unsafe {
+            // Safety: `#[repr(transparent)]`
+            &*(value as *const _ as *const _)
+        }
+    }
+
+    fn from_slice_ref(slice: &[Value]) -> &[Self] {
+        unsafe {
+            // Safety: `#[repr(transparent)]`
+            &*(slice as *const _ as *const _)
+        }
+    }
+}
+
+impl PartialOrd for DicesOrd {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (&self.0, &other.0) {
+            // scalar classes can be compared with themselves, except injected
+            (Value::Null(a), Value::Null(b)) => Some(a.cmp(b)),
+            (Value::Bool(a), Value::Bool(b)) => Some(a.cmp(b)),
+            (Value::Int(a), Value::Int(b)) => Some(a.cmp(b)),
+            (Value::String(a), Value::String(b)) => Some(a.cmp(b)),
+            // Lists compared lexicographically with this order
+            (Value::List(a), Value::List(b)) => {
+                Self::from_slice_ref(a.as_slice()).partial_cmp(Self::from_slice_ref(b.as_slice()))
+            }
+            // Maps: compare lexicographically the tuples of items sorted by key, with the values wrapped in itself.
+            (Value::Map(a), Value::Map(b)) => {
+                // Ensure the backing map is still a btreemap. If this fail, the iterators must be ordered
+                let a: &BTreeMap<ValueString, _> = a;
+                let b: &BTreeMap<ValueString, _> = b;
+
+                let a_items = a.iter().map(|(k, v)| (k, Self::from_ref(v)));
+                let b_items = b.iter().map(|(k, v)| (k, Self::from_ref(v)));
+
+                Iterator::partial_cmp(a_items, b_items)
+            }
+            // Injected have only equality
+            (Value::Injected(a), Value::Injected(b)) => (a == b).then_some(Ordering::Equal),
+            // Bools can be compared with ints
+            (Value::Bool(a), Value::Int(b)) => Some(ValueInt::from(*a).cmp(b)),
+            (Value::Int(a), Value::Bool(b)) => Some(a.cmp(&ValueInt::from(*b))),
+
+            // Every other comparison is unsupported
+            _ => None,
+        }
+    }
 }

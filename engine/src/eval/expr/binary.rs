@@ -4,20 +4,18 @@
 
 use std::usize;
 
-use dices_ast::{
-    expr::{
-        Expr,
-        binary::{BinOp, BinaryExpr},
-        unary::{UnOp, UnaryExpr},
-    },
+use dices_ast::expr::{
+    Expr,
+    binary::{BinOp, BinaryExpr},
+    unary::{UnOp, UnaryExpr},
 };
 use dices_values::{Value, bool::ValueBool, int::ValueInt, list::ValueList};
-use num::{Integer, ToPrimitive, traits::{ConstZero}};
+use num::{Integer, ToPrimitive, traits::ConstZero};
 
 use crate::{
     EvalError,
     context::Context,
-    utils::{deep_sum, join_all},
+    utils::{DicesOrd, deep_sum, join_all},
 };
 
 pub fn eval(expr: &BinaryExpr, cx: &mut Context<'_>) -> Result<Value, EvalError> {
@@ -35,8 +33,8 @@ pub fn eval(expr: &BinaryExpr, cx: &mut Context<'_>) -> Result<Value, EvalError>
             BinOp::And => eval_and(lhs, &expr.rhs, cx),
             BinOp::Or => eval_or(lhs, &expr.rhs, cx),
 
-            _ => unreachable!()
-        }
+            _ => unreachable!(),
+        };
     }
 
     let lhs = super::eval(&expr.lhs, cx)?;
@@ -84,27 +82,27 @@ fn eval_rem(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
 }
 
 fn eval_eq(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    todo!()
+    Ok(ValueBool::from(DicesOrd(lhs) == DicesOrd(rhs)).into())
 }
 
 fn eval_ne(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    todo!()
+    Ok(ValueBool::from(DicesOrd(lhs) != DicesOrd(rhs)).into())
 }
 
 fn eval_lt(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    todo!()
+    Ok(ValueBool::from(DicesOrd(lhs) < DicesOrd(rhs)).into())
 }
 
 fn eval_gt(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    todo!()
+    Ok(ValueBool::from(DicesOrd(lhs) > DicesOrd(rhs)).into())
 }
 
 fn eval_le(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    todo!()
+    Ok(ValueBool::from(DicesOrd(lhs) <= DicesOrd(rhs)).into())
 }
 
 fn eval_ge(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    todo!()
+    Ok(ValueBool::from(DicesOrd(lhs) >= DicesOrd(rhs)).into())
 }
 
 fn eval_and(lhs: Value, rhs: &Expr, cx: &mut Context<'_>) -> Result<Value, EvalError> {

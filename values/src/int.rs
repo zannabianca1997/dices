@@ -11,7 +11,9 @@ use std::{
 };
 
 use num::{
-    BigInt, BigUint, FromPrimitive, Integer, Num, NumCast, One, Signed, ToPrimitive, Zero, bigint::{RandBigInt, Sign}, traits::{ConstOne, ConstZero}
+    BigInt, BigUint, FromPrimitive, Integer, Num, NumCast, One, Signed, ToPrimitive, Zero,
+    bigint::{RandBigInt, Sign},
+    traits::{ConstOne, ConstZero},
 };
 use rand::distributions::uniform::{SampleBorrow, SampleUniform, UniformSampler};
 use snafu::{ResultExt, Snafu};
@@ -437,8 +439,7 @@ impl Integer for ValueInt {
         (Self::from_bigint(q), Self::from_bigint(r))
     }
 
-    fn dec(&mut self)
-    {
+    fn dec(&mut self) {
         match &mut self.0 {
             Inner::BigNegative(Reverse(magnitude)) => Arc::make_mut(magnitude).inc(),
             Inner::Inline(value) => {
@@ -451,7 +452,7 @@ impl Integer for ValueInt {
                     magnitude.dec();
                     *self = Self::from_bigint(magnitude)
                 }
-            },
+            }
             Inner::BigPositive(magnitude) => {
                 let magnitude = Arc::make_mut(magnitude);
                 magnitude.dec();
@@ -460,7 +461,7 @@ impl Integer for ValueInt {
 
                     self.0 = Inner::Inline(magnitude)
                 }
-            },
+            }
         }
     }
 }
