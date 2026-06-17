@@ -6,7 +6,9 @@
     "serde",
     "itertools",
     "hexdigit",
-    "zannabianca"
+    "zannabianca",
+    "reedline",
+    "termcolor"
   ],
   "userWords": [
     "impl Default for Config"
