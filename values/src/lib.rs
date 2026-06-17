@@ -43,6 +43,7 @@ pub mod cast;
     doc = "Types of a [`Value`]",
     vis(pub)
 )]
+#[unwrap(ref)]
 pub enum Value {
     Null(ValueNull),
     Bool(ValueBool),
@@ -56,5 +57,11 @@ pub enum Value {
 impl Value {
     pub fn typ(&self) -> Type {
         self.into()
+    }
+}
+
+impl Default for Value {
+    fn default() -> Self {
+        Value::Null(ValueNull)
     }
 }

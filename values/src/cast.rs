@@ -72,6 +72,27 @@ pub fn fall_through_cast(value: Value, to: &[Type]) -> Result<Value, Vec<CastErr
     Err(errs)
 }
 
+/// Remove the possible injected value
+///
+/// This won't ever return `Ok(Value::Injected(_))`.
+pub fn cast_away_injected(value: Value) -> Result<Value, CastInjectedError> {
+    if let Value::Injected(value) = value {
+        read_injected(value)
+    } else {
+        Ok(value)
+    }
+}
+
+/// Read an injected value
+///
+/// This won't ever return `Ok(Value::Injected(_))`.
+pub fn read_injected(value: ValueInjected) -> Result<Value, CastInjectedError> {
+    value.read().map_err(|err| match err {
+        ReadError::NotReadable => CastInjectedError::NotReadable { value },
+        ReadError::ReadFailed { source } => CastInjectedError::Read { source },
+    })
+}
+
 // Some common machinery
 
 #[derive(Debug, Snafu)]
@@ -98,13 +119,8 @@ macro_rules! from_injected {
             type Error = $err;
 
             fn try_from(value: ValueInjected) -> Result<Self, Self::Error> {
-                let value = value.read().map_err(|err| match err {
-                    ReadError::NotReadable => CastInjectedError::NotReadable { value },
-                    ReadError::ReadFailed { source } => CastInjectedError::Read { source },
-                })?;
-
+                let value = read_injected(value)?;
                 let value = value.try_into()?;
-
                 Ok(value)
             }
         }
