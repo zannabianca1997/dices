@@ -8,7 +8,6 @@ use std::str::FromStr;
 
 use clap::builder::{PossibleValue, TypedValueParser};
 use pretty::termcolor::{Color, ColorSpec};
-use reedline::{DefaultPrompt, DefaultPromptSegment, Prompt};
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
@@ -76,6 +75,7 @@ pub struct Skin {
 pub struct Elements {
     /// The prompt
     pub prompts: Prompts,
+    
     /// `null` value
     #[serde(with = "color_spec")]
     pub nulls: ColorSpec,

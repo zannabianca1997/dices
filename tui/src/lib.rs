@@ -1,8 +1,13 @@
 #![doc = include_str!("../README.md")]
 
-use std::io;
+use std::io::{self, stdout};
 
+use crossterm::terminal;
 use dices_engine::Engine;
+use pretty::{
+    Arena, Pretty, TermColored,
+    termcolor::{self, Ansi, NoColor},
+};
 use rand_seeder::Seeder;
 use reedline::{Reedline, Signal};
 use snafu::{OptionExt, ResultExt, Snafu};
@@ -10,23 +15,83 @@ use snafu::{OptionExt, ResultExt, Snafu};
 use crate::{
     cli::Cli,
     config::{Config, skin::SelectedSkin},
-    history::history,
 };
 
 pub mod cli;
 pub mod config;
+mod history;
 mod prompt;
-mod history {
+mod banners {
+    use pretty::{
+        DocAllocator, Pretty,
+        termcolor::{Color, ColorSpec},
+    };
 
-    use reedline::{FileBackedHistory, History};
+    use crate::config::skin::Skin;
 
-    use crate::config::history::HistoryConfig;
+    pub struct OpeningBanner<'a>(pub &'a Skin);
 
-    pub fn history(config: HistoryConfig) -> reedline::Result<impl History> {
-        if let Some(file) = config.file() {
-            FileBackedHistory::with_file(config.capacity, file)
-        } else {
-            FileBackedHistory::new(config.capacity)
+    impl<'a, D> Pretty<'a, D, ColorSpec> for OpeningBanner<'_>
+    where
+        D: DocAllocator<'a, ColorSpec>,
+    {
+        fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, ColorSpec> {
+            let code = ColorSpec::new()
+                .set_bg(Some(Color::Black))
+                .set_dimmed(true)
+                .clone();
+
+            allocator
+                .nil()
+                .append(self.0.emoji.then_some("⛓️🐉 ~ "))
+                .append("Welcome to ")
+                .append(
+                    allocator
+                        .text("dices ")
+                        .append(env!("CARGO_PKG_VERSION"))
+                        .annotate(code.clone()),
+                )
+                .append(self.0.emoji.then_some(" ~ ⛓️🐉"))
+                .annotate(
+                    ColorSpec::new()
+                        .set_bold(true)
+                        .set_fg(Some(Color::Magenta))
+                        .clone(),
+                )
+                .append(allocator.hardline())
+                .append(allocator.hardline())
+                .append(allocator.concat([
+                    allocator.text("Use "),
+                    allocator.text("help()").annotate(code.clone()),
+                    allocator.text(" for the manual, and "),
+                    allocator.text("quit()").annotate(code.clone()),
+                    allocator.text(" or "),
+                    allocator.text("Ctrl+D").annotate(code.clone()),
+                    allocator.text(" to exit."),
+                ]))
+                .append(allocator.hardline())
+        }
+    }
+
+    pub struct ClosingBanner<'a>(pub &'a Skin);
+
+    impl<'a, D> Pretty<'a, D, ColorSpec> for ClosingBanner<'_>
+    where
+        D: DocAllocator<'a, ColorSpec>,
+    {
+        fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, ColorSpec> {
+            allocator
+                .nil()
+                .append(self.0.emoji.then_some("⛓️🐉 ~ "))
+                .append("See you at the next game!")
+                .append(self.0.emoji.then_some(" ~ ⛓️🐉"))
+                .annotate(
+                    ColorSpec::new()
+                        .set_bold(true)
+                        .set_fg(Some(Color::Magenta))
+                        .clone(),
+                )
+                .append(allocator.hardline())
         }
     }
 }
@@ -35,6 +100,8 @@ mod history {
 pub enum Error {
     #[snafu(transparent)]
     Config { source: figment::Error },
+    #[snafu(display("Error while printing"))]
+    Printing { source: io::Error },
     #[snafu(display("Error while reading command"))]
     ReadLine { source: io::Error },
     #[snafu(display("Error while handling history"))]
@@ -67,6 +134,20 @@ pub fn main(Cli { config, seed }: Cli) -> Result<(), Error> {
         .with_ansi_colors(skin.ansi);
     let prompt = prompt::Prompt(skin);
 
+    if skin.banners {
+        let arena = Arena::new();
+        let banner = banners::OpeningBanner(skin).pretty(&arena);
+        let width = crossterm::terminal::size().map(|(c, _)| c).unwrap_or(80) as _;
+        match skin.ansi {
+            true => banner
+                .render_colored(width, &mut Ansi::new(stdout()))
+                .context(PrintingSnafu)?,
+            false => banner
+                .render_colored(width, &mut NoColor::new(stdout()))
+                .context(PrintingSnafu)?,
+        }
+    }
+
     // Main repl cycle
     loop {
         let sig = line_editor.read_line(&prompt).context(ReadLineSnafu)?;
@@ -78,6 +159,20 @@ pub fn main(Cli { config, seed }: Cli) -> Result<(), Error> {
             Signal::CtrlC => return Err(Error::Aborted),
             Signal::HostCommand(_) => unreachable!(),
             _ => panic!("Unhandled signal"),
+        }
+    }
+
+    if skin.banners {
+        let arena = Arena::new();
+        let banner = banners::ClosingBanner(skin).pretty(&arena);
+        let width = crossterm::terminal::size().map(|(c, _)| c).unwrap_or(80) as _;
+        match skin.ansi {
+            true => banner
+                .render_colored(width, &mut Ansi::new(stdout()))
+                .context(PrintingSnafu)?,
+            false => banner
+                .render_colored(width, &mut NoColor::new(stdout()))
+                .context(PrintingSnafu)?,
         }
     }
 

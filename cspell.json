@@ -8,7 +8,8 @@
     "hexdigit",
     "zannabianca",
     "reedline",
-    "termcolor"
+    "termcolor",
+    "hardline"
   ],
   "userWords": [
     "impl Default for Config"
