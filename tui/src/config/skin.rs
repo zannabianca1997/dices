@@ -75,7 +75,7 @@ pub struct Skin {
 pub struct Elements {
     /// The prompt
     pub prompts: Prompts,
-    
+
     /// `null` value
     #[serde(with = "color_spec")]
     pub nulls: ColorSpec,

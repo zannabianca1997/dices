@@ -1,10 +1,9 @@
 //! Strings
 
 use std::{
-    borrow::Borrow,
+    borrow::{Borrow, Cow},
     fmt::{Debug, Display, Write},
     hash::Hash,
-    io::Write as _,
     num::ParseIntError,
     ops::Deref,
     slice::SliceIndex,
@@ -276,6 +275,28 @@ impl Escape {
             (Full, ch) => !ch.is_ascii(),
         }
     }
+
+    /// Escape a single char under this escape method.
+    ///
+    /// Returns [`None`] when the char should be emitted verbatim, or
+    /// [`Some`] with its escaped representation. This is the single source of
+    /// truth shared by [`DisplayEscaped`] and the pretty-printer.
+    pub fn escape_char(&self, ch: char) -> Option<Cow<'static, str>> {
+        if !self.escapes(ch) {
+            return None;
+        }
+        Some(match ch {
+            '\0' => Cow::Borrowed(r"\0"),
+            '\n' => Cow::Borrowed(r"\n"),
+            '\r' => Cow::Borrowed(r"\r"),
+            '\t' => Cow::Borrowed(r"\t"),
+            '"' => Cow::Borrowed(r#"\""#),
+            '\'' => Cow::Borrowed(r"\'"),
+            '\\' => Cow::Borrowed(r"\\"),
+            '\x00'..='\x7F' => Cow::Owned(format!(r"\x{:02x}", ch as u8)),
+            _ => Cow::Owned(format!(r"\u{{{:x}}}", ch as u32)),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -286,36 +307,11 @@ pub struct DisplayEscaped<'a> {
 
 impl Display for DisplayEscaped<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut hex_scratch = *br"\xHH";
-        let mut unicode_scratch = *br"\u{HHHHHHHH}";
-
         for ch in self.content.chars() {
-            if !self.escape.escapes(ch) {
-                f.write_char(ch)?;
-                continue;
+            match self.escape.escape_char(ch) {
+                None => f.write_char(ch)?,
+                Some(escaped) => f.write_str(&escaped)?,
             }
-
-            let escaped = match ch {
-                '\0' => r"\0",
-                '\n' => r"\n",
-                '\r' => r"\r",
-                '\t' => r"\t",
-                '"' => r#"""#,
-                '\'' => r"\'",
-                '\\' => r"\",
-                '\x00'..='\x7F' => {
-                    write!(&mut hex_scratch[2..], "{:02x}", ch as u8).unwrap();
-                    str::from_utf8(&hex_scratch[..]).unwrap()
-                }
-                _ => {
-                    let mut scratch = &mut unicode_scratch[3..];
-                    write!(scratch, "{:x}}}", ch as u32).unwrap();
-                    let unwritten = scratch.len();
-                    str::from_utf8(&unicode_scratch[..unicode_scratch.len() - unwritten]).unwrap()
-                }
-            };
-
-            f.write_str(escaped)?
         }
 
         Ok(())

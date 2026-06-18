@@ -5,10 +5,13 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+dices-print.workspace = true
+
 derive_more = { workspace = true, features = ["full"] }
 either = "1.16.0"
 num = { workspace = true, features = ["num-bigint", "rand", "serde"] }
 paste = "1.0.15"
+pretty.workspace = true
 rand.workspace = true
 serde.workspace = true
 snafu.workspace = true

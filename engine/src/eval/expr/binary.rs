@@ -76,8 +76,8 @@ fn eval_mul(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
             Ok(rhs) => deep_apply(lhs, &mut |value| Ok(value * rhs.clone())),
             Err(rhs_err) => Err(EvalError::MulBetweenNonScalars {
                 lhs: lhs_err,
-                rhs: rhs_err
-            })
+                rhs: rhs_err,
+            }),
         },
     }
 }

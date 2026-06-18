@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["ast", "engine", "parser", "tui", "values"]
+members = ["ast", "engine", "parser", "print", "tui", "values"]
 
 [workspace.package]
 version = "0.4.0"
@@ -11,11 +11,13 @@ license = "MIT"
 dices-ast = { path = "ast" }
 dices-engine = { path = "engine" }
 dices-parser = { path = "parser" }
+dices-print = { path = "print" }
 dices-values = { path = "values" }
 
 derive_more = { version = "2.1.1", features = ["full"] }
 itertools = "0.15.0"
 num = { version = "0.4.3", features = ["num-bigint", "rand", "serde"] }
+pretty = { version = "0.12.5", features = ["termcolor"] }
 rand = "0.8.6"
 serde = { version = "1.0.228", features = ["derive"] }
 snafu = "0.9.1"

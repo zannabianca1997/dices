@@ -1,13 +1,10 @@
 [package]
-name = "dices-ast"
+name = "dices-print"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
-dices-values.workspace = true
-
-derive_more.workspace = true
 pretty.workspace = true
 
 [lints]

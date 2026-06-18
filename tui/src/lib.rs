@@ -168,10 +168,10 @@ pub fn main(Cli { config, seed }: Cli) -> Result<(), Error> {
         let width = crossterm::terminal::size().map(|(c, _)| c).unwrap_or(80) as _;
         match skin.ansi {
             true => banner
-                .render_colored(width, &mut Ansi::new(stdout()))
+                .render_colored(width, Ansi::new(stdout()))
                 .context(PrintingSnafu)?,
             false => banner
-                .render_colored(width, &mut NoColor::new(stdout()))
+                .render_colored(width, NoColor::new(stdout()))
                 .context(PrintingSnafu)?,
         }
     }

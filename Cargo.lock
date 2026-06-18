@@ -280,6 +280,7 @@ version = "0.4.0"
 dependencies = [
  "derive_more",
  "dices-values",
+ "pretty",
 ]
 
 [[package]]
@@ -305,6 +306,13 @@ dependencies = [
  "pest",
  "pest_derive",
  "snafu",
+]
+
+[[package]]
+name = "dices-print"
+version = "0.4.0"
+dependencies = [
+ "pretty",
 ]
 
 [[package]]
@@ -335,9 +343,11 @@ name = "dices-values"
 version = "0.4.0"
 dependencies = [
  "derive_more",
+ "dices-print",
  "either",
  "num",
  "paste",
+ "pretty",
  "rand",
  "serde",
  "snafu",
