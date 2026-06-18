@@ -312,7 +312,10 @@ dependencies = [
 name = "dices-print"
 version = "0.4.0"
 dependencies = [
+ "figment",
  "pretty",
+ "serde",
+ "strum 0.28.0",
 ]
 
 [[package]]
@@ -325,6 +328,7 @@ dependencies = [
  "derive_more",
  "dices-engine",
  "dices-parser",
+ "dices-print",
  "directories",
  "error_reporter",
  "figment",

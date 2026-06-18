@@ -1,5 +1,7 @@
 #![doc = include_str!("../README.md")]
 
+pub mod theme;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Annotation {
     /// Graphical fluff

@@ -9,7 +9,7 @@ pub struct Prompt<'s>(pub &'s Skin);
 
 impl reedline::Prompt for Prompt<'_> {
     fn render_prompt_left(&self) -> Cow<'_, str> {
-        (if self.0.emoji { "🎲" } else { ">>" }).into()
+        (if self.0.graphical { "🎲" } else { ">>" }).into()
     }
 
     fn render_prompt_right(&self) -> Cow<'_, str> {
@@ -18,7 +18,7 @@ impl reedline::Prompt for Prompt<'_> {
     }
 
     fn render_prompt_indicator(&self, prompt_mode: PromptEditMode) -> Cow<'_, str> {
-        let normal_prompt = if self.0.emoji { "〉" } else { "> " };
+        let normal_prompt = if self.0.graphical { "〉" } else { "> " };
         match prompt_mode {
             PromptEditMode::Default | PromptEditMode::Emacs => normal_prompt.into(),
             PromptEditMode::Vi(vi_mode) => match vi_mode {

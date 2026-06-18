@@ -8,8 +8,8 @@ use figment::providers::{Env, Format, Serialized, Toml};
 use serde::{Deserialize, Serialize};
 
 use crate::cli::CliConfig;
+use crate::config::skin::Skin;
 use history::HistoryConfig;
-use skin::{SelectedSkin, Skins};
 
 pub mod history;
 pub mod skin;
@@ -22,10 +22,8 @@ fn directories() -> Option<ProjectDirs> {
 pub struct Config {
     /// History file
     pub history: HistoryConfig,
-    /// Skin to use
-    pub skin: SelectedSkin,
-    /// Skins for the TUI
-    pub skins: Skins,
+    /// Graphical skin
+    pub skin: Skin,
 }
 
 impl Config {
@@ -33,7 +31,6 @@ impl Config {
         CliConfig {
             config,
             no_default_config,
-            skin,
         }: CliConfig,
     ) -> Result<Self, figment::Error> {
         let mut figment = Figment::new().merge(Serialized::defaults(Config::default()));
@@ -54,8 +51,7 @@ impl Config {
 
         figment = figment.merge(Env::prefixed("DICES_").split("_"));
 
-        let mut config: Self = figment.extract()?;
-        config.skin = skin;
+        let config: Self = figment.extract()?;
         Ok(config)
     }
 }
@@ -75,8 +71,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             history: Default::default(),
-            skin: Default::default(),
-            skins: Default::default(),
+            skin: Skin::default(),
         }
     }
 }
