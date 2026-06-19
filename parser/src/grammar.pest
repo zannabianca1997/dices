@@ -3,7 +3,7 @@ COMMENT    = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" | "//" ~ (!"\n" ~ ANY)* }
 
 main = { SOI ~ statement ~ EOI }
 
-statement = { expr }
+statement = { expr | "" }
 
 expr = { join }
 

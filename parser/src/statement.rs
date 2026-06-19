@@ -14,9 +14,14 @@ pub(crate) fn build_statement(
             build_statement(inner, input)
         }
         Rule::statement => {
-            let inner = pair.into_inner().next().unwrap();
-            let expr = build_expr(inner, input)?;
-            Ok(Statement::Expr(expr))
+            let mut inner = pair.into_inner();
+            match inner.next() {
+                Some(inner) => {
+                    let expr = build_expr(inner, input)?;
+                    Ok(Statement::Expr(expr))
+                }
+                None => Ok(Statement::Empty),
+            }
         }
         r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
     }

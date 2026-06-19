@@ -11,5 +11,12 @@ use crate::expr::Expr;
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, IsVariant, TryUnwrap, From, TryInto, Unwrap,
 )]
 pub enum Statement {
+    /// Expression statement
+    ///
+    /// Evaluated, then value is returned
     Expr(Expr),
+    /// Empty statement
+    ///
+    /// Returns `null`
+    Empty,
 }

@@ -59,8 +59,9 @@ pub(crate) mod tests {
     // Error cases
 
     #[test]
-    fn error_empty_input() {
-        assert!(parse_err("").is_pest());
+    fn empty_input_yields_empty_statement() {
+        let stmt = parse("");
+        assert!(matches!(stmt, Statement::Empty));
     }
 
     #[test]
