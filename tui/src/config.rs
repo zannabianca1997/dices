@@ -13,6 +13,7 @@ use history::HistoryConfig;
 
 pub mod history;
 pub mod skin;
+pub mod theme;
 
 fn directories() -> Option<ProjectDirs> {
     ProjectDirs::from("site.zannabianca1997.dices", "", "dices")
@@ -34,6 +35,11 @@ impl Config {
         }: CliConfig,
     ) -> Result<Self, figment::Error> {
         let mut figment = Figment::new().merge(Serialized::defaults(Config::default()));
+
+        // Write down the default theme
+        if let Some(dirs) = directories() {
+            let _ = theme::write_themes_if_not_exists(&dirs.config_dir().join("themes"));
+        }
 
         if !no_default_config {
             if let Some(dirs) = directories()

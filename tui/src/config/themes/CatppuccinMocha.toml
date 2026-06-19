@@ -1,0 +1,59 @@
+# Catppuccin Mocha
+# https://github.com/catppuccin/palette
+
+reset = true
+bold = false
+intense = false
+underline = false
+dimmed = false
+italic = false
+strikethrough = false
+fg_color = "#cdd6f4"
+
+# Graphical fluff (emojis): subdued.
+[fluff]
+fg_color = "#7f849c"  # overlay1
+
+[value.null]
+fg_color = "#7f849c"  # overlay1
+italic = true
+
+[value.integer]
+fg_color = "#fab387"  # peach
+
+[value.bool]
+fg_color = "#cba6f7"  # mauve
+
+[value.string]
+fg_color = "#a6e3a1"  # green
+
+[value.string.escape]
+fg_color = "#fab387"  # peach
+
+[value.delimiter]
+depth = [
+  { fg_color = "#f9e2af" },  # yellow
+  { fg_color = "#89b4fa" },  # blue
+  { fg_color = "#cba6f7" },  # mauve
+  { fg_color = "#94e2d5" },  # teal
+  { fg_color = "#89dceb" },  # sky
+  { fg_color = "#b4befe" },  # lavender
+]
+
+[value.punctuator]
+fg_color = "#a6adc8"  # subtext0
+
+[value.injected]
+fg_color = "#f9e2af"  # yellow
+
+[prompt]
+fg_color = "#89b4fa"  # blue
+
+[prompt.indicator]
+fg_color = "#a6e3a1"  # green
+
+[prompt.multiline]
+fg_color = "#7f849c"  # overlay1
+
+[prompt.right]
+fg_color = "#7f849c"  # overlay1

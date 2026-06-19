@@ -1,15 +1,11 @@
 #![doc = include_str!("../README.md")]
 
-use std::io::{self, stdout};
+use std::io::{self};
 
 use dices_engine::Engine;
-use pretty::{
-    Arena, Pretty,
-    termcolor::{Ansi, NoColor},
-};
 use rand_seeder::Seeder;
 use reedline::{Reedline, Signal};
-use snafu::{OptionExt, ResultExt, Snafu};
+use snafu::{ResultExt, Snafu};
 
 use crate::{cli::Cli, config::Config};
 
