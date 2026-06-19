@@ -45,7 +45,7 @@ fn print_inner<'a>(
         .unwrap_or(usize::MAX);
 
     if skin.color {
-        let mut printer = PrintAnnotated::new(stdout(), &skin);
+        let mut printer = PrintAnnotated::new(stdout(), skin);
         printing
             .pretty(arena)
             .render_raw(width, &mut printer)

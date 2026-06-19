@@ -28,6 +28,7 @@ pub fn themes_dir() -> Option<PathBuf> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct Config {
     /// History file
     pub history: HistoryConfig,
@@ -75,11 +76,3 @@ fn write_config_file_if_not_exists(config: &Path) -> io::Result<()> {
     file.write_all(config.as_bytes())
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            history: Default::default(),
-            skin: Skin::default(),
-        }
-    }
-}

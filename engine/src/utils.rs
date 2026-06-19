@@ -49,7 +49,7 @@ pub fn join_all(values: &mut [Value]) -> Result<Value, EvalError> {
         .map(|v| ValueList::try_from(mem::take(v)).expect("Injected should have been cast away"))
         .tree_reduce(ValueList::concat)
         .unwrap_or_default();
-    return Ok(res.into());
+    Ok(res.into())
 }
 
 /// Sum all the values, recursing inside containers

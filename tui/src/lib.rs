@@ -62,10 +62,10 @@ fn main_inner(seed: Option<impl Hash>, Config { history, skin }: &Config) -> Res
     let mut line_editor = Reedline::create()
         .with_history(Box::new(history::history(history).context(HistorySnafu)?))
         .with_ansi_colors(skin.color);
-    let prompt = prompt::Prompt(&skin);
+    let prompt = prompt::Prompt(skin);
 
     if skin.banners {
-        print_markdown(&skin, banners::OPENING)?;
+        print_markdown(skin, banners::OPENING)?;
     }
 
     // Main repl cycle
@@ -87,13 +87,13 @@ fn main_inner(seed: Option<impl Hash>, Config { history, skin }: &Config) -> Res
         // Print
         match eval {
             Ok(Value::Null(ValueNull)) => (),
-            Ok(value) => print_value(&skin, value)?,
-            Err(error) => print_error(&skin, &error)?,
+            Ok(value) => print_value(skin, value)?,
+            Err(error) => print_error(skin, &error)?,
         }
     }
 
     if skin.banners {
-        print_markdown(&skin, banners::CLOSING)?;
+        print_markdown(skin, banners::CLOSING)?;
     }
 
     Ok(())
