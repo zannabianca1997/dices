@@ -48,7 +48,6 @@ fg_color = "#f9e2af"  # yellow
 
 # Markdown styling for banners and manual.
 [markdown]
-
 [markdown.header]
 depth = [
   { bold = true, fg_color = "#f9e2af" },
@@ -80,3 +79,11 @@ fg_color = "#7f849c"  # overlay1
 
 [prompt.right]
 fg_color = "#7f849c"  # overlay1
+
+[error]
+fg_color = "#f38ba8"  # red
+
+[error.message]
+bold = true
+
+[error.source]

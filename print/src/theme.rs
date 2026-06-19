@@ -1,7 +1,7 @@
 use figment::{Figment, providers::Serialized, value::Value};
 use serde::{Deserialize, Deserializer, de::DeserializeOwned};
 
-use crate::{Annotation, DelimiterKind, MarkdownElement, PromptElement, ValueElement};
+use crate::{Annotation, DelimiterKind, ErrorElement, MarkdownElement, PromptElement, ValueElement};
 
 /// Themes for the
 #[derive(Debug, Default, PartialEq)]
@@ -27,6 +27,9 @@ pub struct Theme<T> {
     prompt_indicator: T,
     prompt_multiline: T,
     prompt_right: T,
+    error: T,
+    error_message: T,
+    error_source: T,
 }
 
 impl<T> Theme<T> {
@@ -62,6 +65,9 @@ impl<T> Theme<T> {
             prompt_indicator: Self::extract(figment.clone(), &["prompt", "indicator"])?,
             prompt_multiline: Self::extract(figment.clone(), &["prompt", "multiline"])?,
             prompt_right: Self::extract(figment.clone(), &["prompt", "right"])?,
+            error: Self::extract(figment.clone(), &["error"])?,
+            error_message: Self::extract(figment.clone(), &["error", "message"])?,
+            error_source: Self::extract(figment.clone(), &["error", "source"])?,
         })
     }
 
@@ -139,13 +145,16 @@ impl<T> Theme<T> {
             prompt_indicator: f(self.prompt_indicator),
             prompt_multiline: f(self.prompt_multiline),
             prompt_right: f(self.prompt_right),
+            error: f(self.error),
+            error_message: f(self.error_message),
+            error_source: f(self.error_source),
         }
     }
 
-    #[allow(unreachable_patterns)]
     pub fn style(&self, annotation: Annotation) -> &T {
         use Annotation::*;
         use DelimiterKind::*;
+        use ErrorElement::*;
         use MarkdownElement::*;
         use PromptElement::*;
         use ValueElement::*;
@@ -174,11 +183,13 @@ impl<T> Theme<T> {
             Markdown(Some(InlineCode)) => &self.markdown_inline_code,
             Markdown(Some(Bold)) => &self.markdown_bold,
             Markdown(Some(Italic)) => &self.markdown_italic,
-            Markdown(Some(_)) => &self.markdown,
             Prompt(None) => &self.prompt,
             Prompt(Some(Indicator)) => &self.prompt_indicator,
             Prompt(Some(Multiline)) => &self.prompt_multiline,
             Prompt(Some(Right)) => &self.prompt_right,
+            Error(None) => &self.error,
+            Error(Some(Message)) => &self.error_message,
+            Error(Some(Source)) => &self.error_source,
         }
     }
 }

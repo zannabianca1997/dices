@@ -1,5 +1,7 @@
 #![doc = include_str!("../README.md")]
 
+pub mod error;
+pub mod markdown;
 pub mod theme;
 
 #[derive(Debug, Clone, Copy)]
@@ -23,6 +25,9 @@ pub enum Annotation {
     ///
     /// Annotated text is part of a dices value representation
     Value(Option<ValueElement>),
+
+    /// Annotated text is an error message
+    Error(Option<ErrorElement>),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -74,4 +79,10 @@ pub enum ValueElement {
 pub enum DelimiterKind {
     List,
     Map,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ErrorElement {
+    Message,
+    Source,
 }

@@ -9,7 +9,10 @@
     "zannabianca",
     "reedline",
     "termcolor",
-    "hardline"
+    "hardline",
+    "cmark",
+    "formatcp",
+    "punct"
   ],
   "userWords": [
     "impl Default for Config"

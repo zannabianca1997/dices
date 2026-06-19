@@ -1,0 +1,96 @@
+//! Print formatted stuff
+
+use std::{
+    io::{self, stdout},
+    usize,
+};
+
+use dices_print::{Annotation, error::ErrorChain, markdown::Markdown};
+use dices_values::Value;
+use pretty::{
+    Arena, Pretty, Render, RenderAnnotated, TermColored,
+    termcolor::{Ansi, ColorSpec},
+};
+use snafu::ResultExt;
+
+use crate::{Error, PrintingSnafu, config::skin::Skin};
+
+fn term_width() -> usize {
+    crossterm::terminal::size()
+        .map(|(w, _)| w as usize)
+        // default to no wrap
+        .unwrap_or(usize::MAX)
+}
+
+pub fn print_markdown(skin: &Skin, text: &str) -> Result<(), Error> {
+    let arena = Arena::new();
+    let text = Markdown::new(text);
+    let mut printer = PrintAnnotated::new(stdout(), &skin);
+    text.pretty(&arena)
+        .render_raw(term_width(), &mut printer)
+        .context(PrintingSnafu)?;
+    Ok(())
+}
+pub fn print_value(skin: &Skin, value: Value) -> Result<(), Error> {
+    let arena = Arena::new();
+    let mut printer = PrintAnnotated::new(stdout(), &skin);
+    value
+        .pretty(&arena)
+        .render_raw(term_width(), &mut printer)
+        .context(PrintingSnafu)?;
+    Ok(())
+}
+pub fn print_error(skin: &Skin, error: &impl std::error::Error) -> Result<(), Error> {
+    let arena = Arena::new();
+    let mut printer = PrintAnnotated::new(stdout(), &skin);
+    ErrorChain::new(error)
+        .pretty(&arena)
+        .render_raw(term_width(), &mut printer)
+        .context(PrintingSnafu)?;
+    Ok(())
+}
+
+struct PrintAnnotated<'a, W>(pub W, pub &'a Skin);
+
+impl<'a, W> PrintAnnotated<'a, TermColored<Ansi<W>>> {
+    fn new(writer: W, skin: &'a Skin) -> Self
+    where
+        W: io::Write,
+        Self: for<'b> RenderAnnotated<'b, Annotation>,
+    {
+        Self(TermColored::new(Ansi::new(writer)), skin)
+    }
+}
+
+impl<W> Render for PrintAnnotated<'_, W>
+where
+    W: Render,
+{
+    type Error = W::Error;
+
+    fn write_str(&mut self, s: &str) -> Result<usize, Self::Error> {
+        self.0.write_str(s)
+    }
+
+    fn fail_doc(&self) -> Self::Error {
+        self.0.fail_doc()
+    }
+
+    fn write_str_all(&mut self, s: &str) -> Result<(), Self::Error> {
+        self.0.write_str_all(s)
+    }
+}
+
+impl<'a, W> RenderAnnotated<'_, Annotation> for PrintAnnotated<'a, W>
+where
+    W: RenderAnnotated<'a, ColorSpec>,
+{
+    fn push_annotation(&mut self, annotation: &Annotation) -> Result<(), Self::Error> {
+        self.0
+            .push_annotation(self.1.theme.content.style(*annotation))
+    }
+
+    fn pop_annotation(&mut self) -> Result<(), Self::Error> {
+        self.0.pop_annotation()
+    }
+}

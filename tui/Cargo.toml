@@ -12,9 +12,11 @@ path = "src/main.rs"
 dices-engine.workspace = true
 dices-parser.workspace = true
 dices-print.workspace = true
+dices-values.workspace = true
 
 chrono = "0.4.45"
 clap = { version = "4.6.1", features = ["derive", "env", "string", "wrap_help"] }
+const_format = { version = "0.2.36", features = ["fmt"] }
 crossterm = { version = "0.29.0", features = ["serde"] }
 derive_more.workspace = true
 directories = "6.0.0"
