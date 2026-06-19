@@ -2,8 +2,6 @@
 // them yet; the real implementations land in a follow-up.
 #![allow(unused_variables)]
 
-use std::usize;
-
 use dices_ast::expr::{
     Expr,
     binary::{BinOp, BinaryExpr},

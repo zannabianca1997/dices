@@ -57,10 +57,7 @@ pub(super) fn build_operator_chain(
 ) -> Result<Expr, ParseError> {
     let mut inner = pair.into_inner();
     let mut lhs = build_expr(inner.next().unwrap(), input)?;
-    loop {
-        let Some(op_pair) = inner.next() else {
-            break;
-        };
+    while let Some(op_pair) = inner.next() {
         let op = op_fn(op_pair.as_str());
         let rhs_pair = inner.next().unwrap();
         let rhs = build_expr(rhs_pair, input)?;

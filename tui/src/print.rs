@@ -1,9 +1,6 @@
 //! Print formatted stuff
 
-use std::{
-    io::{self, stdout},
-    usize,
-};
+use std::io::{self, stdout};
 
 use dices_print::{Annotation, error::ErrorChain, markdown::Markdown};
 use dices_values::Value;
