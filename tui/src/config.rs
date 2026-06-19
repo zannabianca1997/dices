@@ -1,6 +1,6 @@
 use std::fs::{self, File};
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use directories::ProjectDirs;
 use figment::Figment;
@@ -19,6 +19,14 @@ fn directories() -> Option<ProjectDirs> {
     ProjectDirs::from("site.zannabianca1997.dices", "", "dices")
 }
 
+pub fn config_file() -> Option<PathBuf> {
+    Some(directories()?.config_dir().join("Config.toml"))
+}
+
+pub fn themes_dir() -> Option<PathBuf> {
+    Some(directories()?.config_dir().join("themes"))
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     /// History file
@@ -28,22 +36,16 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn extract(
-        CliConfig {
-            config,
-            no_default_config,
-        }: CliConfig,
-    ) -> Result<Self, figment::Error> {
+    pub fn extract(cli: CliConfig) -> Result<Self, figment::Error> {
         let mut figment = Figment::new().merge(Serialized::defaults(Config::default()));
 
         // Write down the default theme
-        if let Some(dirs) = directories() {
-            let _ = theme::write_themes_if_not_exists(&dirs.config_dir().join("themes"));
+        if let Some(theme_dirs) = themes_dir() {
+            let _ = theme::write_themes_if_not_exists(&theme_dirs);
         }
 
-        if !no_default_config {
-            if let Some(dirs) = directories()
-                && let config = dirs.config_dir().join("Config.toml")
+        if !cli.no_default_config {
+            if let Some(config) = config_file()
                 && write_config_file_if_not_exists(&config).is_ok()
             {
                 figment = figment.merge(Toml::file_exact(config));
@@ -51,11 +53,11 @@ impl Config {
             figment = figment.merge(Toml::file("Dices.toml"));
         }
 
-        if let Some(path) = config {
+        if let Some(path) = cli.config.as_ref() {
             figment = figment.merge(Toml::file_exact(path));
         }
 
-        figment = figment.merge(Env::prefixed("DICES_").split("_"));
+        figment = figment.merge(Env::prefixed("DICES_").split("_")).merge(cli);
 
         let config: Self = figment.extract()?;
         Ok(config)

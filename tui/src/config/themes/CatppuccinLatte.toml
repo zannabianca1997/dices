@@ -46,6 +46,29 @@ fg_color = "#6c6f85"  # subtext0
 [value.injected]
 fg_color = "#df8e1d"  # yellow
 
+# Markdown styling for banners and manual.
+[markdown]
+
+[markdown.header]
+depth = [
+  { bold = true, fg_color = "#df8e1d" },
+  { bold = true, fg_color = "#1e66f5" },
+  { fg_color = "#8839ef" },
+  { fg_color = "#179299" },
+  { fg_color = "#04a5e5" },
+  { fg_color = "#7287fd" },
+]
+
+[markdown.inline_code]
+fg_color = "#ea76cb"  # pink
+
+[markdown.bold_text]
+bold = true
+fg_color = "#dc8a78"  # rosewater
+
+[markdown.italic_text]
+italic = true
+
 [prompt]
 fg_color = "#1e66f5"  # blue
 

@@ -71,10 +71,8 @@ impl<'de> Deserialize<'de> for Theme {
             Option::<String>::deserialize(deserializer)?.unwrap_or_else(|| "Default".to_owned());
 
         // `<config>/themes/<name>.toml`.
-        let path = super::directories()
+        let path = super::themes_dir()
             .ok_or_else(|| D::Error::custom("could not determine the configuration directory"))?
-            .config_dir()
-            .join("themes")
             .join(&name)
             .with_extension("toml");
 

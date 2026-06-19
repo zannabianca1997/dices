@@ -1,7 +1,7 @@
 use figment::{Figment, providers::Serialized, value::Value};
 use serde::{Deserialize, Deserializer, de::DeserializeOwned};
 
-use crate::{Annotation, DelimiterKind, PromptElement, ValueElement};
+use crate::{Annotation, DelimiterKind, MarkdownElement, PromptElement, ValueElement};
 
 /// Themes for the
 #[derive(Debug, Default, PartialEq)]
@@ -18,6 +18,11 @@ pub struct Theme<T> {
     value_delimiter_map: Box<[T]>,
     value_punctuator: T,
     value_injected: T,
+    markdown: T,
+    markdown_header: Box<[T]>,
+    markdown_inline_code: T,
+    markdown_bold: T,
+    markdown_italic: T,
     prompt: T,
     prompt_indicator: T,
     prompt_multiline: T,
@@ -48,6 +53,11 @@ impl<T> Theme<T> {
             )?,
             value_punctuator: Self::extract(figment.clone(), &["value", "punctuator"])?,
             value_injected: Self::extract(figment.clone(), &["value", "injected"])?,
+            markdown: Self::extract(figment.clone(), &["markdown"])?,
+            markdown_header: Self::extract_with_depth(figment.clone(), &["markdown", "header"])?,
+            markdown_inline_code: Self::extract(figment.clone(), &["markdown", "inline_code"])?,
+            markdown_bold: Self::extract(figment.clone(), &["markdown", "bold_text"])?,
+            markdown_italic: Self::extract(figment.clone(), &["markdown", "italic_text"])?,
             prompt: Self::extract(figment.clone(), &["prompt"])?,
             prompt_indicator: Self::extract(figment.clone(), &["prompt", "indicator"])?,
             prompt_multiline: Self::extract(figment.clone(), &["prompt", "multiline"])?,
@@ -115,6 +125,16 @@ impl<T> Theme<T> {
                 .collect(),
             value_punctuator: f(self.value_punctuator),
             value_injected: f(self.value_injected),
+            markdown: f(self.markdown),
+            markdown_header: self
+                .markdown_header
+                .into_vec()
+                .into_iter()
+                .map(&mut f)
+                .collect(),
+            markdown_inline_code: f(self.markdown_inline_code),
+            markdown_bold: f(self.markdown_bold),
+            markdown_italic: f(self.markdown_italic),
             prompt: f(self.prompt),
             prompt_indicator: f(self.prompt_indicator),
             prompt_multiline: f(self.prompt_multiline),
@@ -122,9 +142,11 @@ impl<T> Theme<T> {
         }
     }
 
+    #[allow(unreachable_patterns)]
     pub fn style(&self, annotation: Annotation) -> &T {
         use Annotation::*;
         use DelimiterKind::*;
+        use MarkdownElement::*;
         use PromptElement::*;
         use ValueElement::*;
 
@@ -145,6 +167,14 @@ impl<T> Theme<T> {
             }
             Value(Some(Punctuator)) => &self.value_punctuator,
             Value(Some(Injected)) => &self.value_injected,
+            Markdown(None) => &self.markdown,
+            Markdown(Some(Header { level })) => {
+                &self.markdown_header[level as usize % self.markdown_header.len()]
+            }
+            Markdown(Some(InlineCode)) => &self.markdown_inline_code,
+            Markdown(Some(Bold)) => &self.markdown_bold,
+            Markdown(Some(Italic)) => &self.markdown_italic,
+            Markdown(Some(_)) => &self.markdown,
             Prompt(None) => &self.prompt,
             Prompt(Some(Indicator)) => &self.prompt_indicator,
             Prompt(Some(Multiline)) => &self.prompt_multiline,

@@ -9,15 +9,20 @@ pub enum Annotation {
     /// Annotated text is a graphical fluff. Should be skipped on plain output.
     Fluff,
 
-    /// Value
-    ///
-    /// Annotated text is part of a dices value representation
-    Value(Option<ValueElement>),
-
     /// Prompt
     ///
     /// Annotated text is part of the interactive prompt
     Prompt(Option<PromptElement>),
+
+    /// Markdown
+    ///
+    /// General styled contend for the banners and the manual
+    Markdown(Option<MarkdownElement>),
+
+    /// Value
+    ///
+    /// Annotated text is part of a dices value representation
+    Value(Option<ValueElement>),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -28,6 +33,15 @@ pub enum PromptElement {
     Multiline,
     /// Right-aligned prompt (e.g. the clock)
     Right,
+}
+
+#[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
+pub enum MarkdownElement {
+    Header { level: u8 },
+    InlineCode,
+    Bold,
+    Italic,
 }
 
 #[derive(Debug, Clone, Copy)]
