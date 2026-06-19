@@ -8,6 +8,7 @@ use std::{
 
 use dices_engine::{Engine, Evaluator};
 use dices_values::{Value, null::ValueNull};
+use rand::{Rng, rngs::OsRng};
 use rand_seeder::Seeder;
 use reedline::{Reedline, Signal};
 use snafu::{ResultExt, Snafu};
@@ -49,9 +50,13 @@ pub enum CommandError {
     Eval { source: dices_engine::EvalError },
 }
 
-fn main_inner(seed: impl Hash, Config { history, skin }: &Config) -> Result<(), Error> {
+fn main_inner(seed: Option<impl Hash>, Config { history, skin }: &Config) -> Result<(), Error> {
     // Init the engine
-    let mut engine = Engine::new(Seeder::from(seed).make_seed());
+    let mut engine = Engine::new(if let Some(seed) = seed {
+        Seeder::from(seed).make_seed()
+    } else {
+        OsRng.r#gen()
+    });
 
     // Prepare the repl
     let mut line_editor = Reedline::create()
