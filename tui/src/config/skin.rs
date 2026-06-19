@@ -35,6 +35,3 @@ impl Default for Skin {
 fn is_true(x: &bool) -> bool {
     *x
 }
-fn is_false(x: &bool) -> bool {
-    !x
-}

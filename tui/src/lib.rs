@@ -7,6 +7,7 @@ use std::{
 };
 
 use dices_engine::{Engine, Evaluator};
+use dices_values::{Value, null::ValueNull};
 use rand_seeder::Seeder;
 use reedline::{Reedline, Signal};
 use snafu::{ResultExt, Snafu};
@@ -80,6 +81,7 @@ fn main_inner(seed: impl Hash, Config { history, skin }: &Config) -> Result<(), 
 
         // Print
         match eval {
+            Ok(Value::Null(ValueNull)) => (),
             Ok(value) => print_value(&skin, value)?,
             Err(error) => print_error(&skin, &error)?,
         }
