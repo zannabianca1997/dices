@@ -1,10 +1,10 @@
 use figment::{Figment, providers::Serialized, value::Value};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Deserializer, de::DeserializeOwned};
 
-use crate::{Annotation, DelimiterKind, ValueElement};
+use crate::{Annotation, DelimiterKind, PromptElement, ValueElement};
 
-/// Themes for the 
-#[derive(Debug, Deserialize, Serialize, Default)]
+/// Themes for the
+#[derive(Debug, Default, PartialEq)]
 pub struct Theme<T> {
     fluff: T,
     value: T,
@@ -18,10 +18,14 @@ pub struct Theme<T> {
     value_delimiter_map: Box<[T]>,
     value_punctuator: T,
     value_injected: T,
+    prompt: T,
+    prompt_indicator: T,
+    prompt_multiline: T,
+    prompt_right: T,
 }
 
 impl<T> Theme<T> {
-    pub fn new(figment: Figment) -> figment::Result<Self>
+    fn from_figment(figment: Figment) -> figment::Result<Self>
     where
         T: DeserializeOwned,
     {
@@ -44,6 +48,10 @@ impl<T> Theme<T> {
             )?,
             value_punctuator: Self::extract(figment.clone(), &["value", "punctuator"])?,
             value_injected: Self::extract(figment.clone(), &["value", "injected"])?,
+            prompt: Self::extract(figment.clone(), &["prompt"])?,
+            prompt_indicator: Self::extract(figment.clone(), &["prompt", "indicator"])?,
+            prompt_multiline: Self::extract(figment.clone(), &["prompt", "multiline"])?,
+            prompt_right: Self::extract(figment.clone(), &["prompt", "right"])?,
         })
     }
 
@@ -83,9 +91,41 @@ impl<T> Theme<T> {
             .collect()
     }
 
+    pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> Theme<U> {
+        Theme {
+            fluff: f(self.fluff),
+            value: f(self.value),
+            value_null: f(self.value_null),
+            value_integer: f(self.value_integer),
+            value_bool_true: f(self.value_bool_true),
+            value_bool_false: f(self.value_bool_false),
+            value_string: f(self.value_string),
+            value_string_escape: f(self.value_string_escape),
+            value_delimiter_list: self
+                .value_delimiter_list
+                .into_vec()
+                .into_iter()
+                .map(&mut f)
+                .collect(),
+            value_delimiter_map: self
+                .value_delimiter_map
+                .into_vec()
+                .into_iter()
+                .map(&mut f)
+                .collect(),
+            value_punctuator: f(self.value_punctuator),
+            value_injected: f(self.value_injected),
+            prompt: f(self.prompt),
+            prompt_indicator: f(self.prompt_indicator),
+            prompt_multiline: f(self.prompt_multiline),
+            prompt_right: f(self.prompt_right),
+        }
+    }
+
     pub fn style(&self, annotation: Annotation) -> &T {
         use Annotation::*;
         use DelimiterKind::*;
+        use PromptElement::*;
         use ValueElement::*;
 
         match annotation {
@@ -105,6 +145,26 @@ impl<T> Theme<T> {
             }
             Value(Some(Punctuator)) => &self.value_punctuator,
             Value(Some(Injected)) => &self.value_injected,
+            Prompt(None) => &self.prompt,
+            Prompt(Some(Indicator)) => &self.prompt_indicator,
+            Prompt(Some(Multiline)) => &self.prompt_multiline,
+            Prompt(Some(Right)) => &self.prompt_right,
         }
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Theme<T>
+where
+    T: DeserializeOwned,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // `Value::deserialize` also names an inherent `&self` method, so the
+        // bare path would be ambiguous: spell out the trait method.
+        let value = <Value as Deserialize>::deserialize(deserializer)?;
+        Self::from_figment(Figment::from(Serialized::defaults(value)))
+            .map_err(serde::de::Error::custom)
     }
 }

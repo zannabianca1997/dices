@@ -13,6 +13,21 @@ pub enum Annotation {
     ///
     /// Annotated text is part of a dices value representation
     Value(Option<ValueElement>),
+
+    /// Prompt
+    ///
+    /// Annotated text is part of the interactive prompt
+    Prompt(Option<PromptElement>),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum PromptElement {
+    /// Indicator shown before the user input (e.g. the chevron)
+    Indicator,
+    /// Continuation indicator shown on multiline input
+    Multiline,
+    /// Right-aligned prompt (e.g. the clock)
+    Right,
 }
 
 #[derive(Debug, Clone, Copy)]

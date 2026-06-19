@@ -48,19 +48,19 @@ impl reedline::Prompt for Prompt<'_> {
     }
 
     fn get_prompt_color(&self) -> reedline::Color {
-        self.0.elements.prompts.prompt
+        self.0.theme.prompt
     }
 
     fn get_prompt_multiline_color(&self) -> nu_ansi_term::Color {
-        self.0.elements.prompts.multiline
+        self.0.theme.prompt_multiline
     }
 
     fn get_indicator_color(&self) -> reedline::Color {
-        self.0.elements.prompts.indicator
+        self.0.theme.prompt_indicator
     }
 
     fn get_prompt_right_color(&self) -> reedline::Color {
-        self.0.elements.prompts.right
+        self.0.theme.prompt_right
     }
 
     fn right_prompt_on_last_line(&self) -> bool {

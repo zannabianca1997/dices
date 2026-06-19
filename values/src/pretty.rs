@@ -420,6 +420,7 @@ mod tests {
             match event {
                 Event::Push(Annotation::Value(element)) => stack.push(*element),
                 Event::Push(Annotation::Fluff) => stack.push(None),
+                Event::Push(Annotation::Prompt(_)) => stack.push(None),
                 Event::Pop => {
                     stack.pop();
                 }
