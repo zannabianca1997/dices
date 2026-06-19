@@ -364,8 +364,6 @@ mod tests {
         assert_eq!(plain(value, 4), "[\n    1,\n    2,\n    3,\n]");
     }
 
-    // --- annotation capture -------------------------------------------------
-
     enum Event {
         Text(String),
         Push(Annotation),
@@ -419,9 +417,7 @@ mod tests {
         for event in &collector.events {
             match event {
                 Event::Push(Annotation::Value(element)) => stack.push(*element),
-                Event::Push(Annotation::Fluff) => stack.push(None),
-                Event::Push(Annotation::Prompt(_)) => stack.push(None),
-                Event::Push(Annotation::Markdown(_)) => stack.push(None),
+                Event::Push(_) => stack.push(None),
                 Event::Pop => {
                     stack.pop();
                 }

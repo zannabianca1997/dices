@@ -12,7 +12,9 @@
     "hardline",
     "cmark",
     "formatcp",
-    "punct"
+    "punct",
+    "strikethrough",
+    "Catppuccin"
   ],
   "userWords": [
     "impl Default for Config"
