@@ -15,38 +15,47 @@ use snafu::ResultExt;
 
 use crate::{Error, PrintingSnafu, config::skin::Skin};
 
-fn term_width() -> usize {
-    crossterm::terminal::size()
-        .map(|(w, _)| w as usize)
-        // default to no wrap
-        .unwrap_or(usize::MAX)
-}
-
 pub fn print_markdown(skin: &Skin, text: &str) -> Result<(), Error> {
-    let arena = Arena::new();
     let text = Markdown::new(text);
-    let mut printer = PrintAnnotated::new(stdout(), &skin);
-    text.pretty(&arena)
-        .render_raw(term_width(), &mut printer)
-        .context(PrintingSnafu)?;
+
+    let arena = Arena::new();
+    print_inner(skin, &arena, text)?;
     Ok(())
 }
 pub fn print_value(skin: &Skin, value: Value) -> Result<(), Error> {
     let arena = Arena::new();
-    let mut printer = PrintAnnotated::new(stdout(), &skin);
-    value
-        .pretty(&arena)
-        .render_raw(term_width(), &mut printer)
-        .context(PrintingSnafu)?;
+    print_inner(skin, &arena, value)?;
     Ok(())
 }
 pub fn print_error(skin: &Skin, error: &impl std::error::Error) -> Result<(), Error> {
     let arena = Arena::new();
-    let mut printer = PrintAnnotated::new(stdout(), &skin);
-    ErrorChain::new(error)
-        .pretty(&arena)
-        .render_raw(term_width(), &mut printer)
-        .context(PrintingSnafu)?;
+    let error_chain = ErrorChain::new(error);
+    print_inner(skin, &arena, error_chain)?;
+    Ok(())
+}
+
+fn print_inner<'a>(
+    skin: &Skin,
+    arena: &'a Arena<'a, Annotation>,
+    printing: impl Pretty<'a, Arena<'a, Annotation>, Annotation>,
+) -> Result<(), Error> {
+    let width = crossterm::terminal::size()
+        .map(|(w, _)| w as usize)
+        // default to no wrap
+        .unwrap_or(usize::MAX);
+
+    if skin.color {
+        let mut printer = PrintAnnotated::new(stdout(), &skin);
+        printing
+            .pretty(arena)
+            .render_raw(width, &mut printer)
+            .context(PrintingSnafu)?;
+    } else {
+        printing
+            .pretty(arena)
+            .render(width, &mut stdout())
+            .context(PrintingSnafu)?
+    }
     Ok(())
 }
 
