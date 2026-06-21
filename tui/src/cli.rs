@@ -12,15 +12,32 @@ use crate::config::themes_dir;
 #[derive(Debug, Parser)]
 #[clap(name = "dices", version)]
 pub struct Cli {
+    /// Configuration of the tui
+    #[clap(flatten)]
+    pub config: CliConfig,
+
     /// Set a seed for this session
     ///
     /// Initialize the random number generator with the given seed
     #[clap(long, short)]
     pub seed: Option<OsString>,
 
-    /// Configuration of the tui
-    #[clap(flatten)]
-    pub config: CliConfig,
+    /// Do not close after command execution.
+    #[clap(long, short, requires = "command")]
+    pub interactive: bool,
+
+    #[clap(
+        short = 'C',
+        long,
+        num_args = ..,
+        trailing_var_arg = true,
+        allow_hyphen_values = true
+    )]
+    /// Command to run
+    ///
+    /// If given, this command will be executed and then the tui will exit if
+    /// `interactive` is not specified. Banners will be off by default.
+    pub command: Option<Vec<String>>,
 }
 
 #[derive(Debug, Args)]

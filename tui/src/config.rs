@@ -36,8 +36,13 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn extract(cli: CliConfig) -> Result<Self, figment::Error> {
-        let mut figment = Figment::new().merge(Serialized::defaults(Config::default()));
+    pub fn extract(cli: CliConfig, command_given: bool) -> Result<Self, figment::Error> {
+        let mut defaults = Config::default();
+        if command_given {
+            defaults.skin.banners = false;
+        }
+
+        let mut figment = Figment::new().merge(Serialized::defaults(defaults));
 
         // Write down the default theme
         if let Some(theme_dirs) = themes_dir() {

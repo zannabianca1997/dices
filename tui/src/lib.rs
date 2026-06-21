@@ -8,6 +8,7 @@ use std::{
 
 use dices_engine::{Engine, Evaluator};
 use dices_values::{Value, null::ValueNull};
+use itertools::Itertools;
 use rand::{Rng, rngs::OsRng};
 use rand_seeder::Seeder;
 use reedline::{Reedline, Signal};
@@ -50,13 +51,41 @@ pub enum CommandError {
     Eval { source: dices_engine::EvalError },
 }
 
-fn main_inner(seed: Option<impl Hash>, Config { history, skin }: &Config) -> Result<(), Error> {
+fn main_inner(
+    seed: Option<impl Hash>,
+    Config { history, skin }: &Config,
+    interactive: bool,
+    command: Option<Vec<String>>,
+) -> Result<(), Error> {
     // Init the engine
     let mut engine = Engine::new(if let Some(seed) = seed {
         Seeder::from(seed).make_seed()
     } else {
         OsRng.r#gen()
     });
+
+    // Execute command
+    if let Some(command) = command {
+        // Merge args into a single command
+        let command = command.into_iter().join(" ");
+
+        // Eval
+        let eval = dices_parser::parse_scope_inner(&command.into())
+            .map_err(CommandError::from)
+            .and_then(|scope_inner| engine.eval(&scope_inner).map_err(CommandError::from));
+
+        // Print
+        match eval {
+            Ok(Value::Null(ValueNull)) => (),
+            Ok(value) => print_value(skin, value)?,
+            Err(error) => print_error(skin, &error)?,
+        }
+
+        if !interactive {
+            println!();
+            return Ok(());
+        }
+    }
 
     // Prepare the repl
     let mut line_editor = Reedline::create()
@@ -99,12 +128,26 @@ fn main_inner(seed: Option<impl Hash>, Config { history, skin }: &Config) -> Res
     Ok(())
 }
 
-pub fn main(Cli { config, seed }: Cli) -> Result<(), Error> {
-    let config = Config::extract(config)?;
-    main_inner(seed, &config)
+pub fn main(
+    Cli {
+        config,
+        seed,
+        interactive,
+        command,
+    }: Cli,
+) -> Result<(), Error> {
+    let config = Config::extract(config, command.is_some())?;
+    main_inner(seed, &config, interactive, command)
 }
-pub fn main_print_error(Cli { config, seed }: Cli) -> ExitCode {
-    let config = match Config::extract(config) {
+pub fn main_print_error(
+    Cli {
+        config,
+        seed,
+        interactive,
+        command,
+    }: Cli,
+) -> ExitCode {
+    let config = match Config::extract(config, command.is_some()) {
         Ok(c) => c,
         Err(err) => {
             // No skin, need to directly print
@@ -113,7 +156,7 @@ pub fn main_print_error(Cli { config, seed }: Cli) -> ExitCode {
         }
     };
 
-    match main_inner(seed, &config) {
+    match main_inner(seed, &config, interactive, command) {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
             print_error(&config.skin, &err).unwrap_or_else(|_| {
