@@ -36,6 +36,16 @@ pub(super) fn mul_op_to_binop(s: &str) -> BinOp {
     }
 }
 
+pub(super) fn filter_op_to_binop(s: &str) -> BinOp {
+    match s {
+        "kh" => BinOp::KeepHigh,
+        "kl" => BinOp::KeepLow,
+        "rh" => BinOp::RemoveHigh,
+        "rl" => BinOp::RemoveLow,
+        _ => unreachable!(),
+    }
+}
+
 pub(super) fn build_binary_chain(
     pair: Pair<Rule>,
     op: BinOp,
@@ -448,5 +458,141 @@ pub(crate) mod tests {
     #[test]
     fn error_3dd6() {
         assert!(parse_err("3dd6").is_pest());
+    }
+
+    // Filter operators
+
+    #[test]
+    fn filter_keep_high() {
+        assert_eq!(
+            parse("3d6kh2"),
+            expr(binary(
+                binary(int("3"), BinOp::Dice, int("6")),
+                BinOp::KeepHigh,
+                int("2")
+            ))
+        );
+    }
+
+    #[test]
+    fn filter_keep_low() {
+        assert_eq!(
+            parse("3d6kl2"),
+            expr(binary(
+                binary(int("3"), BinOp::Dice, int("6")),
+                BinOp::KeepLow,
+                int("2")
+            ))
+        );
+    }
+
+    #[test]
+    fn filter_remove_high() {
+        assert_eq!(
+            parse("3d6rh2"),
+            expr(binary(
+                binary(int("3"), BinOp::Dice, int("6")),
+                BinOp::RemoveHigh,
+                int("2")
+            ))
+        );
+    }
+
+    #[test]
+    fn filter_remove_low() {
+        assert_eq!(
+            parse("3d6rl2"),
+            expr(binary(
+                binary(int("3"), BinOp::Dice, int("6")),
+                BinOp::RemoveLow,
+                int("2")
+            ))
+        );
+    }
+
+    #[test]
+    fn filter_keep_high_list() {
+        assert_eq!(
+            parse("[1, 2, 3] kh 2"),
+            expr(binary(
+                Expr::List(Box::new(dices_ast::expr::list::ListExpr {
+                    items: vec![int("1"), int("2"), int("3")],
+                })),
+                BinOp::KeepHigh,
+                int("2")
+            ))
+        );
+    }
+
+    #[test]
+    fn filter_chain_repeat_under_filter() {
+        // 3d6kh2^3 => 3d6 kh (2^3)
+        assert_eq!(
+            parse("3d6kh2^3"),
+            expr(binary(
+                binary(int("3"), BinOp::Dice, int("6")),
+                BinOp::KeepHigh,
+                binary(int("2"), BinOp::Repeat, int("3"))
+            ))
+        );
+    }
+
+    #[test]
+    fn filter_chain_repeat_over_filter() {
+        // (3d6kh2)^3 => repeat keep-high result
+        assert_eq!(
+            parse("(3d6kh2)^3"),
+            expr(binary(
+                binary(
+                    binary(int("3"), BinOp::Dice, int("6")),
+                    BinOp::KeepHigh,
+                    int("2")
+                ),
+                BinOp::Repeat,
+                int("3")
+            ))
+        );
+    }
+
+    #[test]
+    fn filter_binds_tighter_than_add() {
+        assert_eq!(
+            parse("3d6kh2 + 1"),
+            expr(binary(
+                binary(
+                    binary(int("3"), BinOp::Dice, int("6")),
+                    BinOp::KeepHigh,
+                    int("2")
+                ),
+                BinOp::Add,
+                int("1")
+            ))
+        );
+    }
+
+    #[test]
+    fn filter_looser_than_repeat() {
+        // 3d6^2kh2 => (3d6^2) kh 2
+        assert_eq!(
+            parse("3d6^2kh2"),
+            expr(binary(
+                binary(binary(int("3"), BinOp::Dice, int("6")), BinOp::Repeat, int("2")),
+                BinOp::KeepHigh,
+                int("2")
+            ))
+        );
+    }
+
+    #[test]
+    fn filter_tighter_than_repeat_reversed() {
+        // 3d6kh2^2 => 3d6 kh (2^2)
+        assert_eq!(
+            parse("3d6kh2^2"),
+            expr(binary(
+                binary(int("3"), BinOp::Dice, int("6")),
+                BinOp::KeepHigh,
+                binary(int("2"), BinOp::Repeat, int("2"))
+            ))
+        );
     }
 }

@@ -10,7 +10,7 @@ use crate::{ParseError, Rule, expr::build_expr};
 pub(super) fn build_unary(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseError> {
     let mut inner = pair.into_inner();
     let first = inner.next().unwrap();
-    if first.as_rule() == Rule::repeat {
+    if first.as_rule() == Rule::filter {
         return build_expr(first, input);
     }
     let op = match first.as_str() {

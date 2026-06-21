@@ -38,6 +38,15 @@ pub enum BinOp {
     Dice,
     /// `^` operator
     Repeat,
+    // Filters
+    /// `kh` operator — keep highest
+    KeepHigh,
+    /// `kl` operator — keep lowest
+    KeepLow,
+    /// `rh` operator — remove highest
+    RemoveHigh,
+    /// `rl` operator — remove lowest
+    RemoveLow,
 }
 
 /// A binary expression

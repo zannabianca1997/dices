@@ -2,18 +2,20 @@
 // them yet; the real implementations land in a follow-up.
 #![allow(unused_variables)]
 
+use std::cmp::Ordering;
+
 use dices_ast::expr::{
-    Expr,
     binary::{BinOp, BinaryExpr},
     unary::{UnOp, UnaryExpr},
+    Expr,
 };
-use dices_values::{Value, bool::ValueBool, int::ValueInt, list::ValueList};
-use num::{Integer, ToPrimitive, Zero, traits::ConstZero};
+use dices_values::{bool::ValueBool, int::ValueInt, list::ValueList, map::ValueMap, Value};
+use num::{traits::ConstZero, Integer, ToPrimitive, Zero};
 
 use crate::{
-    EvalError,
     context::Context,
-    utils::{DicesOrd, deep_apply, deep_sum, join_all},
+    utils::{deep_apply, deep_sum, join_all, DicesOrd},
+    EvalError,
 };
 
 pub fn eval(expr: &BinaryExpr, cx: &mut Context<'_>) -> Result<Value, EvalError> {
@@ -54,6 +56,11 @@ pub fn eval(expr: &BinaryExpr, cx: &mut Context<'_>) -> Result<Value, EvalError>
         // Misc
         BinOp::Join => eval_join(lhs, rhs),
         BinOp::Dice => eval_dice(lhs, rhs, cx),
+        // Filters
+        BinOp::KeepHigh => eval_filter(lhs, rhs, FilterKind::KeepHigh),
+        BinOp::KeepLow => eval_filter(lhs, rhs, FilterKind::KeepLow),
+        BinOp::RemoveHigh => eval_filter(lhs, rhs, FilterKind::RemoveHigh),
+        BinOp::RemoveLow => eval_filter(lhs, rhs, FilterKind::RemoveLow),
         // Handled differently
         BinOp::Repeat | BinOp::And | BinOp::Or => unreachable!(),
     }
@@ -164,4 +171,69 @@ fn eval_repeat(lhs: &Expr, rhs: Value, cx: &mut Context<'_>) -> Result<Value, Ev
         times.dec();
     }
     Ok(Value::List(ValueList::new(values)))
+}
+
+enum FilterKind {
+    KeepHigh,
+    KeepLow,
+    RemoveHigh,
+    RemoveLow,
+}
+
+fn eval_filter(mut collection: Value, rhs: Value, kind: FilterKind) -> Result<Value, EvalError> {
+    if !(collection.is_list() || collection.is_map()) {
+        collection = ValueList::try_from(collection)?.into()
+    }
+
+    let count = ValueInt::try_from(rhs)?.max(ValueInt::ZERO);
+    let count_usize = count.to_usize().unwrap_or(usize::MAX);
+
+    match collection {
+        Value::List(list) => {
+            let len = list.len();
+            let count = count_usize.min(len);
+            let mut indexed: Vec<(usize, Value)> = list.into_iter().enumerate().collect();
+            indexed.sort_by(|(i1, v1), (i2, v2)| {
+                DicesOrd(v1.clone())
+                    .partial_cmp(&DicesOrd(v2.clone()))
+                    .unwrap_or_else(|| i1.cmp(i2))
+            });
+            let selected: Vec<_> = match kind {
+                FilterKind::KeepHigh => indexed.into_iter().skip(len - count).collect(),
+                FilterKind::KeepLow => indexed.into_iter().take(count).collect(),
+                FilterKind::RemoveHigh => indexed.into_iter().take(len - count).collect(),
+                FilterKind::RemoveLow => indexed.into_iter().skip(count).collect(),
+            };
+            let mut selected = selected;
+            selected.sort_by_key(|(i, _)| *i);
+            Ok(Value::List(ValueList::from_iter(
+                selected.into_iter().map(|(_, v)| v),
+            )))
+        }
+        Value::Map(map) => {
+            let len = map.len();
+            let count = count_usize.min(len);
+            let mut entries: Vec<_> = map.into_iter().collect();
+            entries.sort_by(|(_, v1), (_, v2)| {
+                DicesOrd(v1.clone())
+                    .partial_cmp(&DicesOrd(v2.clone()))
+                    .unwrap_or(Ordering::Equal)
+            });
+            let selected: std::collections::BTreeMap<_, _> = match kind {
+                FilterKind::KeepHigh => entries.into_iter().rev().take(count).collect(),
+                FilterKind::KeepLow => entries.into_iter().take(count).collect(),
+                FilterKind::RemoveHigh => entries
+                    .into_iter()
+                    .take(len.saturating_sub(count))
+                    .collect(),
+                FilterKind::RemoveLow => entries
+                    .into_iter()
+                    .rev()
+                    .take(len.saturating_sub(count))
+                    .collect(),
+            };
+            Ok(Value::Map(ValueMap::new(selected)))
+        }
+        _ => unreachable!(),
+    }
 }
