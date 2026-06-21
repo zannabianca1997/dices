@@ -16,6 +16,8 @@ use snafu::ResultExt;
 use crate::{ParseError, Rule, literal};
 
 pub(crate) mod binary;
+pub(crate) mod call;
+pub(crate) mod closure;
 pub(crate) mod list;
 pub(crate) mod map;
 pub(crate) mod scope;
@@ -24,6 +26,7 @@ pub(crate) mod unary;
 static PRATT: LazyLock<PrattParser<Rule>> = LazyLock::new(|| {
     use Rule::*;
     PrattParser::new()
+        .op(Op::prefix(closure_prefix))
         .op(Op::infix(join_op, Assoc::Left))
         .op(Op::infix(or_op, Assoc::Left))
         .op(Op::infix(and_op, Assoc::Left))
@@ -43,6 +46,7 @@ static PRATT: LazyLock<PrattParser<Rule>> = LazyLock::new(|| {
         .op(Op::infix(repeat_op, Assoc::Left))
         .op(Op::prefix(dice_keyword))
         .op(Op::infix(dice_infix, Assoc::Left))
+        .op(Op::postfix(call_args))
 });
 
 pub(crate) fn build_expr(
@@ -90,15 +94,22 @@ pub(crate) fn build_expr(
                 r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
             })
             .map_prefix(|op, rhs| {
-                let rhs = rhs?;
-                let op = match op.as_rule() {
-                    Rule::plus_prefix => UnOp::Plus,
-                    Rule::minus_prefix => UnOp::Minus,
-                    Rule::not_op => UnOp::Not,
-                    Rule::dice_keyword => UnOp::Dice,
+                let op_rule = op.as_rule();
+                match op_rule {
+                    Rule::closure_prefix => closure::build_closure_expr(op, rhs?),
+                    Rule::plus_prefix | Rule::minus_prefix | Rule::not_op | Rule::dice_keyword => {
+                        let rhs = rhs?;
+                        let op = match op_rule {
+                            Rule::plus_prefix => UnOp::Plus,
+                            Rule::minus_prefix => UnOp::Minus,
+                            Rule::not_op => UnOp::Not,
+                            Rule::dice_keyword => UnOp::Dice,
+                            _ => unreachable!(),
+                        };
+                        Ok(Expr::Unary(Box::new(UnaryExpr { op, operand: rhs })))
+                    }
                     _ => unreachable!(),
-                };
-                Ok(Expr::Unary(Box::new(UnaryExpr { op, operand: rhs })))
+                }
             })
             .map_infix(|lhs, op, rhs| {
                 let lhs = lhs?;
@@ -128,6 +139,7 @@ pub(crate) fn build_expr(
                 };
                 Ok(Expr::Binary(Box::new(BinaryExpr { lhs, op, rhs })))
             })
+            .map_postfix(|lhs, op| call::build_call_expr(lhs?, op, input))
             .parse(pair.into_inner()),
         r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
     }

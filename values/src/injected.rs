@@ -9,11 +9,15 @@ use std::{
 use snafu::{OptionExt, Snafu};
 use yoke::Yoke;
 
-use crate::{Value, injected::read::ValueOrInject};
+use crate::{
+    Value,
+    injected::{call::InjectedContext, read::ValueOrInject},
+};
 use describable::Description;
 use read::ReadValue;
 use required_traits::RequiredTraits;
 
+pub mod call;
 pub mod describable;
 pub mod read;
 mod required_traits;
@@ -29,6 +33,11 @@ pub trait Injectable: RequiredTraits {
     /// When this object is used in operation it will be read, and the result
     /// will be used in its place
     fn as_readable(&self) -> Option<&dyn read::Readable> {
+        None
+    }
+
+    /// The object can be called from dices
+    fn as_callable(&self) -> Option<&dyn call::Callable> {
         None
     }
 }
@@ -101,6 +110,18 @@ impl ValueInjected {
             ValueOrInject::Value(value) => unsafe { self.attach_read_value_to_cart(value) },
         }
     }
+
+    /// Check if this value is callable from dices
+    pub fn is_callable(&self) -> bool {
+        self.0.get().as_callable().is_some()
+    }
+
+    /// Call this value
+    pub fn call(&self, cx: &mut dyn InjectedContext, args: &[Value]) -> Result<Value, CallError> {
+        let callable = self.0.get().as_callable().context(NotCallableSnafu)?;
+        let res = callable.call(cx, args)?;
+        Ok(res)
+    }
 }
 
 pub trait Inject: Injectable + Sized {
@@ -150,6 +171,15 @@ pub enum ReadError {
     NotReadable,
     #[snafu(transparent)]
     ReadFailed {
+        source: Box<dyn Error>,
+    },
+}
+
+#[derive(Debug, Snafu)]
+pub enum CallError {
+    NotCallable,
+    #[snafu(transparent)]
+    CallFailed {
         source: Box<dyn Error>,
     },
 }

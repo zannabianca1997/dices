@@ -1,13 +1,21 @@
 use dices_ast::statement::Statement;
 
-use crate::{EvalError, context::Context};
+use crate::{EvalError, context::Context, var_use::VarUse};
 
 mod assign;
 
-pub fn eval(stmt: &Statement, cx: &mut Context<'_>) -> Result<(), EvalError> {
+pub fn eval(stmt: &Statement, cx: &mut (impl Context + ?Sized)) -> Result<(), EvalError> {
     match stmt {
         Statement::Assign(assign) => assign::eval(assign, cx),
         Statement::Expr(expr) => super::expr::eval(expr, cx).map(|_| ()),
         Statement::Empty => Ok(()),
+    }
+}
+
+pub fn var_use(stmt: &Statement) -> VarUse {
+    match stmt {
+        Statement::Assign(assign) => assign::var_use(assign),
+        Statement::Expr(expr) => super::expr::var_use(expr),
+        Statement::Empty => VarUse::none(),
     }
 }

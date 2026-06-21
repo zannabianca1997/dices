@@ -13,14 +13,15 @@ set_stmt       =  { identifier ~ equals ~ expr }
 equals         =  { "=" }
 identifier     = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 
-expr = { prefix* ~ primary ~ (infix ~ prefix* ~ primary)* }
+expr = { prefix* ~ primary ~ postfix* ~ (infix ~ prefix* ~ primary ~ postfix*)* }
 
 // Prefix operators
-prefix       = _{ plus_prefix | minus_prefix | not_op | dice_keyword }
-  plus_prefix  = { "+" }
-  minus_prefix = { "-" }
-  not_op       = { "!" }
-  dice_keyword = @{ "d" ~ !(ASCII_ALPHA | "_") }
+prefix       = _{ plus_prefix | minus_prefix | not_op | dice_keyword | closure_prefix }
+  plus_prefix     = { "+" }
+  minus_prefix    = { "-" }
+  not_op          = { "!" }
+  dice_keyword    = @{ "d" ~ !(ASCII_ALPHA | "_") }
+  closure_prefix  = { "|" ~ (identifier ~ ("," ~ identifier)*)? ~ "|" }
 
 // Infix operators — two-char operators must come before single-char
 infix       = _{ join_op | or_op | and_op | eq | ne | le | lt | ge | gt | plus_infix | minus_infix | mul | div | rem | kh | kl | rh | rl | repeat_op | dice_infix }
@@ -44,6 +45,10 @@ infix       = _{ join_op | or_op | and_op | eq | ne | le | lt | ge | gt | plus_i
   rl          = { "rl" }
   repeat_op   = { "^" }
   dice_infix  = @{ "d" ~ !(ASCII_ALPHA | "_") }
+
+// Postfix operators
+postfix   = _{ call_args }
+call_args = { "(" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ ")" }
 
 // Primary expressions
 primary = _{ int | string | bool | null | paren_expr | scope | list | map | identifier }

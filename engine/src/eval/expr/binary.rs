@@ -16,9 +16,10 @@ use crate::{
     EvalError,
     context::Context,
     utils::{DicesOrd, deep_apply, deep_sum, join_all},
+    var_use::VarUse,
 };
 
-pub fn eval(expr: &BinaryExpr, cx: &mut Context<'_>) -> Result<Value, EvalError> {
+pub fn eval(expr: &BinaryExpr, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
     // Repeat does not evaluate the body
     if expr.op == BinOp::Repeat {
         let rhs = super::eval(&expr.rhs, cx)?;
@@ -64,6 +65,31 @@ pub fn eval(expr: &BinaryExpr, cx: &mut Context<'_>) -> Result<Value, EvalError>
         // Handled differently
         BinOp::Repeat | BinOp::And | BinOp::Or => unreachable!(),
     }
+}
+
+pub fn var_use(expr: &BinaryExpr) -> VarUse {
+    let lhs = super::var_use(&expr.lhs);
+    let rhs = super::var_use(&expr.rhs);
+
+    // Repeat evaluate the index first.
+    //
+    // The body repeats, but `then` is idempotent. This might be a little
+    // conservative as in the repeat can be 0, but that is not provable now.
+    // Plus that would give problems if a variable _might_ be set, but that's
+    // not possible as the body is an expression.
+    if expr.op == BinOp::Repeat {
+        debug_assert!(lhs.lets.is_empty(), "Expressions cannot define variables");
+
+        return rhs.then(lhs);
+    }
+
+    // And and or are short circuiting, so they can skip the rhs. But that's not
+    // important for the same reason that is not important for the repeat body.
+    if expr.op == BinOp::And || expr.op == BinOp::Or {
+        debug_assert!(rhs.lets.is_empty(), "Expressions cannot define variables");
+    }
+
+    return lhs.then(rhs);
 }
 
 fn eval_add(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
@@ -127,7 +153,7 @@ fn eval_ge(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
     Ok(ValueBool::from(DicesOrd(lhs) >= DicesOrd(rhs)).into())
 }
 
-fn eval_and(lhs: Value, rhs: &Expr, cx: &mut Context<'_>) -> Result<Value, EvalError> {
+fn eval_and(lhs: Value, rhs: &Expr, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
     let lhs_truthy = ValueBool::try_from(lhs.clone())?;
 
     if !lhs_truthy.get() {
@@ -137,7 +163,7 @@ fn eval_and(lhs: Value, rhs: &Expr, cx: &mut Context<'_>) -> Result<Value, EvalE
     super::eval(rhs, cx)
 }
 
-fn eval_or(lhs: Value, rhs: &Expr, cx: &mut Context<'_>) -> Result<Value, EvalError> {
+fn eval_or(lhs: Value, rhs: &Expr, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
     let lhs_truthy = ValueBool::try_from(lhs.clone())?;
 
     if lhs_truthy.get() {
@@ -151,7 +177,7 @@ fn eval_join(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
     join_all(&mut [lhs, rhs])
 }
 
-fn eval_dice(lhs: Value, rhs: Value, cx: &mut Context<'_>) -> Result<Value, EvalError> {
+fn eval_dice(lhs: Value, rhs: Value, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
     // desugar XdY -> (dY) ^ X
     eval_repeat(
         &Expr::Unary(Box::new(UnaryExpr {
@@ -163,7 +189,7 @@ fn eval_dice(lhs: Value, rhs: Value, cx: &mut Context<'_>) -> Result<Value, Eval
     )
 }
 
-fn eval_repeat(lhs: &Expr, rhs: Value, cx: &mut Context<'_>) -> Result<Value, EvalError> {
+fn eval_repeat(lhs: &Expr, rhs: Value, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
     let mut times = ValueInt::try_from(rhs)?.max(ValueInt::ZERO);
     let mut values = Vec::with_capacity(times.to_usize().unwrap_or(usize::MAX));
     while times > ValueInt::ZERO {

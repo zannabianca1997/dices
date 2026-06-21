@@ -4,15 +4,17 @@ use dices_ast::{expr::scope::ScopeInner, identifier::Identifier};
 use dices_values::{
     Value,
     cast::{CastInjectedError, CastIntoIntError},
+    injected::CallError,
 };
 use rand::SeedableRng;
 use snafu::Snafu;
 
-use crate::context::Context;
+use crate::context::EngineContext;
 
 pub mod context;
 mod eval;
 mod utils;
+mod var_use;
 
 pub trait Evaluator {
     fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError>;
@@ -39,7 +41,7 @@ impl Engine {
 
 impl Evaluator for Engine {
     fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError> {
-        eval::expr::scope::eval_inner(stmt, &mut Context::new(self))
+        eval::expr::scope::eval_inner(stmt, &mut EngineContext::new(self))
     }
 }
 
@@ -58,4 +60,6 @@ pub enum EvalError {
     },
     #[snafu(display("Unknown variable {name}"))]
     VariableDoNotExists { name: Identifier },
+    #[snafu(display("Error in calling value of type {}", value.typ()))]
+    Call { value: Value, source: CallError },
 }

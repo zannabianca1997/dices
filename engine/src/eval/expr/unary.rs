@@ -5,9 +5,9 @@
 use dices_ast::expr::unary::{UnOp, UnaryExpr};
 use dices_values::{Value, int::ValueInt};
 
-use crate::{EvalError, context::Context, utils::deep_sum};
+use crate::{EvalError, context::Context, utils::deep_sum, var_use::VarUse};
 
-pub fn eval(expr: &UnaryExpr, cx: &mut Context<'_>) -> Result<Value, EvalError> {
+pub fn eval(expr: &UnaryExpr, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
     let operand = super::eval(&expr.operand, cx)?;
     match expr.op {
         // Math
@@ -18,6 +18,10 @@ pub fn eval(expr: &UnaryExpr, cx: &mut Context<'_>) -> Result<Value, EvalError> 
         // Misc
         UnOp::Dice => eval_dice(operand, cx),
     }
+}
+
+pub fn var_use(expr: &UnaryExpr) -> VarUse {
+    super::var_use(&expr.operand)
 }
 
 fn eval_plus(operand: Value) -> Result<Value, EvalError> {
@@ -32,7 +36,7 @@ fn eval_not(operand: Value) -> Result<Value, EvalError> {
     Ok(Value::Bool(!operand.try_into()?))
 }
 
-fn eval_dice(operand: Value, cx: &mut Context<'_>) -> Result<Value, EvalError> {
+fn eval_dice(operand: Value, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
     let faces = ValueInt::try_from(operand)?;
 
     Ok(cx.dice(faces).into())

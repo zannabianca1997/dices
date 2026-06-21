@@ -15,7 +15,8 @@
     "punct",
     "strikethrough",
     "Catppuccin",
-    "miette"
+    "miette",
+    "call"
   ],
   "userWords": [
     "impl Default for Config"

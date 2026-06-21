@@ -2,7 +2,7 @@
 
 use std::fmt::Display;
 
-use derive_more::Into;
+use derive_more::{AsRef, Into};
 use dices_values::string::ValueString;
 use lazy_regex::regex_is_match;
 use phf::phf_set;
@@ -15,7 +15,7 @@ static KEYWORDS: phf::Set<&'static str> = phf_set!("d", "kh", "kl", "rh", "rl", 
 /// additional limitations: they need to not have any operator between two
 /// digits or end. `dice` is valid, but not `d`, `d20`, `3d`. `rhs` is parsed as
 /// `rh s`, and similarly.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Into)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Into, AsRef)]
 #[repr(transparent)]
 pub struct Identifier(ValueString);
 
@@ -35,6 +35,13 @@ impl Identifier {
 
     pub fn new(text: ValueString) -> Option<Self> {
         Self::is_valid(&text).then_some(Self(text))
+    }
+
+    pub fn new_ref(text: &ValueString) -> Option<&Self> {
+        Self::is_valid(&text).then(|| unsafe {
+            // Safety: `repr(transparent)`
+            &*(text as *const _ as *const _)
+        })
     }
 }
 
