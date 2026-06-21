@@ -9,6 +9,8 @@ dices-values.workspace = true
 
 derive_more.workspace = true
 pretty.workspace = true
+lazy-regex = "3.6.0"
+phf = { version = "0.14.0", features = ["macros"] }
 
 [lints]
 workspace = true

@@ -31,6 +31,8 @@ pub enum ParseError {
     StringUnescape { source: EscapeError },
     #[snafu(display("Unexpected rule: {rule:?}"))]
     UnexpectedRule { rule: Rule },
+    #[snafu(display("Invalid identifier: {text}"))]
+    InvalidIdentifier { text: String },
 }
 
 pub fn parse_scope_inner(input: &ValueString) -> Result<ScopeInner, ParseError> {

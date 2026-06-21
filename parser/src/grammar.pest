@@ -3,11 +3,15 @@ COMMENT    = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" | "//" ~ (!"\n" ~ ANY)* }
 
 main = { SOI ~ scope_inner ~ EOI }
 
-scope_inner   = { statement_semi* ~ expr? }
+scope_inner   = { statement_semi* ~ statement? }
 statement_semi = { statement ~ ";" }
+statement      = { assign | expr | "" }
+assign         = { let_stmt | set_stmt }
 scope         = { "{" ~ scope_inner ~ "}" }
-
-statement = { expr | "" }
+let_stmt   = { "let" ~ identifier ~ equals ~ expr }
+set_stmt   = { identifier ~ equals ~ expr }
+equals     = { "=" }
+identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 
 expr = { join }
 
@@ -18,7 +22,9 @@ cmp         = { add ~ (cmp_op ~ add)* }
 add         = { mul ~ (add_op ~ mul)* }
 mul         = { unary ~ (mul_op ~ unary)* }
 unary       = { unary_op ~ unary | filter }
-filter      = { repeat ~ (filter_op ~ repeat)* }
+filter      = { filter_atom ~ (filter_op ~ filter_atom)* }
+filter_atom = { repeat | variable }
+variable    = { identifier }
 repeat      = { dice_unary ~ ("^" ~ dice_unary)* }
 dice_unary  = { dice_keyword ~ dice_unary | dice_binary }
 dice_binary = { atom ~ ("d" ~ atom)* }

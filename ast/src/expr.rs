@@ -3,6 +3,7 @@ use dices_values::Value;
 
 use crate::{
     expr::{binary::BinaryExpr, list::ListExpr, map::MapExpr, scope::ScopeExpr, unary::UnaryExpr},
+    identifier::Identifier,
     literal::Literal,
 };
 
@@ -39,6 +40,8 @@ pub enum Expr {
     /// This is never produced by the parser, is instead generated during const
     /// evaluation
     Const(Box<Value>),
+    /// Reference to variable
+    Variable(Box<Identifier>),
     /// Literal expression
     Literal(Box<Literal>),
     /// List expression

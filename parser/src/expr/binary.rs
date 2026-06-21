@@ -595,4 +595,168 @@ pub(crate) mod tests {
             ))
         );
     }
+
+    // Variables
+
+    fn variable(name: &'static str) -> Expr {
+        let ident = dices_ast::identifier::Identifier::new(
+            dices_values::string::ValueString::new_static(name),
+        )
+        .unwrap();
+        Expr::Variable(Box::new(ident))
+    }
+
+    #[test]
+    fn variable_simple() {
+        assert_eq!(parse("x"), expr(variable("x")));
+    }
+
+    #[test]
+    fn variable_with_underscores() {
+        assert_eq!(parse("_foo"), expr(variable("_foo")));
+    }
+
+    #[test]
+    fn variable_in_expression() {
+        assert_eq!(
+            parse("x + 1"),
+            expr(binary(variable("x"), BinOp::Add, int("1")))
+        );
+    }
+
+    #[test]
+    fn variable_passed_to_filter() {
+        assert_eq!(
+            parse("x kh 2"),
+            expr(binary(variable("x"), BinOp::KeepHigh, int("2")))
+        );
+    }
+
+    #[test]
+    fn variable_dice_is_valid() {
+        assert_eq!(parse("dice"), expr(variable("dice")));
+    }
+
+    #[test]
+    fn variable_dkh_is_valid() {
+        assert_eq!(parse("dkh"), expr(variable("dkh")));
+    }
+
+    #[test]
+    fn tricky_2d20kh1_parses_as_dice_expr() {
+        // 2d20kh1 => (2 d 20) kh 1, NOT invalid identifier
+        assert_eq!(
+            parse("2d20kh1"),
+            expr(binary(
+                binary(int("2"), BinOp::Dice, int("20")),
+                BinOp::KeepHigh,
+                int("1")
+            ))
+        );
+    }
+
+    #[test]
+    fn tricky_d20kh1_parses_as_unary_dice() {
+        // d20kh1 => (d 20) kh 1, NOT invalid identifier
+        assert_eq!(
+            parse("d20kh1"),
+            expr(binary(
+                unary(UnOp::Dice, int("20")),
+                BinOp::KeepHigh,
+                int("1")
+            ))
+        );
+    }
+
+    #[test]
+    fn d20_parses_as_unary_dice() {
+        // d20 is a valid dice expression, not an invalid identifier
+        assert_eq!(
+            parse("d20"),
+            expr(unary(UnOp::Dice, int("20")))
+        );
+    }
+
+    #[test]
+    fn error_3d_requires_right_operand() {
+        // 3d fails because 'd' expects a right operand
+        assert!(parse_err("3d").is_pest());
+    }
+
+    #[test]
+    fn rhs_is_a_valid_identifier() {
+        // rhs is a valid identifier, not invalid
+        assert_eq!(parse("rhs"), expr(variable("rhs")));
+    }
+
+    #[test]
+    fn error_let_is_keyword() {
+        assert!(parse_err("let + 1").is_invalid_identifier() || parse_err("let + 1").is_pest());
+    }
+
+    // Assignments
+
+    use dices_ast::identifier::Identifier;
+    use dices_ast::statement::{
+        Statement,
+        assign::{AssignStatement, Lhs},
+    };
+    use dices_values::string::ValueString;
+
+    #[test]
+    fn assignment_let() {
+        let inner = parse("let x = 5");
+        assert_eq!(inner.expr, None);
+        assert_eq!(inner.statements.len(), 1);
+        let stmt = &inner.statements[0];
+        let Statement::Assign(AssignStatement::Let { lhs, rhs }) = stmt else {
+            panic!("expected Let statement, got {stmt:?}");
+        };
+        assert_eq!(lhs, &Identifier::new(ValueString::new_static("x")).unwrap());
+        assert_eq!(rhs, &int("5"));
+    }
+
+    #[test]
+    fn assignment_set() {
+        let inner = parse("x = 5");
+        assert_eq!(inner.expr, None);
+        assert_eq!(inner.statements.len(), 1);
+        let stmt = &inner.statements[0];
+        let Statement::Assign(AssignStatement::Set { lhs, rhs }) = stmt else {
+            panic!("expected Set statement, got {stmt:?}");
+        };
+        assert_eq!(
+            *lhs,
+            Lhs::Variable(Identifier::new(ValueString::new_static("x")).unwrap())
+        );
+        assert_eq!(rhs, &int("5"));
+    }
+
+    #[test]
+    fn assignment_let_with_expr() {
+        let inner = parse("let x = 1 + 2");
+        assert_eq!(inner.statements.len(), 1);
+        let stmt = &inner.statements[0];
+        let Statement::Assign(AssignStatement::Let { lhs, rhs }) = stmt else {
+            panic!("expected Let statement");
+        };
+        assert_eq!(lhs, &Identifier::new(ValueString::new_static("x")).unwrap());
+        assert_eq!(rhs, &binary(int("1"), BinOp::Add, int("2")));
+    }
+
+    #[test]
+    fn assignment_then_expr() {
+        let inner = parse("let x = 5; x");
+        assert_eq!(inner.statements.len(), 1);
+        assert!(matches!(
+            &inner.statements[0],
+            Statement::Assign(AssignStatement::Let { .. })
+        ));
+        assert_eq!(inner.expr, Some(variable("x")));
+    }
+
+    #[test]
+    fn error_d20_assignment_is_invalid_identifier() {
+        assert!(parse_err("d20 = 5").is_invalid_identifier());
+    }
 }

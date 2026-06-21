@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-use dices_ast::expr::scope::ScopeInner;
+use dices_ast::{expr::scope::ScopeInner, identifier::Identifier};
 use dices_values::{
     Value,
     cast::{CastInjectedError, CastIntoIntError},
@@ -21,7 +21,10 @@ pub trait Evaluator {
 /// An engine evaluating dices statements
 #[derive(Debug, Clone)]
 pub struct Engine {
+    /// Random number generator
     rng: rand_pcg::Lcg64Xsh32,
+    /// Global variables
+    globals: context::Scope,
 }
 
 impl Engine {
@@ -29,6 +32,7 @@ impl Engine {
     pub fn new(seed: [u8; 16]) -> Self {
         Self {
             rng: SeedableRng::from_seed(seed),
+            globals: context::Scope::new(),
         }
     }
 }
@@ -52,4 +56,6 @@ pub enum EvalError {
         lhs: CastIntoIntError,
         rhs: CastIntoIntError,
     },
+    #[snafu(display("Unknown variable {name}"))]
+    VariableDoNotExists { name: Identifier },
 }

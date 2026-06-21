@@ -5,17 +5,17 @@
 use std::cmp::Ordering;
 
 use dices_ast::expr::{
+    Expr,
     binary::{BinOp, BinaryExpr},
     unary::{UnOp, UnaryExpr},
-    Expr,
 };
-use dices_values::{bool::ValueBool, int::ValueInt, list::ValueList, map::ValueMap, Value};
-use num::{traits::ConstZero, Integer, ToPrimitive, Zero};
+use dices_values::{Value, bool::ValueBool, int::ValueInt, list::ValueList, map::ValueMap};
+use num::{Integer, ToPrimitive, Zero, traits::ConstZero};
 
 use crate::{
-    context::Context,
-    utils::{deep_apply, deep_sum, join_all, DicesOrd},
     EvalError,
+    context::Context,
+    utils::{DicesOrd, deep_apply, deep_sum, join_all},
 };
 
 pub fn eval(expr: &BinaryExpr, cx: &mut Context<'_>) -> Result<Value, EvalError> {
@@ -185,13 +185,15 @@ fn eval_filter(mut collection: Value, rhs: Value, kind: FilterKind) -> Result<Va
         collection = ValueList::try_from(collection)?.into()
     }
 
-    let count = ValueInt::try_from(rhs)?.max(ValueInt::ZERO);
-    let count_usize = count.to_usize().unwrap_or(usize::MAX);
+    let count = ValueInt::try_from(rhs)?
+        .max(ValueInt::ZERO)
+        .to_usize()
+        .unwrap_or(usize::MAX);
 
     match collection {
         Value::List(list) => {
             let len = list.len();
-            let count = count_usize.min(len);
+            let count = count.min(len);
             let mut indexed: Vec<(usize, Value)> = list.into_iter().enumerate().collect();
             indexed.sort_by(|(i1, v1), (i2, v2)| {
                 DicesOrd(v1.clone())
@@ -212,7 +214,7 @@ fn eval_filter(mut collection: Value, rhs: Value, kind: FilterKind) -> Result<Va
         }
         Value::Map(map) => {
             let len = map.len();
-            let count = count_usize.min(len);
+            let count = count.min(len);
             let mut entries: Vec<_> = map.into_iter().collect();
             entries.sort_by(|(_, v1), (_, v2)| {
                 DicesOrd(v1.clone())
