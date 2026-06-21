@@ -1,6 +1,6 @@
 //! Print formatted stuff
 
-use std::io::{self, stdout};
+use std::io::{self, stderr, stdout};
 
 use dices_print::{Annotation, error::ErrorChain, markdown::Markdown};
 use dices_values::Value;
@@ -16,18 +16,18 @@ pub fn print_markdown(skin: &Skin, text: &str) -> Result<(), Error> {
     let text = Markdown::new(text);
 
     let arena = Arena::new();
-    print_inner(skin, &arena, text)?;
+    print_inner(skin, &arena, text, stdout())?;
     Ok(())
 }
 pub fn print_value(skin: &Skin, value: Value) -> Result<(), Error> {
     let arena = Arena::new();
-    print_inner(skin, &arena, value)?;
+    print_inner(skin, &arena, value, stdout())?;
     Ok(())
 }
 pub fn print_error(skin: &Skin, error: &impl std::error::Error) -> Result<(), Error> {
     let arena = Arena::new();
     let error_chain = ErrorChain::new(error);
-    print_inner(skin, &arena, error_chain)?;
+    print_inner(skin, &arena, error_chain, stderr())?;
     Ok(())
 }
 
@@ -35,6 +35,7 @@ fn print_inner<'a>(
     skin: &Skin,
     arena: &'a Arena<'a, Annotation>,
     printing: impl Pretty<'a, Arena<'a, Annotation>, Annotation>,
+    mut out: impl io::Write,
 ) -> Result<(), Error> {
     let width = crossterm::terminal::size()
         .map(|(w, _)| w as usize)
@@ -42,7 +43,7 @@ fn print_inner<'a>(
         .unwrap_or(usize::MAX);
 
     if skin.color {
-        let mut printer = PrintAnnotated::new(stdout(), skin);
+        let mut printer = PrintAnnotated::new(out, skin);
         printing
             .pretty(arena)
             .render_raw(width, &mut printer)
@@ -50,7 +51,7 @@ fn print_inner<'a>(
     } else {
         printing
             .pretty(arena)
-            .render(width, &mut stdout())
+            .render(width, &mut out)
             .context(PrintingSnafu)?
     }
     Ok(())

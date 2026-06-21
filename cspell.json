@@ -14,7 +14,8 @@
     "formatcp",
     "punct",
     "strikethrough",
-    "Catppuccin"
+    "Catppuccin",
+    "miette"
   ],
   "userWords": [
     "impl Default for Config"

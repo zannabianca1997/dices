@@ -23,9 +23,9 @@ struct Grammar;
 #[derive(Debug, Snafu)]
 #[cfg_attr(test, derive(derive_more::IsVariant))]
 pub enum ParseError {
-    #[snafu(display("Pest parse error: {source}"))]
+    #[snafu(display("Pest parse error"))]
     Pest { source: pest::error::Error<Rule> },
-    #[snafu(display("Failed to parse integer: {source}"))]
+    #[snafu(display("Failed to parse integer"))]
     IntParse { source: <ValueInt as FromStr>::Err },
     #[snafu(display("Failed to unescape string"))]
     StringUnescape { source: EscapeError },

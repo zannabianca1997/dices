@@ -27,7 +27,8 @@ filter_atom = { repeat | variable }
 variable    = { identifier }
 repeat      = { dice_unary ~ ("^" ~ dice_unary)* }
 dice_unary  = { dice_keyword ~ dice_unary | dice_binary }
-dice_binary = { atom ~ ("d" ~ atom)* }
+dice_binary = { dice_atom ~ ("d" ~ dice_atom)* }
+dice_atom   = { atom | variable }
 
 atom = { literal | "(" ~ expr ~ ")" | scope | list | map }
 
@@ -44,5 +45,5 @@ cmp_op       = { "<=" | ">=" | "==" | "!=" | "<" | ">" }
 add_op       = { "+" | "-" }
 mul_op       = { "*" | "/" | "%" }
 unary_op     = { "+" | "-" | "!" }
-dice_keyword = { "d" }
+dice_keyword = @{ "d" ~ !(ASCII_ALPHA | "_") }
 filter_op    = { "kh" | "kl" | "rh" | "rl" }

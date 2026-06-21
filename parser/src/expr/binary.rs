@@ -457,7 +457,9 @@ pub(crate) mod tests {
 
     #[test]
     fn error_3dd6() {
-        assert!(parse_err("3dd6").is_pest());
+        // d6 is parsed as variable but fails identifier validation
+        let err = parse_err("3dd6");
+        assert!(err.is_invalid_identifier() || err.is_pest());
     }
 
     // Filter operators

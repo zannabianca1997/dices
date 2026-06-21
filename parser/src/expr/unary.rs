@@ -73,12 +73,21 @@ pub(crate) mod tests {
         assert_eq!(parse("d6"), expr(unary(UnOp::Dice, int("6"))));
     }
 
+    /// dd6 is parsed as variable("dd6"), not d(d6)
+    ///
+    /// Make the grammar easier
     #[test]
     fn dice_nested() {
+        // Use d(d6) for nested dice
         assert_eq!(
-            parse("dd6"),
+            parse("d(d6)"),
             expr(unary(UnOp::Dice, unary(UnOp::Dice, int("6"))))
         );
+        // dd6 alone is an identifier
+        let ident = dices_ast::identifier::Identifier::new(
+            dices_values::string::ValueString::new_static("dd6"),
+        );
+        assert!(ident.is_some());
     }
 
     #[test]

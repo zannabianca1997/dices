@@ -36,6 +36,10 @@ pub(crate) fn build_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, 
         Rule::filter => binary::build_operator_chain(pair, binary::filter_op_to_binop, input),
         Rule::dice_unary => unary::build_dice_unary(pair, input),
         Rule::dice_binary => binary::build_binary_chain(pair, BinOp::Dice, input),
+        Rule::dice_atom => {
+            let inner = pair.into_inner().next().unwrap();
+            build_expr(inner, input)
+        }
         Rule::filter_atom => {
             let inner = pair.into_inner().next().unwrap();
             build_expr(inner, input)
