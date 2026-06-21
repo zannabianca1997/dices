@@ -1,6 +1,6 @@
 //! Evaluation context
 
-use dices_ast::statement::Statement;
+use dices_ast::expr::scope::ScopeInner;
 use dices_values::Value;
 use dices_values::int::ValueInt;
 use num::traits::ConstOne;
@@ -28,10 +28,21 @@ impl<'engine> Context<'engine> {
         };
         self.engine.rng.gen_range(range)
     }
+
+    /// Execute an expression in a scoped context
+    ///
+    /// The executed expression can read and set variables from the outside
+    /// context, but not define new ones.
+    pub fn scope<R>(&mut self, fun: impl FnOnce(&mut Context<'_>) -> R) -> R {
+        let mut scoped = Context {
+            engine: self.engine,
+        };
+        fun(&mut scoped)
+    }
 }
 
 impl Evaluator for Context<'_> {
-    fn eval(&mut self, stmt: &Statement) -> Result<Value, EvalError> {
-        crate::eval::statement::eval(stmt, self)
+    fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError> {
+        crate::eval::expr::scope::eval_inner(stmt, self)
     }
 }

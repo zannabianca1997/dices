@@ -27,8 +27,7 @@ pub fn themes_dir() -> Option<PathBuf> {
     Some(directories()?.config_dir().join("themes"))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Config {
     /// History file
     pub history: HistoryConfig,
@@ -75,4 +74,3 @@ fn write_config_file_if_not_exists(config: &Path) -> io::Result<()> {
     let config = toml::to_string_pretty(&Config::default()).unwrap();
     file.write_all(config.as_bytes())
 }
-

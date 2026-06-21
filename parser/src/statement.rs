@@ -9,10 +9,6 @@ pub(crate) fn build_statement(
     input: &ValueString,
 ) -> Result<Statement, ParseError> {
     match pair.as_rule() {
-        Rule::main => {
-            let inner = pair.into_inner().next().unwrap();
-            build_statement(inner, input)
-        }
         Rule::statement => {
             let mut inner = pair.into_inner();
             match inner.next() {

@@ -5,6 +5,7 @@ use pest::iterators::Pair;
 use crate::{ParseError, Rule, literal};
 
 pub(crate) mod binary;
+pub(crate) mod scope;
 pub(crate) mod unary;
 
 pub(crate) fn build_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseError> {
@@ -33,6 +34,7 @@ pub(crate) fn build_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, 
             let inner = pair.into_inner().next().unwrap();
             build_expr(inner, input)
         }
+        Rule::scope => scope::build_scope_expr(pair, input),
         Rule::literal => literal::build_literal(pair, input),
         Rule::int => literal::build_int(pair),
         Rule::string => literal::build_string(pair, input),
@@ -45,12 +47,15 @@ pub(crate) fn build_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, 
 #[cfg(test)]
 pub(crate) mod tests {
 
-    use dices_ast::{expr::Expr, statement::Statement};
+    use dices_ast::expr::{Expr, scope::ScopeInner};
 
     use crate::tests::parse_err;
 
-    pub fn expr(expr: Expr) -> Statement {
-        Statement::Expr(expr)
+    pub fn expr(expr: Expr) -> ScopeInner {
+        ScopeInner {
+            statements: vec![],
+            expr: Some(expr),
+        }
     }
 
     #[test]

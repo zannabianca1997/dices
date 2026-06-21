@@ -1,7 +1,9 @@
 use figment::{Figment, providers::Serialized, value::Value};
 use serde::{Deserialize, Deserializer, de::DeserializeOwned};
 
-use crate::{Annotation, DelimiterKind, ErrorElement, MarkdownElement, PromptElement, ValueElement};
+use crate::{
+    Annotation, DelimiterKind, ErrorElement, MarkdownElement, PromptElement, ValueElement,
+};
 
 /// Themes for the
 #[derive(Debug, Default, PartialEq)]

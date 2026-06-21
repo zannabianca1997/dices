@@ -80,9 +80,9 @@ fn main_inner(seed: Option<impl Hash>, Config { history, skin }: &Config) -> Res
         };
 
         // Eval
-        let eval = dices_parser::parse_statement(&read.into())
+        let eval = dices_parser::parse_scope_inner(&read.into())
             .map_err(CommandError::from)
-            .and_then(|stmt| engine.eval(&stmt).map_err(CommandError::from));
+            .and_then(|scope_inner| engine.eval(&scope_inner).map_err(CommandError::from));
 
         // Print
         match eval {

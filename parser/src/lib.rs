@@ -2,7 +2,7 @@
 
 use std::str::FromStr;
 
-use dices_ast::statement::Statement;
+use dices_ast::expr::scope::ScopeInner;
 use dices_values::{
     int::ValueInt,
     string::{EscapeError, ValueString},
@@ -33,35 +33,36 @@ pub enum ParseError {
     UnexpectedRule { rule: Rule },
 }
 
-pub fn parse_statement(input: &ValueString) -> Result<Statement, ParseError> {
+pub fn parse_scope_inner(input: &ValueString) -> Result<ScopeInner, ParseError> {
     let raw = input.as_str();
     let mut pairs = Grammar::parse(Rule::main, raw).context(PestSnafu)?;
-    let stmt_pair = pairs.next().unwrap();
-    statement::build_statement(stmt_pair, input)
+    let scope_inner_pair = pairs.next().unwrap();
+    expr::scope::build_scope_inner(scope_inner_pair, input)
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use dices_ast::statement::Statement;
+    use dices_ast::expr::scope::ScopeInner;
     use dices_values::string::ValueString;
 
-    use crate::parse_statement;
+    use crate::parse_scope_inner;
 
-    pub fn parse(input: &'static str) -> Statement {
-        parse_statement(&ValueString::new_static(input))
-            .expect("parse_statement should succeed for a valid input")
+    pub fn parse(input: &'static str) -> ScopeInner {
+        parse_scope_inner(&ValueString::new_static(input))
+            .expect("parse_scope_inner should succeed for a valid input")
     }
 
     pub fn parse_err(input: &'static str) -> crate::ParseError {
-        parse_statement(&ValueString::new_static(input)).unwrap_err()
+        parse_scope_inner(&ValueString::new_static(input)).unwrap_err()
     }
 
     // Error cases
 
     #[test]
-    fn empty_input_yields_empty_statement() {
-        let stmt = parse("");
-        assert!(matches!(stmt, Statement::Empty));
+    fn empty_input_yields_empty_scope_inner() {
+        let inner = parse("");
+        assert!(inner.statements.is_empty());
+        assert!(inner.expr.is_none());
     }
 
     #[test]

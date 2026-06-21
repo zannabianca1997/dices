@@ -1,7 +1,11 @@
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
 COMMENT    = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" | "//" ~ (!"\n" ~ ANY)* }
 
-main = { SOI ~ statement ~ EOI }
+main = { SOI ~ scope_inner ~ EOI }
+
+scope_inner   = { statement_semi* ~ expr? }
+statement_semi = { statement ~ ";" }
+scope         = { "{" ~ scope_inner ~ "}" }
 
 statement = { expr | "" }
 
@@ -18,7 +22,7 @@ repeat      = { dice_unary ~ ("^" ~ dice_unary)* }
 dice_unary  = { dice_keyword ~ dice_unary | dice_binary }
 dice_binary = { atom ~ ("d" ~ atom)* }
 
-atom = { literal | "(" ~ expr ~ ")" }
+atom = { literal | "(" ~ expr ~ ")" | scope }
 
 literal =  { int | string | bool | null }
 int     = @{ ASCII_DIGIT+ }

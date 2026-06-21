@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-use dices_ast::statement::Statement;
+use dices_ast::expr::scope::ScopeInner;
 use dices_values::{
     Value,
     cast::{CastInjectedError, CastIntoIntError},
@@ -15,7 +15,7 @@ mod eval;
 mod utils;
 
 pub trait Evaluator {
-    fn eval(&mut self, stmt: &Statement) -> Result<Value, EvalError>;
+    fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError>;
 }
 
 /// An engine evaluating dices statements
@@ -34,8 +34,8 @@ impl Engine {
 }
 
 impl Evaluator for Engine {
-    fn eval(&mut self, stmt: &Statement) -> Result<Value, EvalError> {
-        eval::statement::eval(stmt, &mut Context::new(self))
+    fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError> {
+        eval::expr::scope::eval_inner(stmt, &mut Context::new(self))
     }
 }
 
