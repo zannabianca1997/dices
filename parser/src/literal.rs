@@ -1,6 +1,9 @@
 use std::str::FromStr;
 
-use dices_ast::{expr::Expr, literal::Literal};
+use dices_ast::{
+    expr::Expr,
+    literal::{Literal, LiteralBool, LiteralInt, LiteralNull, LiteralString},
+};
 use dices_values::{bool::ValueBool, int::ValueInt, null::ValueNull, string::ValueString};
 use pest::iterators::Pair;
 use snafu::ResultExt;
@@ -15,10 +18,19 @@ pub(super) fn build_literal(pair: Pair<Rule>, input: &ValueString) -> Result<Exp
 pub(super) fn build_int(pair: Pair<Rule>) -> Result<Expr, ParseError> {
     let s = pair.as_str();
     let i = ValueInt::from_str(s).context(crate::IntParseSnafu)?;
-    Ok(Expr::Literal(Box::new(Literal::Int(i))))
+    Ok(Expr::Literal(Box::new(Literal::Int(LiteralInt(i)))))
 }
 
 pub(super) fn build_string(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseError> {
+    Ok(Expr::Literal(Box::new(Literal::String(
+        parse_string_value(pair, input)?,
+    ))))
+}
+
+pub(crate) fn parse_string_value(
+    pair: Pair<Rule>,
+    input: &ValueString,
+) -> Result<LiteralString, ParseError> {
     let span = pair.as_span();
     let range = (span.start() + 1)..(span.end() - 1);
     let s = input
@@ -26,7 +38,7 @@ pub(super) fn build_string(pair: Pair<Rule>, input: &ValueString) -> Result<Expr
         .unwrap()
         .unescape()
         .context(crate::StringUnescapeSnafu)?;
-    Ok(Expr::Literal(Box::new(Literal::String(s))))
+    Ok(LiteralString(s))
 }
 
 pub(super) fn build_bool(pair: Pair<Rule>) -> Result<Expr, ParseError> {
@@ -35,18 +47,21 @@ pub(super) fn build_bool(pair: Pair<Rule>) -> Result<Expr, ParseError> {
         "false" => ValueBool::FALSE,
         _ => unreachable!(),
     };
-    Ok(Expr::Literal(Box::new(Literal::Bool(b))))
+    Ok(Expr::Literal(Box::new(Literal::Bool(LiteralBool(b)))))
 }
 
 pub(super) fn build_null(_pair: Pair<Rule>) -> Expr {
-    Expr::Literal(Box::new(Literal::Null(ValueNull)))
+    Expr::Literal(Box::new(Literal::Null(LiteralNull(ValueNull))))
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
     use std::str::FromStr;
 
-    use dices_ast::{expr::Expr, literal::Literal};
+    use dices_ast::{
+        expr::Expr,
+        literal::{Literal, LiteralBool, LiteralInt, LiteralNull, LiteralString},
+    };
     use dices_values::{bool::ValueBool, int::ValueInt, null::ValueNull, string::ValueString};
 
     use crate::{
@@ -55,19 +70,23 @@ pub(crate) mod tests {
     };
 
     pub fn int(n: &str) -> Expr {
-        Expr::Literal(Box::new(Literal::Int(ValueInt::from_str(n).unwrap())))
+        Expr::Literal(Box::new(Literal::Int(LiteralInt(
+            ValueInt::from_str(n).unwrap(),
+        ))))
     }
 
     pub fn string(s: &'static str) -> Expr {
-        Expr::Literal(Box::new(Literal::String(ValueString::new_static(s))))
+        Expr::Literal(Box::new(Literal::String(LiteralString(
+            ValueString::new_static(s),
+        ))))
     }
 
     pub fn bool_val(b: bool) -> Expr {
-        Expr::Literal(Box::new(Literal::Bool(ValueBool::from(b))))
+        Expr::Literal(Box::new(Literal::Bool(LiteralBool(ValueBool::from(b)))))
     }
 
     pub fn null() -> Expr {
-        Expr::Literal(Box::new(Literal::Null(ValueNull)))
+        Expr::Literal(Box::new(Literal::Null(LiteralNull(ValueNull))))
     }
 
     #[test]

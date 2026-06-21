@@ -22,7 +22,10 @@ repeat      = { dice_unary ~ ("^" ~ dice_unary)* }
 dice_unary  = { dice_keyword ~ dice_unary | dice_binary }
 dice_binary = { atom ~ ("d" ~ atom)* }
 
-atom = { literal | "(" ~ expr ~ ")" | scope }
+atom = { literal | "(" ~ expr ~ ")" | scope | list | map }
+
+list = { "[" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ "]" }
+map  = { "<|" ~ ((string ~ ":" ~ expr) ~ ("," ~ string ~ ":" ~ expr)* ~ ","?)? ~ "|>" }
 
 literal =  { int | string | bool | null }
 int     = @{ ASCII_DIGIT+ }

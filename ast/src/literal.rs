@@ -1,7 +1,17 @@
 //! Literal values
 
 use derive_more::{From, IsVariant, TryInto, TryUnwrap, Unwrap};
-use dices_values::{Value, bool::ValueBool, int::ValueInt, null::ValueNull, string::ValueString};
+use dices_values::Value;
+
+mod boolean;
+mod integer;
+mod null;
+mod string;
+
+pub use boolean::LiteralBool;
+pub use integer::LiteralInt;
+pub use null::LiteralNull;
+pub use string::LiteralString;
 
 /// A literal value
 #[derive(
@@ -9,22 +19,22 @@ use dices_values::{Value, bool::ValueBool, int::ValueInt, null::ValueNull, strin
 )]
 pub enum Literal {
     /// A literal null
-    Null(ValueNull),
+    Null(LiteralNull),
     /// A literal bool
-    Bool(ValueBool),
+    Bool(LiteralBool),
     /// A literal int
-    Int(ValueInt),
+    Int(LiteralInt),
     /// A literal string
-    String(ValueString),
+    String(LiteralString),
 }
 
 impl From<Literal> for Value {
     fn from(value: Literal) -> Self {
         match value {
-            Literal::Null(value) => value.into(),
-            Literal::Bool(value) => value.into(),
-            Literal::Int(value) => value.into(),
-            Literal::String(value) => value.into(),
+            Literal::Null(value) => value.0.into(),
+            Literal::Bool(value) => value.0.into(),
+            Literal::Int(value) => value.0.into(),
+            Literal::String(value) => value.0.into(),
         }
     }
 }

@@ -5,6 +5,8 @@ use pest::iterators::Pair;
 use crate::{ParseError, Rule, literal};
 
 pub(crate) mod binary;
+pub(crate) mod list;
+pub(crate) mod map;
 pub(crate) mod scope;
 pub(crate) mod unary;
 
@@ -35,6 +37,8 @@ pub(crate) fn build_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, 
             build_expr(inner, input)
         }
         Rule::scope => scope::build_scope_expr(pair, input),
+        Rule::list => list::build_list_expr(pair, input),
+        Rule::map => map::build_map_expr(pair, input),
         Rule::literal => literal::build_literal(pair, input),
         Rule::int => literal::build_int(pair),
         Rule::string => literal::build_string(pair, input),
