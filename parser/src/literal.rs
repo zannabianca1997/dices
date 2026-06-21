@@ -1,31 +1,9 @@
-use std::str::FromStr;
-
-use dices_ast::{
-    expr::Expr,
-    literal::{Literal, LiteralBool, LiteralInt, LiteralNull, LiteralString},
-};
-use dices_values::{bool::ValueBool, int::ValueInt, null::ValueNull, string::ValueString};
+use dices_ast::literal::LiteralString;
+use dices_values::string::ValueString;
 use pest::iterators::Pair;
 use snafu::ResultExt;
 
-use crate::{ParseError, Rule, expr::build_expr};
-
-pub(super) fn build_literal(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseError> {
-    let inner = pair.into_inner().next().unwrap();
-    build_expr(inner, input)
-}
-
-pub(super) fn build_int(pair: Pair<Rule>) -> Result<Expr, ParseError> {
-    let s = pair.as_str();
-    let i = ValueInt::from_str(s).context(crate::IntParseSnafu)?;
-    Ok(Expr::Literal(Box::new(Literal::Int(LiteralInt(i)))))
-}
-
-pub(super) fn build_string(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseError> {
-    Ok(Expr::Literal(Box::new(Literal::String(
-        parse_string_value(pair, input)?,
-    ))))
-}
+use crate::{ParseError, Rule};
 
 pub(crate) fn parse_string_value(
     pair: Pair<Rule>,
@@ -39,19 +17,6 @@ pub(crate) fn parse_string_value(
         .unescape()
         .context(crate::StringUnescapeSnafu)?;
     Ok(LiteralString(s))
-}
-
-pub(super) fn build_bool(pair: Pair<Rule>) -> Result<Expr, ParseError> {
-    let b = match pair.as_str() {
-        "true" => ValueBool::TRUE,
-        "false" => ValueBool::FALSE,
-        _ => unreachable!(),
-    };
-    Ok(Expr::Literal(Box::new(Literal::Bool(LiteralBool(b)))))
-}
-
-pub(super) fn build_null(_pair: Pair<Rule>) -> Expr {
-    Expr::Literal(Box::new(Literal::Null(LiteralNull(ValueNull))))
 }
 
 #[cfg(test)]

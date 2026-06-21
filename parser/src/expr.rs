@@ -1,9 +1,17 @@
+use std::{str::FromStr, sync::LazyLock};
+
 use dices_ast::{
-    expr::Expr,
+    expr::{
+        Expr,
+        binary::{BinOp, BinaryExpr},
+        unary::{UnOp, UnaryExpr},
+    },
     identifier::Identifier,
+    literal::{Literal, LiteralBool, LiteralInt, LiteralNull},
 };
-use dices_values::string::ValueString;
-use pest::iterators::Pair;
+use dices_values::{bool::ValueBool, int::ValueInt, null::ValueNull, string::ValueString};
+use pest::pratt_parser::{Assoc, Op, PrattParser};
+use snafu::ResultExt;
 
 use crate::{ParseError, Rule, literal};
 
@@ -13,55 +21,114 @@ pub(crate) mod map;
 pub(crate) mod scope;
 pub(crate) mod unary;
 
-pub(crate) fn build_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseError> {
-    use dices_ast::expr::binary::BinOp;
+static PRATT: LazyLock<PrattParser<Rule>> = LazyLock::new(|| {
+    use Rule::*;
+    PrattParser::new()
+        .op(Op::infix(join_op, Assoc::Left))
+        .op(Op::infix(or_op, Assoc::Left))
+        .op(Op::infix(and_op, Assoc::Left))
+        .op(Op::infix(eq, Assoc::Left)
+            | Op::infix(ne, Assoc::Left)
+            | Op::infix(lt, Assoc::Left)
+            | Op::infix(le, Assoc::Left)
+            | Op::infix(gt, Assoc::Left)
+            | Op::infix(ge, Assoc::Left))
+        .op(Op::infix(plus_infix, Assoc::Left) | Op::infix(minus_infix, Assoc::Left))
+        .op(Op::infix(mul, Assoc::Left) | Op::infix(div, Assoc::Left) | Op::infix(rem, Assoc::Left))
+        .op(Op::prefix(plus_prefix) | Op::prefix(minus_prefix) | Op::prefix(not_op))
+        .op(Op::infix(kh, Assoc::Left)
+            | Op::infix(kl, Assoc::Left)
+            | Op::infix(rh, Assoc::Left)
+            | Op::infix(rl, Assoc::Left))
+        .op(Op::infix(repeat_op, Assoc::Left))
+        .op(Op::prefix(dice_keyword))
+        .op(Op::infix(dice_infix, Assoc::Left))
+});
 
+pub(crate) fn build_expr(
+    pair: pest::iterators::Pair<Rule>,
+    input: &ValueString,
+) -> Result<Expr, ParseError> {
     match pair.as_rule() {
         Rule::main => {
             let inner = pair.into_inner().next().unwrap();
             build_expr(inner, input)
         }
-        Rule::expr => {
-            let inner = pair.into_inner().next().unwrap();
-            build_expr(inner, input)
-        }
-        Rule::join => binary::build_binary_chain(pair, BinOp::Join, input),
-        Rule::or => binary::build_binary_chain(pair, BinOp::Or, input),
-        Rule::and => binary::build_binary_chain(pair, BinOp::And, input),
-        Rule::cmp => binary::build_operator_chain(pair, binary::cmp_op_to_binop, input),
-        Rule::add => binary::build_operator_chain(pair, binary::add_op_to_binop, input),
-        Rule::mul => binary::build_operator_chain(pair, binary::mul_op_to_binop, input),
-        Rule::unary => unary::build_unary(pair, input),
-        Rule::repeat => binary::build_binary_chain(pair, BinOp::Repeat, input),
-        Rule::filter => binary::build_operator_chain(pair, binary::filter_op_to_binop, input),
-        Rule::dice_unary => unary::build_dice_unary(pair, input),
-        Rule::dice_binary => binary::build_binary_chain(pair, BinOp::Dice, input),
-        Rule::dice_atom => {
-            let inner = pair.into_inner().next().unwrap();
-            build_expr(inner, input)
-        }
-        Rule::filter_atom => {
-            let inner = pair.into_inner().next().unwrap();
-            build_expr(inner, input)
-        }
-        Rule::variable => {
-            let text = pair.as_str().to_owned();
-            let ident = Identifier::new(ValueString::new(text.clone()))
-                .ok_or_else(|| ParseError::InvalidIdentifier { text })?;
-            Ok(Expr::Variable(Box::new(ident)))
-        }
-        Rule::atom => {
-            let inner = pair.into_inner().next().unwrap();
-            build_expr(inner, input)
-        }
-        Rule::scope => scope::build_scope_expr(pair, input),
-        Rule::list => list::build_list_expr(pair, input),
-        Rule::map => map::build_map_expr(pair, input),
-        Rule::literal => literal::build_literal(pair, input),
-        Rule::int => literal::build_int(pair),
-        Rule::string => literal::build_string(pair, input),
-        Rule::bool => literal::build_bool(pair),
-        Rule::null => Ok(literal::build_null(pair)),
+        Rule::expr => PRATT
+            .map_primary(|primary| match primary.as_rule() {
+                Rule::int => {
+                    let s = primary.as_str();
+                    let i = ValueInt::from_str(s).context(crate::IntParseSnafu)?;
+                    Ok(Expr::Literal(Box::new(Literal::Int(LiteralInt(i)))))
+                }
+                Rule::string => literal::parse_string_value(primary, input)
+                    .map(|s| Expr::Literal(Box::new(Literal::String(s)))),
+                Rule::bool => {
+                    let b = match primary.as_str() {
+                        "true" => ValueBool::TRUE,
+                        "false" => ValueBool::FALSE,
+                        _ => unreachable!(),
+                    };
+                    Ok(Expr::Literal(Box::new(Literal::Bool(LiteralBool(b)))))
+                }
+                Rule::null => Ok(Expr::Literal(Box::new(Literal::Null(LiteralNull(
+                    ValueNull,
+                ))))),
+                Rule::paren_expr => {
+                    let inner = primary.into_inner().next().unwrap();
+                    build_expr(inner, input)
+                }
+                Rule::scope => scope::build_scope_expr(primary, input),
+                Rule::list => list::build_list_expr(primary, input),
+                Rule::map => map::build_map_expr(primary, input),
+                Rule::identifier => {
+                    let text = primary.as_str().to_owned();
+                    let ident = Identifier::new(ValueString::new(text.clone()))
+                        .ok_or(ParseError::InvalidIdentifier { text })?;
+                    Ok(Expr::Variable(Box::new(ident)))
+                }
+                r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
+            })
+            .map_prefix(|op, rhs| {
+                let rhs = rhs?;
+                let op = match op.as_rule() {
+                    Rule::plus_prefix => UnOp::Plus,
+                    Rule::minus_prefix => UnOp::Minus,
+                    Rule::not_op => UnOp::Not,
+                    Rule::dice_keyword => UnOp::Dice,
+                    _ => unreachable!(),
+                };
+                Ok(Expr::Unary(Box::new(UnaryExpr { op, operand: rhs })))
+            })
+            .map_infix(|lhs, op, rhs| {
+                let lhs = lhs?;
+                let rhs = rhs?;
+                let op = match op.as_rule() {
+                    Rule::join_op => BinOp::Join,
+                    Rule::or_op => BinOp::Or,
+                    Rule::and_op => BinOp::And,
+                    Rule::eq => BinOp::Eq,
+                    Rule::ne => BinOp::Ne,
+                    Rule::lt => BinOp::Lt,
+                    Rule::le => BinOp::Le,
+                    Rule::gt => BinOp::Gt,
+                    Rule::ge => BinOp::Ge,
+                    Rule::plus_infix => BinOp::Add,
+                    Rule::minus_infix => BinOp::Sub,
+                    Rule::mul => BinOp::Mul,
+                    Rule::div => BinOp::Div,
+                    Rule::rem => BinOp::Rem,
+                    Rule::kh => BinOp::KeepHigh,
+                    Rule::kl => BinOp::KeepLow,
+                    Rule::rh => BinOp::RemoveHigh,
+                    Rule::rl => BinOp::RemoveLow,
+                    Rule::repeat_op => BinOp::Repeat,
+                    Rule::dice_infix => BinOp::Dice,
+                    _ => unreachable!(),
+                };
+                Ok(Expr::Binary(Box::new(BinaryExpr { lhs, op, rhs })))
+            })
+            .parse(pair.into_inner()),
         r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
     }
 }

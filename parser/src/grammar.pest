@@ -3,47 +3,56 @@ COMMENT    = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" | "//" ~ (!"\n" ~ ANY)* }
 
 main = { SOI ~ scope_inner ~ EOI }
 
-scope_inner   = { statement_semi* ~ statement? }
-statement_semi = { statement ~ ";" }
-statement      = { assign | expr | "" }
-assign         = { let_stmt | set_stmt }
-scope         = { "{" ~ scope_inner ~ "}" }
-let_stmt   = { "let" ~ identifier ~ equals ~ expr }
-set_stmt   = { identifier ~ equals ~ expr }
-equals     = { "=" }
-identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+scope_inner    =  { statement_semi* ~ statement? }
+statement_semi =  { statement ~ ";" }
+statement      =  { assign | expr | "" }
+assign         =  { let_stmt | set_stmt }
+scope          =  { "{" ~ scope_inner ~ "}" }
+let_stmt       =  { "let" ~ identifier ~ equals ~ expr }
+set_stmt       =  { identifier ~ equals ~ expr }
+equals         =  { "=" }
+identifier     = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 
-expr = { join }
+expr = { prefix* ~ primary ~ (infix ~ prefix* ~ primary)* }
 
-join        = { or ~ ("~" ~ or)* }
-or          = { and ~ ("||" ~ and)* }
-and         = { cmp ~ ("&&" ~ cmp)* }
-cmp         = { add ~ (cmp_op ~ add)* }
-add         = { mul ~ (add_op ~ mul)* }
-mul         = { unary ~ (mul_op ~ unary)* }
-unary       = { unary_op ~ unary | filter }
-filter      = { filter_atom ~ (filter_op ~ filter_atom)* }
-filter_atom = { repeat | variable }
-variable    = { identifier }
-repeat      = { dice_unary ~ ("^" ~ dice_unary)* }
-dice_unary  = { dice_keyword ~ dice_unary | dice_binary }
-dice_binary = { dice_atom ~ ("d" ~ dice_atom)* }
-dice_atom   = { atom | variable }
+// Prefix operators
+prefix       = _{ plus_prefix | minus_prefix | not_op | dice_keyword }
+  plus_prefix  = { "+" }
+  minus_prefix = { "-" }
+  not_op       = { "!" }
+  dice_keyword = @{ "d" ~ !(ASCII_ALPHA | "_") }
 
-atom = { literal | "(" ~ expr ~ ")" | scope | list | map }
+// Infix operators — two-char operators must come before single-char
+infix       = _{ join_op | or_op | and_op | eq | ne | le | lt | ge | gt | plus_infix | minus_infix | mul | div | rem | kh | kl | rh | rl | repeat_op | dice_infix }
+  join_op     = { "~" }
+  or_op       = { "||" }
+  and_op      = { "&&" }
+  eq          = { "==" }
+  ne          = { "!=" }
+  lt          = { "<" }
+  le          = { "<=" }
+  gt          = { ">" }
+  ge          = { ">=" }
+  plus_infix  = { "+" }
+  minus_infix = { "-" }
+  mul         = { "*" }
+  div         = { "/" }
+  rem         = { "%" }
+  kh          = { "kh" }
+  kl          = { "kl" }
+  rh          = { "rh" }
+  rl          = { "rl" }
+  repeat_op   = { "^" }
+  dice_infix  = @{ "d" ~ !(ASCII_ALPHA | "_") }
+
+// Primary expressions
+primary = _{ int | string | bool | null | paren_expr | scope | list | map | identifier }
+  paren_expr = { "(" ~ expr ~ ")" }
 
 list = { "[" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ "]" }
 map  = { "<|" ~ ((string ~ ":" ~ expr) ~ ("," ~ string ~ ":" ~ expr)* ~ ","?)? ~ "|>" }
 
-literal =  { int | string | bool | null }
 int     = @{ ASCII_DIGIT+ }
 string  = @{ "\"" ~ (("\\" ~ ANY) | (!"\"" ~ ANY))* ~ "\"" }
 bool    = @{ "true" | "false" }
 null    = @{ "null" }
-
-cmp_op       = { "<=" | ">=" | "==" | "!=" | "<" | ">" }
-add_op       = { "+" | "-" }
-mul_op       = { "*" | "/" | "%" }
-unary_op     = { "+" | "-" | "!" }
-dice_keyword = @{ "d" ~ !(ASCII_ALPHA | "_") }
-filter_op    = { "kh" | "kl" | "rh" | "rl" }
