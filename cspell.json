@@ -16,7 +16,9 @@
     "strikethrough",
     "Catppuccin",
     "miette",
-    "call"
+    "call",
+    "crossterm",
+    "chrono"
   ],
   "userWords": [
     "impl Default for Config"
