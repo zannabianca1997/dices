@@ -1,6 +1,6 @@
 use std::{any::Any, error::Error};
 
-use crate::{Value, int::ValueInt, string::ValueString};
+use crate::{Value, identifier::Identifier, int::ValueInt};
 
 /// Wrapped value is callable
 pub trait Callable {
@@ -32,11 +32,11 @@ pub trait InjectedContext {
     /// Create a variable
     ///
     /// If it exists in the current scope, shadows it
-    fn let_var(&mut self, name: ValueString, value: Value);
+    fn let_var(&mut self, name: Identifier, value: Value);
 
     /// Get a variable value
-    fn var(&self, name: &ValueString) -> Option<&Value>;
+    fn var(&self, name: &Identifier) -> Option<&Value>;
 
     /// Get a mutable variable value
-    fn var_mut(&mut self, name: &ValueString) -> Option<&mut Value>;
+    fn var_mut(&mut self, name: &Identifier) -> Option<&mut Value>;
 }

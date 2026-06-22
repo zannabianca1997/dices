@@ -13,8 +13,10 @@ dices-print.workspace = true
 dices-values-macros = { workspace = true, optional = true }
 
 derive_more = { workspace = true, features = ["full"] }
+lazy-regex = "3.6.0"
 num = { workspace = true, features = ["num-bigint", "rand", "serde"] }
 paste = "1.0.15"
+phf = { version = "0.14.0", features = ["macros"] }
 pretty.workspace = true
 rand.workspace = true
 serde.workspace = true

@@ -13,6 +13,7 @@ pub mod pretty;
 pub mod serde;
 
 pub mod bool;
+pub mod identifier;
 pub mod injected;
 pub mod int;
 pub mod list;

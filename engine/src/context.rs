@@ -7,7 +7,6 @@ use dices_ast::identifier::Identifier;
 use dices_values::Value;
 use dices_values::injected::call::InjectedContext;
 use dices_values::int::ValueInt;
-use dices_values::string::ValueString;
 use num::traits::ConstOne;
 use rand::Rng;
 
@@ -148,16 +147,16 @@ impl InjectedContext for EngineContext<'_> {
         self.scopes = scopes;
     }
 
-    fn let_var(&mut self, name: ValueString, value: Value) {
-        Context::let_var(self, Identifier::new(name).unwrap(), value);
+    fn let_var(&mut self, name: Identifier, value: Value) {
+        Context::let_var(self, name, value);
     }
 
-    fn var(&self, name: &ValueString) -> Option<&Value> {
-        Context::var(self, Identifier::new_ref(name).unwrap())
+    fn var(&self, name: &Identifier) -> Option<&Value> {
+        Context::var(self, name)
     }
 
-    fn var_mut(&mut self, name: &ValueString) -> Option<&mut Value> {
-        Context::var_mut(self, Identifier::new_ref(name).unwrap())
+    fn var_mut(&mut self, name: &Identifier) -> Option<&mut Value> {
+        Context::var_mut(self, name)
     }
 }
 
@@ -185,15 +184,15 @@ impl<'a> Context for dyn InjectedContext + 'a {
     }
 
     fn let_var(&mut self, name: Identifier, value: Value) {
-        InjectedContext::let_var(self, name.into(), value);
+        InjectedContext::let_var(self, name, value);
     }
 
     fn var(&self, name: &Identifier) -> Option<&Value> {
-        InjectedContext::var(self, name.as_ref())
+        InjectedContext::var(self, name)
     }
 
     fn var_mut(&mut self, name: &Identifier) -> Option<&mut Value> {
-        InjectedContext::var_mut(self, name.as_ref())
+        InjectedContext::var_mut(self, name)
     }
 
     fn inject(&mut self) -> &mut dyn InjectedContext {

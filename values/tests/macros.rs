@@ -5,6 +5,7 @@ use std::any::Any;
 
 use dices_values::{
     Injectable, Value, injectable,
+    identifier::Identifier,
     injected::{
         ValueInjected,
         call::{Callable, InjectedContext},
@@ -30,11 +31,11 @@ impl InjectedContext for DummyCx {
         Box::new(())
     }
     fn exit_jail(&mut self, _data: Box<dyn Any>) {}
-    fn let_var(&mut self, _name: ValueString, _value: Value) {}
-    fn var(&self, _name: &ValueString) -> Option<&Value> {
+    fn let_var(&mut self, _name: Identifier, _value: Value) {}
+    fn var(&self, _name: &Identifier) -> Option<&Value> {
         None
     }
-    fn var_mut(&mut self, _name: &ValueString) -> Option<&mut Value> {
+    fn var_mut(&mut self, _name: &Identifier) -> Option<&mut Value> {
         None
     }
 }

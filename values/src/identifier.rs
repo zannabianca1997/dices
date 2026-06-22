@@ -3,9 +3,10 @@
 use std::fmt::Display;
 
 use derive_more::{AsRef, Into};
-use dices_values::string::ValueString;
 use lazy_regex::regex_is_match;
 use phf::phf_set;
+
+use crate::string::ValueString;
 
 static KEYWORDS: phf::Set<&'static str> = phf_set!("d", "kh", "kl", "rh", "rl", "let");
 

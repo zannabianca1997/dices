@@ -2,7 +2,7 @@ use std::{
     fmt::{Debug, Display, Write},
     hash::Hash,
     iter::{FusedIterator, chain},
-    ops::Deref,
+    ops::{Deref},
     slice::SliceIndex,
     sync::Arc,
     vec,
