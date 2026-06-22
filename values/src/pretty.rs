@@ -1,9 +1,10 @@
-use dices_print::{Annotation, DelimiterKind, ValueElement};
+use dices_print::{Annotation, AstElement, DelimiterKind, ValueElement};
 use pretty::{DocAllocator, DocBuilder, Pretty};
 
 use crate::{
     Value,
     bool::ValueBool,
+    identifier::Identifier,
     injected::ValueInjected,
     int::ValueInt,
     list::ValueList,
@@ -57,7 +58,7 @@ where
 /// This is the single point of recursion: leaf [`Pretty`] impls and the
 /// container helpers all route through here so that `depth` keeps climbing as
 /// we descend into nested lists and maps.
-fn value_doc<'a, D>(value: &Value, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Annotation>
+fn value_doc<'a, D>(value: Value, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Annotation>
 where
     D: DocAllocator<'a, Annotation>,
     D::Doc: Clone,
@@ -73,7 +74,7 @@ where
     }
 }
 
-fn null_doc<'a, D>(_value: &ValueNull, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn null_doc<'a, D>(_value: ValueNull, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
 where
     D: DocAllocator<'a, Annotation>,
 {
@@ -82,7 +83,7 @@ where
         .annotate(Annotation::Value(Some(ValueElement::Null)))
 }
 
-fn bool_doc<'a, D>(value: &ValueBool, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn bool_doc<'a, D>(value: ValueBool, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
 where
     D: DocAllocator<'a, Annotation>,
 {
@@ -93,7 +94,7 @@ where
         })))
 }
 
-fn int_doc<'a, D>(value: &ValueInt, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn int_doc<'a, D>(value: ValueInt, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
 where
     D: DocAllocator<'a, Annotation>,
 {
@@ -102,7 +103,7 @@ where
         .annotate(Annotation::Value(Some(ValueElement::Integer)))
 }
 
-fn string_doc<'a, D>(value: &ValueString, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn string_doc<'a, D>(value: ValueString, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
 where
     D: DocAllocator<'a, Annotation>,
 {
@@ -136,7 +137,26 @@ where
         .append(alloc.text("\"").annotate(string_elem(false)))
 }
 
-fn list_doc<'a, D>(value: &ValueList, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Annotation>
+fn string_or_ident_doc<'a, D>(value: ValueString, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+where
+    D: DocAllocator<'a, Annotation>,
+{
+    match Identifier::new(value) {
+        Ok(value) => ident_doc(value, alloc),
+        Err(value) => string_doc(value, alloc),
+    }
+}
+
+fn ident_doc<'a, D>(value: Identifier, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+where
+    D: DocAllocator<'a, Annotation>,
+{
+    alloc
+        .text(String::from(value))
+        .annotate(Annotation::Ast(Some(AstElement::Ident)))
+}
+
+fn list_doc<'a, D>(value: ValueList, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Annotation>
 where
     D: DocAllocator<'a, Annotation>,
     D::Doc: Clone,
@@ -150,8 +170,7 @@ where
 
     let items = alloc.intersperse(
         value
-            .as_slice()
-            .iter()
+            .into_iter()
             .map(|el| value_doc(el, alloc, depth.wrapping_add(1))),
         punct(alloc, ",").append(alloc.line()),
     );
@@ -168,7 +187,7 @@ where
     .group()
 }
 
-fn map_doc<'a, D>(value: &ValueMap, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Annotation>
+fn map_doc<'a, D>(value: ValueMap, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Annotation>
 where
     D: DocAllocator<'a, Annotation>,
     D::Doc: Clone,
@@ -181,8 +200,8 @@ where
     }
 
     let entries = alloc.intersperse(
-        value.iter().map(|(key, val)| {
-            string_doc(key, alloc)
+        value.into_iter().map(|(key, val)| {
+            string_or_ident_doc(key, alloc)
                 .append(punct(alloc, ":"))
                 .append(alloc.space())
                 .append(value_doc(val, alloc, depth.wrapping_add(1)))
@@ -202,7 +221,7 @@ where
     .group()
 }
 
-fn injected_doc<'a, D>(value: &ValueInjected, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn injected_doc<'a, D>(value: ValueInjected, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
 where
     D: DocAllocator<'a, Annotation>,
 {
@@ -216,7 +235,7 @@ where
     D: DocAllocator<'a, Annotation>,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
-        null_doc(&self, allocator)
+        null_doc(self, allocator)
     }
 }
 
@@ -225,7 +244,7 @@ where
     D: DocAllocator<'a, Annotation>,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
-        bool_doc(&self, allocator)
+        bool_doc(self, allocator)
     }
 }
 
@@ -234,7 +253,7 @@ where
     D: DocAllocator<'a, Annotation>,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
-        int_doc(&self, allocator)
+        int_doc(self, allocator)
     }
 }
 
@@ -243,7 +262,7 @@ where
     D: DocAllocator<'a, Annotation>,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
-        string_doc(&self, allocator)
+        string_doc(self, allocator)
     }
 }
 
@@ -253,7 +272,7 @@ where
     D::Doc: Clone,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
-        list_doc(&self, allocator, 0)
+        list_doc(self, allocator, 0)
     }
 }
 
@@ -263,7 +282,7 @@ where
     D::Doc: Clone,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
-        map_doc(&self, allocator, 0)
+        map_doc(self, allocator, 0)
     }
 }
 
@@ -272,7 +291,7 @@ where
     D: DocAllocator<'a, Annotation>,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
-        injected_doc(&self, allocator)
+        injected_doc(self, allocator)
     }
 }
 
@@ -282,7 +301,7 @@ where
     D::Doc: Clone,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
-        value_doc(&self, allocator, 0)
+        value_doc(self, allocator, 0)
     }
 }
 

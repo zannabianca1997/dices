@@ -46,6 +46,11 @@ fg_color = "#6c6f85"  # subtext0
 [value.injected]
 fg_color = "#df8e1d"  # yellow
 
+# Ast styling for rendered syntax trees.
+[ast]
+[ast.ident]
+fg_color = "#04a5e5"  # sky
+
 # Markdown styling for banners and manual.
 [markdown]
 [markdown.header]

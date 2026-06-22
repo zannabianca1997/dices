@@ -55,7 +55,8 @@ primary = _{ int | string | bool | null | paren_expr | scope | list | map | iden
   paren_expr = { "(" ~ expr ~ ")" }
 
 list = { "[" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ "]" }
-map  = { "<|" ~ ((string ~ ":" ~ expr) ~ ("," ~ string ~ ":" ~ expr)* ~ ","?)? ~ "|>" }
+map  = { "<|" ~ ((map_key ~ ":" ~ expr) ~ ("," ~ map_key ~ ":" ~ expr)* ~ ","?)? ~ "|>" }
+  map_key = _{ string | identifier }
 
 int     = @{ ASCII_DIGIT+ }
 string  = @{ "\"" ~ (("\\" ~ ANY) | (!"\"" ~ ANY))* ~ "\"" }

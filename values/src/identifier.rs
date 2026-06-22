@@ -34,8 +34,12 @@ impl Identifier {
         &&! KEYWORDS.contains(text)
     }
 
-    pub fn new(text: ValueString) -> Option<Self> {
-        Self::is_valid(&text).then_some(Self(text))
+    pub fn new(text: ValueString) -> Result<Self, ValueString> {
+        if Self::is_valid(&text) {
+            Ok(Self(text))
+        } else {
+            Err(text)
+        }
     }
 
     pub fn new_ref(text: &ValueString) -> Option<&Self> {
@@ -49,5 +53,11 @@ impl Identifier {
 impl Display for Identifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.as_str().fmt(f)
+    }
+}
+
+impl From<Identifier> for String {
+    fn from(value: Identifier) -> Self {
+        value.0.into()
     }
 }

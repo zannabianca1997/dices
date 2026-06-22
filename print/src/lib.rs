@@ -26,6 +26,11 @@ pub enum Annotation {
     /// Annotated text is part of a dices value representation
     Value(Option<ValueElement>),
 
+    /// Ast
+    ///
+    /// Annotated text is part of a dices AST representation
+    Ast(Option<AstElement>),
+
     /// Annotated text is an error message
     Error(Option<ErrorElement>),
 }
@@ -73,6 +78,12 @@ pub enum ValueElement {
     Punctuator,
     /// Injected values
     Injected,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum AstElement {
+    /// Identifier
+    Ident,
 }
 
 #[derive(Debug, Clone, Copy)]

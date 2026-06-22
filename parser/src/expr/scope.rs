@@ -140,12 +140,7 @@ pub(crate) mod tests {
             &scope.0.statements[0],
             Statement::Assign(AssignStatement::Let { .. })
         ));
-        assert_eq!(
-            scope.0.expr,
-            Some(Expr::Variable(Box::new(
-                ident("x")
-            )))
-        );
+        assert_eq!(scope.0.expr, Some(Expr::Variable(Box::new(ident("x")))));
     }
 
     #[test]

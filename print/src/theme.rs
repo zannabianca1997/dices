@@ -2,7 +2,8 @@ use figment::{Figment, providers::Serialized, value::Value};
 use serde::{Deserialize, Deserializer, de::DeserializeOwned};
 
 use crate::{
-    Annotation, DelimiterKind, ErrorElement, MarkdownElement, PromptElement, ValueElement,
+    Annotation, AstElement, DelimiterKind, ErrorElement, MarkdownElement, PromptElement,
+    ValueElement,
 };
 
 /// Themes for the
@@ -20,6 +21,8 @@ pub struct Theme<T> {
     value_delimiter_map: Box<[T]>,
     value_punctuator: T,
     value_injected: T,
+    ast: T,
+    ast_ident: T,
     markdown: T,
     markdown_header: Box<[T]>,
     markdown_inline_code: T,
@@ -58,6 +61,8 @@ impl<T> Theme<T> {
             )?,
             value_punctuator: Self::extract(figment.clone(), &["value", "punctuator"])?,
             value_injected: Self::extract(figment.clone(), &["value", "injected"])?,
+            ast: Self::extract(figment.clone(), &["ast"])?,
+            ast_ident: Self::extract(figment.clone(), &["ast", "ident"])?,
             markdown: Self::extract(figment.clone(), &["markdown"])?,
             markdown_header: Self::extract_with_depth(figment.clone(), &["markdown", "header"])?,
             markdown_inline_code: Self::extract(figment.clone(), &["markdown", "inline_code"])?,
@@ -133,6 +138,8 @@ impl<T> Theme<T> {
                 .collect(),
             value_punctuator: f(self.value_punctuator),
             value_injected: f(self.value_injected),
+            ast: f(self.ast),
+            ast_ident: f(self.ast_ident),
             markdown: f(self.markdown),
             markdown_header: self
                 .markdown_header
@@ -155,6 +162,7 @@ impl<T> Theme<T> {
 
     pub fn style(&self, annotation: Annotation) -> &T {
         use Annotation::*;
+        use AstElement::*;
         use DelimiterKind::*;
         use ErrorElement::*;
         use MarkdownElement::*;
@@ -178,6 +186,8 @@ impl<T> Theme<T> {
             }
             Value(Some(Punctuator)) => &self.value_punctuator,
             Value(Some(Injected)) => &self.value_injected,
+            Ast(None) => &self.ast,
+            Ast(Some(Ident)) => &self.ast_ident,
             Markdown(None) => &self.markdown,
             Markdown(Some(Header { level })) => {
                 &self.markdown_header[level as usize % self.markdown_header.len()]

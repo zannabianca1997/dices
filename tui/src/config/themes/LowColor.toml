@@ -51,6 +51,11 @@ dimmed = true  # subtext0
 [value.injected]
 fg_color = "yellow"  # yellow
 
+# Ast styling for rendered syntax trees.
+[ast]
+[ast.ident]
+fg_color = "cyan"  # sky
+
 # Markdown styling for banners and manual.
 [markdown]
 [markdown.header]

@@ -4,8 +4,9 @@
 use std::any::Any;
 
 use dices_values::{
-    Injectable, Value, injectable,
+    Injectable, Value,
     identifier::Identifier,
+    injectable,
     injected::{
         ValueInjected,
         call::{Callable, InjectedContext},

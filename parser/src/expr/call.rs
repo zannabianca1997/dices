@@ -20,9 +20,7 @@ pub(super) fn build_call_expr(
 pub(crate) mod tests {
     use dices_ast::expr::{Expr, call::CallExpr};
 
-    use crate::{
-        expr::tests::expr, identifier::ident, literal::tests::int, tests::parse,
-    };
+    use crate::{expr::tests::expr, identifier::ident, literal::tests::int, tests::parse};
 
     fn call(called: Expr, args: Vec<Expr>) -> Expr {
         Expr::Call(Box::new(CallExpr { called, args }))

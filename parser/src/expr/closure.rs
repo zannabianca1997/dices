@@ -24,9 +24,7 @@ pub(crate) mod tests {
 
     use dices_ast::expr::{Expr, closure::ClosureExpr};
 
-    use crate::{
-        expr::tests::expr, identifier::ident, literal::tests::int, tests::parse,
-    };
+    use crate::{expr::tests::expr, identifier::ident, literal::tests::int, tests::parse};
 
     fn closure(args: Vec<&'static str>, body: Expr) -> Expr {
         Expr::Closure(Arc::new(ClosureExpr {
