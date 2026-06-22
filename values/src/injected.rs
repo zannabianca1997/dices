@@ -22,6 +22,7 @@ pub mod convert;
 pub mod describable;
 pub mod read;
 mod required_traits;
+pub mod typed;
 
 /// A wrapped value that can be interacted with from the repl
 #[derive(Debug, Clone)]
@@ -58,6 +59,11 @@ impl ValueInjected {
     /// Create a new value from a static implementor
     pub const fn new_static(injected: &'static impl Injectable) -> Self {
         Self(Yoke::new_owned(injected as &dyn Injectable))
+    }
+
+    /// Downcast to a concrete type
+    pub fn downcast<T: Injectable>(self) -> Option<typed::TypedValueInjected<T>> {
+        typed::TypedValueInjected::downcast(self)
     }
 
     /// Description of this value

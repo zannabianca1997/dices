@@ -5,9 +5,11 @@ use std::mem;
 use std::{collections::BTreeMap, iter::once};
 
 use dices_ast::identifier::Identifier;
+use dices_std::Std;
 use dices_values::Value;
 use dices_values::injected::ValueInjected;
 use dices_values::injected::call::InjectedContext;
+use dices_values::injected::typed::TypedValueInjected;
 use dices_values::int::ValueInt;
 use dices_values::serde::de::ValueDeserializer;
 use dices_values::serde::ser::ValueSerializer;
@@ -60,7 +62,7 @@ pub(crate) trait Context {
     fn inject(&mut self) -> &mut dyn InjectedContext;
 
     /// Get the standard library
-    fn std(&self) -> ValueInjected;
+    fn std(&self) -> TypedValueInjected<Std>;
 }
 
 /// Evaluation context
@@ -149,7 +151,7 @@ impl<'engine> Context for EngineContext<'engine> {
         self
     }
 
-    fn std(&self) -> ValueInjected {
+    fn std(&self) -> TypedValueInjected<Std> {
         self.engine.std.clone()
     }
 }
@@ -210,7 +212,7 @@ impl InjectedContext for EngineContext<'_> {
     }
 
     fn std(&self) -> ValueInjected {
-        Context::std(self)
+        TypedValueInjected::type_erase(Context::std(self))
     }
 }
 
@@ -297,8 +299,10 @@ impl<'a> Context for dyn InjectedContext + 'a {
         self
     }
 
-    fn std(&self) -> ValueInjected {
+    fn std(&self) -> TypedValueInjected<Std> {
         InjectedContext::std(self)
+            .downcast()
+            .expect("Only the standard library should be returned from `std`")
     }
 }
 

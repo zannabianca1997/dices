@@ -5,7 +5,7 @@ use dices_std::Std;
 use dices_values::{
     Value,
     cast::{CastInjectedError, CastIntoIntError},
-    injected::{CallError, ValueInjected},
+    injected::{CallError, typed::TypedValueInjected},
 };
 use rand::SeedableRng;
 use snafu::Snafu;
@@ -29,7 +29,7 @@ pub struct Engine {
     /// Global variables
     globals: context::Scope,
     /// Standard library
-    std: ValueInjected,
+    std: TypedValueInjected<Std>,
 }
 
 impl Engine {
@@ -38,7 +38,7 @@ impl Engine {
         Self {
             rng: SeedableRng::from_seed(seed),
             globals: context::Scope::new(),
-            std: ValueInjected::new(std),
+            std: TypedValueInjected::new(std),
         }
     }
     /// Create a new engine with a static standard library
@@ -46,7 +46,7 @@ impl Engine {
         Self {
             rng: SeedableRng::from_seed(seed),
             globals: context::Scope::new(),
-            std: ValueInjected::new_static(std),
+            std: TypedValueInjected::new_static(std),
         }
     }
 }
