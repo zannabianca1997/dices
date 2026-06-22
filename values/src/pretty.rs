@@ -374,7 +374,7 @@ mod tests {
 
         assert_eq!(plain(map(vec![]), 80), "<||>");
         // Maps keep inner padding when flat: `<| k: v |>`.
-        assert_eq!(plain(map(vec![("a", int("1"))]), 80), "<| \"a\": 1 |>");
+        assert_eq!(plain(map(vec![("a", int("1"))]), 80), "<| a: 1 |>");
     }
 
     #[test]

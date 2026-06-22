@@ -2,37 +2,23 @@
 
 use dices_values::{Injectable, injected::ValueInjected};
 
-use crate::time::Time;
+use sys::Sys;
 
-mod time {
-    use chrono::{DateTime, Local};
-    use dices_values::{Injectable, injectable};
-
-    /// module time
-    #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
-    pub struct Time {
-        pub now: Now,
-    }
-
-    /// function now
-    #[injectable]
-    pub fn Now() -> DateTime<Local> {
-        Local::now()
-    }
-}
+mod sys;
 
 /// std library
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Std {
-    time: Time,
+    sys: Sys,
 }
 
 impl Std {
-    pub fn new() -> ValueInjected {
-        static INSTANCE: Std = Std {
-            time: Time { now: time::Now },
-        };
+    const fn new() -> Self {
+        Self { sys: Sys::new() }
+    }
 
+    pub fn inject() -> ValueInjected {
+        static INSTANCE: Std = Std::new();
         ValueInjected::new_static(&INSTANCE)
     }
 }

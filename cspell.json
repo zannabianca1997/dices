@@ -18,7 +18,8 @@
     "miette",
     "call",
     "crossterm",
-    "chrono"
+    "chrono",
+    "impls"
   ],
   "userWords": [
     "impl Default for Config"

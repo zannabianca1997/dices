@@ -9,7 +9,6 @@ use pretty::{
     termcolor::{Ansi, ColorSpec},
 };
 use snafu::ResultExt;
-use toml::value;
 
 use crate::{Error, PrintingSnafu, config::skin::Skin};
 

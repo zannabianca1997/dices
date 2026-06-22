@@ -1,9 +1,9 @@
 ## Language
 
 - [ ] Member access
-  - [ ] Expression
+  - [x] Expression
   - [ ] Assign (lhs)
-- [ ] `std` keyword
+- [x] `std` keyword
 
 ## Standard library
 
