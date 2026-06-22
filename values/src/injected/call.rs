@@ -8,6 +8,8 @@ pub trait Callable {
 }
 
 pub trait InjectedContext {
+    /// Seed the random number generator
+    fn seed(&mut self, seed: &[Value]);
     /// Throw a dice
     fn dice(&mut self, faces: ValueInt) -> ValueInt;
 

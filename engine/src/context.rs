@@ -1,5 +1,6 @@
 //! Evaluation context
 
+use std::hash::{Hash, Hasher};
 use std::mem;
 use std::{collections::BTreeMap, iter::once};
 
@@ -7,12 +8,16 @@ use dices_ast::identifier::Identifier;
 use dices_values::Value;
 use dices_values::injected::call::InjectedContext;
 use dices_values::int::ValueInt;
+use num::FromPrimitive;
 use num::traits::ConstOne;
 use rand::Rng;
+use rand_seeder::Seeder;
 
 use crate::Engine;
 
 pub(crate) trait Context {
+    /// Seed the random number generator
+    fn seed(&mut self, seed: impl Hash);
     /// Throw a dice
     fn dice(&mut self, faces: ValueInt) -> ValueInt;
 
@@ -70,6 +75,10 @@ impl<'engine> EngineContext<'engine> {
     }
 }
 impl<'engine> Context for EngineContext<'engine> {
+    fn seed(&mut self, seed: impl Hash) {
+        self.engine.rng = Seeder::from(seed).make_rng();
+    }
+
     fn dice(&mut self, faces: ValueInt) -> ValueInt {
         let range = if faces > ValueInt::ONE {
             ValueInt::ONE..=faces
@@ -120,6 +129,10 @@ impl<'engine> Context for EngineContext<'engine> {
 }
 
 impl InjectedContext for EngineContext<'_> {
+    fn seed(&mut self, seed: &[Value]) {
+        Context::seed(self, seed);
+    }
+
     fn dice(&mut self, faces: ValueInt) -> ValueInt {
         Context::dice(self, faces)
     }
@@ -161,6 +174,39 @@ impl InjectedContext for EngineContext<'_> {
 }
 
 impl<'a> Context for dyn InjectedContext + 'a {
+    fn seed(&mut self, seed: impl Hash) {
+        /// Hasher storing all bytes as values
+        struct HashToValues(Vec<Value>);
+        impl Hasher for HashToValues {
+            fn finish(&self) -> u64 {
+                let bytes = Seeder::from(&self.0).make_seed();
+                u64::from_le_bytes(bytes)
+            }
+
+            fn write(&mut self, bytes: &[u8]) {
+                let (chunks, rem) = bytes.as_chunks();
+                for chunk in chunks {
+                    self.0.push(
+                        ValueInt::from_i64(i64::from_le_bytes(*chunk))
+                            .unwrap()
+                            .into(),
+                    );
+                }
+                let mut remaining = [0; _];
+                remaining[..rem.len()].copy_from_slice(rem);
+                self.0.push(
+                    ValueInt::from_i64(i64::from_le_bytes(remaining))
+                        .unwrap()
+                        .into(),
+                );
+            }
+        }
+
+        let mut state = HashToValues(vec![]);
+        seed.hash(&mut state);
+        InjectedContext::seed(self, &state.0);
+    }
+
     fn dice(&mut self, faces: ValueInt) -> ValueInt {
         InjectedContext::dice(self, faces)
     }

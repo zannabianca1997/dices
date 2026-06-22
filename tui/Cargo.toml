@@ -24,7 +24,7 @@ itertools.workspace = true
 nu-ansi-term = { version = "0.50.3", features = ["derive_serde_style", "serde"] }
 pretty = { workspace = true, features = ["termcolor"] }
 rand.workspace = true
-rand_seeder = "0.5.0"
+rand_seeder.workspace = true
 reedline = "0.48.0"
 serde.workspace = true
 snafu.workspace = true

@@ -8,7 +8,7 @@
 ## Standard library
 
 - [ ] Rng
-  - [ ] `seed`
+  - [x] `seed`
   - [ ] `save` and `restore`
 - [ ] Conversions
   - [ ] `to_json`, `from_json`
@@ -21,7 +21,7 @@
   - [ ] `sum`
   - [ ] `mult`
 - [ ] Sys
-  - [ ] `now`
+  - [x] `now`
   - [ ] `read` and `write` (if supported)
 - [ ] Repl
   - [ ] `help`

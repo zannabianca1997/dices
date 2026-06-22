@@ -21,6 +21,7 @@ use serde::{Deserialize, Serialize};
 struct DummyCx;
 
 impl InjectedContext for DummyCx {
+    fn seed(&mut self, _seed: &[Value]) {}
     fn dice(&mut self, faces: ValueInt) -> ValueInt {
         faces
     }

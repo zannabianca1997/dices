@@ -19,7 +19,8 @@
     "call",
     "crossterm",
     "chrono",
-    "impls"
+    "impls",
+    "variadics"
   ],
   "userWords": [
     "impl Default for Config"

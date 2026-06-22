@@ -2,9 +2,12 @@
 //!
 //! Converts functions into injectable types
 
+use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{FnArg, ItemFn, PatType, ReturnType, Type, parse2, spanned::Spanned};
+use syn::{
+    FnArg, ItemFn, PatType, ReturnType, Type, TypeReference, TypeSlice, parse2, spanned::Spanned,
+};
 
 use crate::derive::describable_impl;
 
@@ -29,8 +32,10 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
     // For each parameter, in declaration order: `None` means it is the context,
     // `Some(i)` means it is the `i`-th value parameter.
     let mut order: Vec<Option<usize>> = Vec::new();
+    // Variadic parameter position
+    let mut variadic: Option<&Type> = None;
 
-    for input in &func.sig.inputs {
+    for (position, input) in func.sig.inputs.iter().with_position() {
         match input {
             FnArg::Receiver(receiver) => {
                 return Err(syn::Error::new(
@@ -48,6 +53,20 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
                     }
                     cx_seen = true;
                     order.push(None);
+                } else if let Type::Reference(TypeReference {
+                    mutability: None,
+                    elem,
+                    ..
+                }) = &**ty
+                    && let Type::Slice(TypeSlice { elem, .. }) = &**elem
+                {
+                    if !position.is_last() {
+                        return Err(syn::Error::new(
+                            input.span(),
+                            "variadic parameters must be last",
+                        ));
+                    }
+                    variadic = Some(elem);
                 } else {
                     order.push(Some(value_tys.len()));
                     value_tys.push(ty);
@@ -63,7 +82,13 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
     let inner = inner_fn(&func);
 
     // Destructure the argument slice into exactly `n_args` bindings.
-    let arg_slots: Vec<_> = (0..n_args).map(|i| format_ident!("__arg{i}")).collect();
+    let arg_slots: Vec<_> = (0..n_args)
+        .map(|i| {
+            let ident = format_ident!("__arg{i}");
+            quote! { #ident }
+        })
+        .chain(variadic.map(|_| quote! { __args @ .. }))
+        .collect();
     let arg_pattern = quote! { [ #(#arg_slots),* ] };
 
     // Convert each argument, preferring `TryFrom<Value>` then `Deserialize`.
@@ -77,16 +102,27 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
                 let #bind: #ty = (&&::dices_values::injected::convert::ArgTag::<#ty>::new())
                     .convert(::core::clone::Clone::clone(#slot))?;
             }
-        });
+        })
+        .chain(variadic.map(|ty| {
+            quote! {
+                let __values: ::std::vec::Vec<#ty> = __args.iter().map(|item| {
+                    (&&::dices_values::injected::convert::ArgTag::<#ty>::new())
+                        .convert(::core::clone::Clone::clone(item))
+                }).collect::<::core::result::Result<_, _>>()?;
+            }
+        }));
 
     // Build the inner call argument list, in original declaration order.
-    let call_args = order.iter().map(|slot| match slot {
-        None => quote! { cx },
-        Some(i) => {
-            let bind = format_ident!("__val{i}");
-            quote! { #bind }
-        }
-    });
+    let call_args = order
+        .iter()
+        .map(|slot| match slot {
+            None => quote! { cx },
+            Some(i) => {
+                let bind = format_ident!("__val{i}");
+                quote! { #bind }
+            }
+        })
+        .chain(variadic.map(|_| quote! { & __values }));
 
     // The return type, used to drive the return conversion.
     let ret_ty = match &func.sig.output {
