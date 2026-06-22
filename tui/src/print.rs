@@ -3,12 +3,13 @@
 use std::io::{self, stderr, stdout};
 
 use dices_print::{Annotation, error::ErrorChain, markdown::Markdown};
-use dices_values::Value;
+use dices_values::{Value, cast::push_down_if_injected};
 use pretty::{
     Arena, Pretty, Render, RenderAnnotated, TermColored,
     termcolor::{Ansi, ColorSpec},
 };
 use snafu::ResultExt;
+use toml::value;
 
 use crate::{Error, PrintingSnafu, config::skin::Skin};
 
@@ -20,6 +21,9 @@ pub fn print_markdown(skin: &Skin, text: &str) -> Result<(), Error> {
     Ok(())
 }
 pub fn print_value(skin: &Skin, value: Value) -> Result<(), Error> {
+    // Read the value if it's an injected and it's readable
+    let value = push_down_if_injected(value.clone()).unwrap_or(value);
+
     let arena = Arena::new();
     print_inner(skin, &arena, value, stdout())?;
     Ok(())

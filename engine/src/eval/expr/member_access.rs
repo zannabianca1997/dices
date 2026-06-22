@@ -99,9 +99,9 @@ fn index_list(value_list: ValueList, index: Value) -> Result<Value, EvalError> {
 }
 
 fn index_map(value_map: ValueMap, index: Value) -> Result<Value, EvalError> {
-    let index = index.to_string();
+    let index = ValueString::try_from(index)?;
 
-    Ok(value_map.get(&*index).cloned().unwrap_or_default())
+    Ok(value_map.get(&index).cloned().unwrap_or_default())
 }
 
 enum SequenceIndex {
