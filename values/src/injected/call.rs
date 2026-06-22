@@ -3,6 +3,7 @@ use std::{any::Any, error::Error};
 use crate::{
     Value,
     identifier::Identifier,
+    injected::ValueInjected,
     int::ValueInt,
     serde::{de::ValueDeserializer, ser::ValueSerializer},
 };
@@ -53,4 +54,7 @@ pub trait InjectedContext {
 
     /// Get a mutable variable value
     fn var_mut(&mut self, name: &Identifier) -> Option<&mut Value>;
+
+    /// Get the standard library
+    fn std(&self) -> ValueInjected;
 }

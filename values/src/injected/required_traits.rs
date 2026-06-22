@@ -7,11 +7,15 @@ use std::{
 
 use crate::injected::describable::Describable;
 
+mod sealed {
+    pub trait Sealed {}
+}
+
 /// All traits needed to an injectable object, and that are provided by other
 /// traits
 ///
 /// Implement this by implementing all traits listed in the blanked impl.
-pub trait RequiredTraits: Debug + Send + Sync + 'static {
+pub trait RequiredTraits: Debug + Send + Sync + 'static + sealed::Sealed {
     // dynamic dispatch friendly methods
 
     fn type_id(&self) -> TypeId;
@@ -22,6 +26,7 @@ pub trait RequiredTraits: Debug + Send + Sync + 'static {
 
     fn dyn_description(&self, f: &mut Formatter<'_>) -> fmt::Result;
 }
+impl<T> sealed::Sealed for T where T: Eq + Ord + Hash + Debug + Send + Sync + Describable + 'static {}
 impl<T> RequiredTraits for T
 where
     T: Eq + Ord + Hash + Debug + Send + Sync + Describable + 'static,

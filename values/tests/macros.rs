@@ -35,7 +35,7 @@ impl InjectedContext for DummyCx {
     ) -> dices_values::serde::error::Result<()> {
         panic!()
     }
-    fn dice(&mut self, faces: ValueInt) -> ValueInt {
+    fn dice(&mut self, _faces: ValueInt) -> ValueInt {
         panic!()
     }
     fn enter_scope(&mut self) -> Box<dyn Any> {
@@ -53,6 +53,10 @@ impl InjectedContext for DummyCx {
         panic!()
     }
     fn var_mut(&mut self, _name: &Identifier) -> Option<&mut Value> {
+        panic!()
+    }
+
+    fn std(&self) -> ValueInjected {
         panic!()
     }
 }

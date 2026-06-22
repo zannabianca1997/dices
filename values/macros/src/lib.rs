@@ -20,7 +20,7 @@ mod derive;
 /// [`Injectable`]: dices_values::injected::Injectable
 /// [`Readable`]: dices_values::injected::read::Readable
 /// [`Describable`]: dices_values::injected::describable::Describable
-#[proc_macro_derive(Injectable)]
+#[proc_macro_derive(Injectable, attributes(injectable))]
 pub fn derive_injectable(input: TokenStream) -> TokenStream {
     derive::derive_injectable(input.into())
         .unwrap_or_else(syn::Error::into_compile_error)

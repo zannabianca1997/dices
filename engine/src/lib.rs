@@ -1,10 +1,11 @@
 #![doc = include_str!("../README.md")]
 
 use dices_ast::{expr::scope::ScopeInner, identifier::Identifier};
+use dices_std::Std;
 use dices_values::{
     Value,
     cast::{CastInjectedError, CastIntoIntError},
-    injected::CallError,
+    injected::{CallError, ValueInjected},
 };
 use rand::SeedableRng;
 use snafu::Snafu;
@@ -27,14 +28,25 @@ pub struct Engine {
     rng: rand_pcg::Lcg64Xsh32,
     /// Global variables
     globals: context::Scope,
+    /// Standard library
+    std: ValueInjected,
 }
 
 impl Engine {
     /// Create a new engine
-    pub fn new(seed: [u8; 16]) -> Self {
+    pub fn new(seed: [u8; 16], std: Std) -> Self {
         Self {
             rng: SeedableRng::from_seed(seed),
             globals: context::Scope::new(),
+            std: ValueInjected::new(std),
+        }
+    }
+    /// Create a new engine with a static standard library
+    pub fn new_static_std(seed: [u8; 16], std: &'static Std) -> Self {
+        Self {
+            rng: SeedableRng::from_seed(seed),
+            globals: context::Scope::new(),
+            std: ValueInjected::new_static(std),
         }
     }
 }

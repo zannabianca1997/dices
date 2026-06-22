@@ -15,7 +15,7 @@ use crate::{
 };
 use describable::Description;
 use read::ReadValue;
-use required_traits::RequiredTraits;
+pub use required_traits::RequiredTraits;
 
 pub mod call;
 pub mod convert;
@@ -183,4 +183,18 @@ pub enum CallError {
     CallFailed {
         source: Box<dyn Error>,
     },
+}
+
+impl<T> Injectable for Option<T>
+where
+    T: Injectable,
+    Option<T>: RequiredTraits,
+{
+    fn as_readable(&self) -> Option<&dyn read::Readable> {
+        self.as_ref().and_then(Injectable::as_readable)
+    }
+
+    fn as_callable(&self) -> Option<&dyn call::Callable> {
+        self.as_ref().and_then(Injectable::as_callable)
+    }
 }

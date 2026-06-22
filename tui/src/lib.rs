@@ -7,6 +7,7 @@ use std::{
 };
 
 use dices_engine::{Engine, Evaluator};
+use dices_std::Std;
 use dices_values::{Value, null::ValueNull};
 use itertools::Itertools;
 use rand::{Rng, rngs::OsRng};
@@ -53,16 +54,23 @@ pub enum CommandError {
 
 fn main_inner(
     seed: Option<impl Hash>,
-    Config { history, skin }: &Config,
+    Config {
+        history,
+        skin,
+        std: std_opts,
+    }: &Config,
     interactive: bool,
     command: Option<Vec<String>>,
 ) -> Result<(), Error> {
     // Init the engine
-    let mut engine = Engine::new(if let Some(seed) = seed {
-        Seeder::from(seed).make_seed()
-    } else {
-        OsRng.r#gen()
-    });
+    let mut engine = Engine::new(
+        if let Some(seed) = seed {
+            Seeder::from(seed).make_seed()
+        } else {
+            OsRng.r#gen()
+        },
+        Std::new(std_opts.clone()),
+    );
 
     if skin.banners {
         print_markdown(skin, banners::OPENING)?;

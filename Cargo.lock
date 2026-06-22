@@ -357,6 +357,7 @@ version = "0.4.0"
 dependencies = [
  "chrono",
  "dices-values",
+ "serde",
 ]
 
 [[package]]
@@ -370,6 +371,7 @@ dependencies = [
  "dices-engine",
  "dices-parser",
  "dices-print",
+ "dices-std",
  "dices-values",
  "directories",
  "figment",

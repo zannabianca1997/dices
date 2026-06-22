@@ -20,9 +20,8 @@
     "crossterm",
     "chrono",
     "impls",
-    "variadics"
-  ],
-  "userWords": [
-    "impl Default for Config"
+    "variadics",
+    "idents",
+    "rngs"
   ]
 }

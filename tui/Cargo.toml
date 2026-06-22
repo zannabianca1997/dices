@@ -12,6 +12,7 @@ path = "src/main.rs"
 dices-engine.workspace = true
 dices-parser.workspace = true
 dices-print.workspace = true
+dices-std.workspace = true
 dices-values.workspace = true
 
 chrono = "0.4.45"

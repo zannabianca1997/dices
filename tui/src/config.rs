@@ -2,6 +2,7 @@ use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
+use dices_std::StdOptions;
 use directories::ProjectDirs;
 use figment::Figment;
 use figment::providers::{Env, Format, Serialized, Toml};
@@ -33,6 +34,8 @@ pub struct Config {
     pub history: HistoryConfig,
     /// Graphical skin
     pub skin: Skin,
+    /// Options for the standard library
+    pub std: StdOptions,
 }
 
 impl Config {

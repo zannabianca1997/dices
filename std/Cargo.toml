@@ -8,6 +8,7 @@ license.workspace = true
 dices-values = { workspace = true, features = ["macros"] }
 
 chrono = "0.4.45"
+serde.workspace = true
 
 [lints]
 workspace = true

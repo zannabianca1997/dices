@@ -6,6 +6,7 @@ use std::{collections::BTreeMap, iter::once};
 
 use dices_ast::identifier::Identifier;
 use dices_values::Value;
+use dices_values::injected::ValueInjected;
 use dices_values::injected::call::InjectedContext;
 use dices_values::int::ValueInt;
 use dices_values::serde::de::ValueDeserializer;
@@ -57,6 +58,9 @@ pub(crate) trait Context {
     fn var_mut(&mut self, name: &Identifier) -> Option<&mut Value>;
 
     fn inject(&mut self) -> &mut dyn InjectedContext;
+
+    /// Get the standard library
+    fn std(&self) -> ValueInjected;
 }
 
 /// Evaluation context
@@ -144,6 +148,10 @@ impl<'engine> Context for EngineContext<'engine> {
     fn inject(&mut self) -> &mut dyn InjectedContext {
         self
     }
+
+    fn std(&self) -> ValueInjected {
+        self.engine.std.clone()
+    }
 }
 
 impl InjectedContext for EngineContext<'_> {
@@ -199,6 +207,10 @@ impl InjectedContext for EngineContext<'_> {
 
     fn var_mut(&mut self, name: &Identifier) -> Option<&mut Value> {
         Context::var_mut(self, name)
+    }
+
+    fn std(&self) -> ValueInjected {
+        Context::std(self)
     }
 }
 
@@ -283,6 +295,10 @@ impl<'a> Context for dyn InjectedContext + 'a {
 
     fn inject(&mut self) -> &mut dyn InjectedContext {
         self
+    }
+
+    fn std(&self) -> ValueInjected {
+        InjectedContext::std(self)
     }
 }
 
