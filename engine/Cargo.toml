@@ -12,8 +12,9 @@ dices-values.workspace = true
 itertools.workspace = true
 num.workspace = true
 rand.workspace = true
-rand_pcg = { version = "0.3.1", features = ["serde"] }
+rand_pcg = { version = "0.3.1", features = ["serde1"] }
 rand_seeder.workspace = true
+serde.workspace = true
 snafu.workspace = true
 
 [lints]

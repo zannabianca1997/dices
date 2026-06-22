@@ -3,7 +3,7 @@ use time::Time;
 
 mod time;
 
-/// module sys
+/// System bindings
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Sys {
     time: Time,

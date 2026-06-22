@@ -12,6 +12,7 @@ use dices_values::{
         call::{Callable, InjectedContext},
     },
     int::ValueInt,
+    serde::{de::ValueDeserializer, ser::ValueSerializer},
     string::ValueString,
 };
 use serde::{Deserialize, Serialize};
@@ -21,9 +22,21 @@ use serde::{Deserialize, Serialize};
 struct DummyCx;
 
 impl InjectedContext for DummyCx {
-    fn seed(&mut self, _seed: &[Value]) {}
+    fn rng_seed(&mut self, _seed: &[Value]) {
+        panic!()
+    }
+    fn rng_save(&self, _serializer: ValueSerializer) -> dices_values::serde::error::Result<Value> {
+        panic!()
+    }
+
+    fn rng_restore(
+        &mut self,
+        _deserializer: ValueDeserializer,
+    ) -> dices_values::serde::error::Result<()> {
+        panic!()
+    }
     fn dice(&mut self, faces: ValueInt) -> ValueInt {
-        faces
+        panic!()
     }
     fn enter_scope(&mut self) -> Box<dyn Any> {
         Box::new(())
@@ -33,12 +46,14 @@ impl InjectedContext for DummyCx {
         Box::new(())
     }
     fn exit_jail(&mut self, _data: Box<dyn Any>) {}
-    fn let_var(&mut self, _name: Identifier, _value: Value) {}
+    fn let_var(&mut self, _name: Identifier, _value: Value) {
+        panic!()
+    }
     fn var(&self, _name: &Identifier) -> Option<&Value> {
-        None
+        panic!()
     }
     fn var_mut(&mut self, _name: &Identifier) -> Option<&mut Value> {
-        None
+        panic!()
     }
 }
 
@@ -121,13 +136,22 @@ fn derive_reads_as_map() {
 }
 
 #[test]
-fn derive_description_from_doc() {
+fn derive_description() {
     let injected = ValueInjected::new(Std {
         add: Add,
         norm: ManhattanNorm,
     });
+    assert_eq!(injected.description().to_string(), "module std");
+}
+
+#[test]
+fn attribute_description() {
     assert_eq!(
-        injected.description().to_string(),
-        "A bundle of two callables."
+        ValueInjected::new(Add).description().to_string(),
+        "function add",
+    );
+    assert_eq!(
+        ValueInjected::new(ManhattanNorm).description().to_string(),
+        "function manhattan_norm",
     );
 }

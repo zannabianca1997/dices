@@ -7,9 +7,9 @@
 
 ## Standard library
 
-- [ ] Rng
+- [x] Rng
   - [x] `seed`
-  - [ ] `save` and `restore`
+  - [x] `save` and `restore`
 - [ ] Conversions
   - [ ] `to_json`, `from_json`
   - [ ] `parse`, `to_string`

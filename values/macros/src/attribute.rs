@@ -23,7 +23,6 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
 
     let vis = &func.vis;
     let name = &func.sig.ident;
-    let doc = &func.attrs;
 
     // Split the parameters into the (optional) context parameter and the value
     // parameters, keying off the `#[cx]` marker attribute.
@@ -138,7 +137,7 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
         format_ident!("_cx")
     };
 
-    let describable = describable_impl(doc, quote! { impl }, quote! { for #name });
+    let describable = describable_impl("function", name, quote! { impl }, quote! { for #name });
 
     Ok(quote! {
         #[derive(
@@ -174,6 +173,7 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
                 use ::dices_values::injected::convert::{
                     ViaTryFrom as _, ViaDeserialize as _,
                     ReturnViaTryInto as _, ReturnViaSerialize as _,
+                    ReturnFallibleViaTryInto as _, ReturnFallibleViaSerialize as _,
                 };
                 let #arg_pattern = args else {
                     return ::core::result::Result::Err(
@@ -187,7 +187,7 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
                 };
                 #(#conversions)*
                 let __ret: #ret_ty = Self::call(#(#call_args),*);
-                (&&::dices_values::injected::convert::RetTag::<#ret_ty>::new()).convert(__ret)
+                (&&&&::dices_values::injected::convert::RetTag::<#ret_ty>::new()).convert(__ret)
             }
         }
 

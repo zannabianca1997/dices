@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local};
 use dices_values::{Injectable, injectable};
 
-/// module time
+/// Time tools
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Time {
     now: Now,
@@ -17,13 +17,13 @@ impl Time {
     }
 }
 
-/// function now
+/// Current time in ISO8601 format
 #[injectable]
 pub fn Now() -> DateTime<Local> {
     Local::now()
 }
 
-/// function timestamp
+/// Current unix timestamp
 #[injectable]
 pub fn Timestamp() -> i64 {
     Now::call().timestamp()

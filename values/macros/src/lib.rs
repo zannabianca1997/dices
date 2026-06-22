@@ -13,9 +13,9 @@ mod derive;
 /// Derive [`Injectable`] for a named-field struct.
 ///
 /// Generates a [`Readable`] map view of the struct (one entry per field, each
-/// referring inside the struct) plus an [`Injectable`] impl whose `as_readable`
-/// returns `Some(self)`. When the struct carries a doc comment, a [`Describable`]
-/// impl is generated from it as well.
+/// referring inside the struct), an [`Injectable`] impl whose `as_readable`
+/// returns `Some(self)`, and a [`Describable`] impl whose description starts
+/// with `"module "` followed by the snake_case of the struct name.
 ///
 /// [`Injectable`]: dices_values::injected::Injectable
 /// [`Readable`]: dices_values::injected::read::Readable
@@ -27,14 +27,17 @@ pub fn derive_injectable(input: TokenStream) -> TokenStream {
         .into()
 }
 
-/// Turn a free function into an [`Injectable`] + [`Callable`] unit struct.
+/// Turn a free function into an [`Injectable`] + [`Callable`] + [`Describable`]
+/// unit struct.
 ///
 /// The context parameter (if any) must be marked with `#[cx]`. The remaining
 /// parameters are converted from the call arguments, and the return value is
-/// converted back into a [`Value`].
+/// converted back into a [`Value`]. The [`Describable`] description starts with
+/// `"function "` followed by the snake_case of the function name.
 ///
 /// [`Injectable`]: dices_values::injected::Injectable
 /// [`Callable`]: dices_values::injected::call::Callable
+/// [`Describable`]: dices_values::injected::describable::Describable
 /// [`Value`]: dices_values::Value
 #[proc_macro_attribute]
 pub fn injectable(attr: TokenStream, item: TokenStream) -> TokenStream {

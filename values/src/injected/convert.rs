@@ -109,3 +109,36 @@ where
         value.try_into().map_err(Into::into)
     }
 }
+
+/// Fallback return conversion via [`serde`] (lower method-resolution priority).
+pub trait ReturnFallibleViaSerialize<T> {
+    fn convert(&self, value: T) -> Result<Value, BoxError>;
+}
+
+impl<T, E> ReturnFallibleViaSerialize<Result<T, E>> for &&RetTag<Result<T, E>>
+where
+    T: Serialize,
+    E: Error + 'static,
+{
+    fn convert(&self, value: Result<T, E>) -> Result<Value, BoxError> {
+        let value = value.map_err(|err| Box::new(err) as BoxError)?;
+        crate::serde::to_value(&value).map_err(|err| Box::new(err) as BoxError)
+    }
+}
+
+/// Preferred return conversion via [`TryInto`] (higher method-resolution priority).
+pub trait ReturnFallibleViaTryInto<T> {
+    fn convert(&self, value: T) -> Result<Value, BoxError>;
+}
+
+impl<T, E> ReturnFallibleViaTryInto<Result<T, E>> for &&&RetTag<Result<T, E>>
+where
+    T: TryInto<Value>,
+    T::Error: Into<BoxError>,
+    E: Error + 'static,
+{
+    fn convert(&self, value: Result<T, E>) -> Result<Value, BoxError> {
+        let value = value.map_err(|err| Box::new(err) as BoxError)?;
+        value.try_into().map_err(Into::into)
+    }
+}

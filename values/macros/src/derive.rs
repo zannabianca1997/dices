@@ -1,10 +1,11 @@
 //! Implementation of `#[derive(Injectable)]`.
 //!
-//! Implements injectable and optionally describable for a struct
+//! Implements injectable and describable for a struct
 
+use heck::ToSnakeCase as _;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Attribute, Data, DeriveInput, Expr, Fields, Lit, Meta, parse2, spanned::Spanned};
+use syn::{Data, DeriveInput, Fields, Ident, parse2, spanned::Spanned};
 
 pub fn derive_injectable(input: TokenStream) -> syn::Result<TokenStream> {
     let input: DeriveInput = parse2(input)?;
@@ -28,7 +29,8 @@ pub fn derive_injectable(input: TokenStream) -> syn::Result<TokenStream> {
     });
 
     let describable = describable_impl(
-        &input.attrs,
+        "module",
+        name,
         quote! { impl #impl_generics },
         quote! { for #name #ty_generics #where_clause },
     );
@@ -76,45 +78,23 @@ fn named_fields(
     }
 }
 
-/// Generate a [`Describable`] impl from the doc comment, when present.
+/// Generate a [`Describable`] impl with a fixed prefix and the snake_case name.
 ///
 /// `impl_head` is the `impl <generics>` prefix and `impl_tail` is the
 /// `for Type <generics> <where>` suffix, so the same builder is reusable from
 /// the attribute macro.
 pub fn describable_impl(
-    attrs: &[Attribute],
+    prefix: &str,
+    name: &Ident,
     impl_head: TokenStream,
     impl_tail: TokenStream,
 ) -> TokenStream {
-    let Some(doc) = extract_doc(attrs) else {
-        return TokenStream::new();
-    };
+    let desc = format!("{prefix} {}", name.to_string().to_snake_case());
     quote! {
         #impl_head ::dices_values::injected::describable::Describable #impl_tail {
             fn description(&self) -> impl ::core::fmt::Display + '_ {
-                #doc
+                #desc
             }
         }
-    }
-}
-
-/// Collect `#[doc = "..."]` attributes, trim, and join them with newlines.
-pub fn extract_doc(attrs: &[Attribute]) -> Option<String> {
-    let mut lines: Vec<String> = Vec::new();
-    for attr in attrs {
-        if !attr.path().is_ident("doc") {
-            continue;
-        }
-        if let Meta::NameValue(nv) = &attr.meta
-            && let Expr::Lit(expr) = &nv.value
-            && let Lit::Str(s) = &expr.lit
-        {
-            lines.push(s.value().trim().to_string());
-        }
-    }
-    if lines.is_empty() {
-        None
-    } else {
-        Some(lines.join("\n"))
     }
 }

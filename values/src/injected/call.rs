@@ -1,6 +1,11 @@
 use std::{any::Any, error::Error};
 
-use crate::{Value, identifier::Identifier, int::ValueInt};
+use crate::{
+    Value,
+    identifier::Identifier,
+    int::ValueInt,
+    serde::{de::ValueDeserializer, ser::ValueSerializer},
+};
 
 /// Wrapped value is callable
 pub trait Callable {
@@ -9,7 +14,14 @@ pub trait Callable {
 
 pub trait InjectedContext {
     /// Seed the random number generator
-    fn seed(&mut self, seed: &[Value]);
+    fn rng_seed(&mut self, seed: &[Value]);
+
+    /// Serialize the random number generator state
+    fn rng_save(&self, serializer: ValueSerializer) -> crate::serde::error::Result<Value>;
+
+    /// Restore the random number generator state
+    fn rng_restore(&mut self, deserializer: ValueDeserializer) -> crate::serde::error::Result<()>;
+
     /// Throw a dice
     fn dice(&mut self, faces: ValueInt) -> ValueInt;
 

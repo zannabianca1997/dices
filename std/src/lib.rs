@@ -6,10 +6,10 @@ use sys::Sys;
 
 use crate::rng::Rng;
 
-mod sys;
 mod rng;
+mod sys;
 
-/// module std
+/// Standard library
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Std {
     sys: Sys,

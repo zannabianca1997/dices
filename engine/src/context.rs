@@ -8,16 +8,26 @@ use dices_ast::identifier::Identifier;
 use dices_values::Value;
 use dices_values::injected::call::InjectedContext;
 use dices_values::int::ValueInt;
+use dices_values::serde::de::ValueDeserializer;
+use dices_values::serde::ser::ValueSerializer;
 use num::FromPrimitive;
 use num::traits::ConstOne;
 use rand::Rng;
 use rand_seeder::Seeder;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::Engine;
 
 pub(crate) trait Context {
     /// Seed the random number generator
-    fn seed(&mut self, seed: impl Hash);
+    fn rng_seed(&mut self, seed: impl Hash);
+
+    /// Serialize the random number generator state
+    fn rng_save<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>;
+
+    /// Restore the random number generator state
+    fn rng_restore<'de, D: Deserializer<'de>>(&mut self, deserializer: D) -> Result<(), D::Error>;
+
     /// Throw a dice
     fn dice(&mut self, faces: ValueInt) -> ValueInt;
 
@@ -75,8 +85,16 @@ impl<'engine> EngineContext<'engine> {
     }
 }
 impl<'engine> Context for EngineContext<'engine> {
-    fn seed(&mut self, seed: impl Hash) {
+    fn rng_seed(&mut self, seed: impl Hash) {
         self.engine.rng = Seeder::from(seed).make_rng();
+    }
+
+    fn rng_save<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.engine.rng.serialize(serializer)
+    }
+    fn rng_restore<'de, D: Deserializer<'de>>(&mut self, deserializer: D) -> Result<(), D::Error> {
+        self.engine.rng = Deserialize::deserialize(deserializer)?;
+        Ok(())
     }
 
     fn dice(&mut self, faces: ValueInt) -> ValueInt {
@@ -129,8 +147,19 @@ impl<'engine> Context for EngineContext<'engine> {
 }
 
 impl InjectedContext for EngineContext<'_> {
-    fn seed(&mut self, seed: &[Value]) {
-        Context::seed(self, seed);
+    fn rng_seed(&mut self, seed: &[Value]) {
+        Context::rng_seed(self, seed);
+    }
+
+    fn rng_save(&self, serializer: ValueSerializer) -> dices_values::serde::error::Result<Value> {
+        Context::rng_save(self, serializer)
+    }
+
+    fn rng_restore(
+        &mut self,
+        deserializer: ValueDeserializer,
+    ) -> dices_values::serde::error::Result<()> {
+        Context::rng_restore(self, deserializer)
     }
 
     fn dice(&mut self, faces: ValueInt) -> ValueInt {
@@ -174,7 +203,7 @@ impl InjectedContext for EngineContext<'_> {
 }
 
 impl<'a> Context for dyn InjectedContext + 'a {
-    fn seed(&mut self, seed: impl Hash) {
+    fn rng_seed(&mut self, seed: impl Hash) {
         /// Hasher storing all bytes as values
         struct HashToValues(Vec<Value>);
         impl Hasher for HashToValues {
@@ -204,7 +233,18 @@ impl<'a> Context for dyn InjectedContext + 'a {
 
         let mut state = HashToValues(vec![]);
         seed.hash(&mut state);
-        InjectedContext::seed(self, &state.0);
+        InjectedContext::rng_seed(self, &state.0);
+    }
+
+    fn rng_save<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        InjectedContext::rng_save(self, ValueSerializer)
+            .map_err(serde::ser::Error::custom)?
+            .serialize(serializer)
+    }
+
+    fn rng_restore<'de, D: Deserializer<'de>>(&mut self, deserializer: D) -> Result<(), D::Error> {
+        InjectedContext::rng_restore(self, ValueDeserializer(Value::deserialize(deserializer)?))
+            .map_err(serde::de::Error::custom)
     }
 
     fn dice(&mut self, faces: ValueInt) -> ValueInt {
