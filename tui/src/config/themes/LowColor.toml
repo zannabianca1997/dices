@@ -1,0 +1,91 @@
+# LowColor
+# An 8-color adaptation of Catppuccin Mocha, restricted to the standard ANSI
+# colors (black, red, green, yellow, blue, magenta, cyan, white) so it renders
+# faithfully on terminals without 256-color or truecolor support.
+#
+# `intense = false` keeps these on the standard codes (not the bright variants),
+# and subdued greys are rendered as the base color dimmed.
+
+reset = true
+bold = false
+intense = false
+underline = false
+dimmed = false
+italic = false
+strikethrough = false
+fg_color = "white"
+
+# Graphical fluff (emojis): subdued (dim white stands in for overlay1).
+[fluff]
+dimmed = true
+
+[value.null]
+dimmed = true  # overlay1
+italic = true
+
+[value.integer]
+fg_color = "yellow"  # peach
+
+[value.bool]
+fg_color = "magenta"  # mauve
+
+[value.string]
+fg_color = "green"  # green
+
+[value.string.escape]
+fg_color = "yellow"  # peach
+
+# Mocha's 6-step rainbow collapses onto 4 ANSI colors (teal/sky -> cyan,
+# lavender -> blue); it still cycles by nesting depth.
+[value.delimiter]
+depth = [
+  { fg_color = "yellow" },  # yellow
+  { fg_color = "blue" },  # blue
+  { fg_color = "magenta" },  # mauve
+  { fg_color = "cyan" },  # teal
+]
+
+[value.punctuator]
+dimmed = true  # subtext0
+
+[value.injected]
+fg_color = "yellow"  # yellow
+
+# Markdown styling for banners and manual.
+[markdown]
+[markdown.header]
+depth = [
+  { bold = true, fg_color = "yellow" },
+  { bold = true, fg_color = "blue" },
+  { fg_color = "magenta" },
+  { fg_color = "cyan" },
+]
+
+[markdown.inline_code]
+fg_color = "magenta"  # pink
+
+[markdown.bold_text]
+bold = true  # rosewater collapses onto the base white
+
+[markdown.italic_text]
+italic = true
+
+[prompt]
+fg_color = "blue"  # blue
+
+[prompt.indicator]
+fg_color = "green"  # green
+
+[prompt.multiline]
+dimmed = true  # overlay1
+
+[prompt.right]
+dimmed = true  # overlay1
+
+[error]
+fg_color = "red"  # red
+
+[error.message]
+bold = true
+
+[error.source]

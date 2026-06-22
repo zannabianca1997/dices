@@ -1,5 +1,6 @@
-use std::io::{IsTerminal, stdout};
+use std::io::stdout;
 
+use crossterm::tty::IsTty;
 use serde::{Deserialize, Serialize};
 
 use super::theme::Theme;
@@ -22,7 +23,7 @@ pub struct Skin {
 
 impl Default for Skin {
     fn default() -> Self {
-        let is_tty = stdout().is_terminal();
+        let is_tty = stdout().is_tty();
         Self {
             banners: true,
             graphical: is_tty,

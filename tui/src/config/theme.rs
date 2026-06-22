@@ -16,8 +16,10 @@ static BUNDLED: &[(&str, &str)] = &[
         "CatppuccinMocha",
         include_str!("themes/CatppuccinMocha.toml"),
     ),
+    ("LowColor", include_str!("themes/LowColor.toml")),
 ];
-const DEFAULT: &str = "CatppuccinMocha";
+const DEFAULT_TRUE_COLORS: &str = "CatppuccinMocha";
+const DEFAULT_LOW_COLORS: &str = "LowColor";
 
 /// Writes any bundled theme not already present in `themes_dir` (idempotent),
 /// mirroring `write_config_file_if_not_exists`.
@@ -46,10 +48,15 @@ pub struct Theme {
 
 impl Default for Theme {
     fn default() -> Self {
+        let colors = crossterm::style::available_color_count();
         // Only `name` is persisted (see `Serialize`), so the resolved colours
         // are placeholders; the named theme is loaded on the next deserialize.
         Self {
-            name: DEFAULT.to_owned(),
+            name: if colors > 256 {
+                DEFAULT_TRUE_COLORS.to_owned()
+            } else {
+                DEFAULT_LOW_COLORS.to_owned()
+            },
             content: dices_print::theme::Theme::default(),
             prompt: reedline::Color::Reset,
             prompt_indicator: reedline::Color::Reset,
