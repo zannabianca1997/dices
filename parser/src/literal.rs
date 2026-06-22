@@ -1,11 +1,13 @@
-use dices_ast::literal::LiteralString;
-use dices_values::string::ValueString;
+use std::str::FromStr;
+
+use dices_ast::literal::{LiteralInt, LiteralString};
+use dices_values::{int::ValueInt, string::ValueString};
 use pest::iterators::Pair;
 use snafu::ResultExt;
 
 use crate::{ParseError, Rule};
 
-pub(crate) fn parse_string_value(
+pub(crate) fn build_string_value(
     pair: Pair<Rule>,
     input: &ValueString,
 ) -> Result<LiteralString, ParseError> {
@@ -17,6 +19,12 @@ pub(crate) fn parse_string_value(
         .unescape()
         .context(crate::StringUnescapeSnafu)?;
     Ok(LiteralString(s))
+}
+
+pub(crate) fn build_int_literal(primary: Pair<'_, Rule>) -> Result<LiteralInt, ParseError> {
+    let s = primary.as_str();
+    let i = ValueInt::from_str(s).context(crate::IntParseSnafu)?;
+    Ok(LiteralInt(i))
 }
 
 #[cfg(test)]

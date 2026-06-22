@@ -42,7 +42,7 @@ pub fn parse_scope_inner(input: &ValueString) -> Result<ScopeInner, ParseError> 
 }
 
 fn unexpected_rule(r: Rule) -> ! {
-    panic!("Unexpected rule {r:?}")
+    unreachable!("Unexpected rule {r:?}")
 }
 
 #[cfg(test)]

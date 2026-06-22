@@ -12,19 +12,26 @@ pub(super) fn build_map_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Ex
     let mut items = Vec::new();
     while let Some(key_pair) = pairs.next() {
         let value_pair = pairs.next().unwrap();
-        let key = match key_pair.as_rule() {
-            Rule::string => literal::parse_string_value(key_pair, input)?,
-            Rule::identifier => {
-                // bare identifier key: use its raw text as the string key (no unescaping needed)
-                let span = key_pair.as_span();
-                LiteralString(input.slice(span.start()..span.end()).unwrap())
-            }
-            r => crate::unexpected_rule(r),
-        };
+        let key = build_map_key(input, key_pair)?;
         let value = build_expr(value_pair, input)?;
         items.push((key, value));
     }
     Ok(Expr::Map(Box::new(MapExpr { items })))
+}
+
+pub(super) fn build_map_key(
+    input: &ValueString,
+    key_pair: Pair<'_, Rule>,
+) -> Result<LiteralString, ParseError> {
+    Ok(match key_pair.as_rule() {
+        Rule::string => literal::build_string_value(key_pair, input)?,
+        Rule::identifier => {
+            // bare identifier key: use its raw text as the string key (no unescaping needed)
+            let span = key_pair.as_span();
+            LiteralString(input.slice(span.start()..span.end()).unwrap())
+        }
+        r => crate::unexpected_rule(r),
+    })
 }
 
 #[cfg(test)]

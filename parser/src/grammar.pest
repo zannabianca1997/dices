@@ -16,51 +16,52 @@ identifier     = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 expr = { prefix* ~ primary ~ postfix* ~ (infix ~ prefix* ~ primary ~ postfix*)* }
 
 // Prefix operators
-prefix       = _{ plus_prefix | minus_prefix | not_op | dice_keyword | closure_prefix }
-  plus_prefix     = { "+" }
-  minus_prefix    = { "-" }
-  not_op          = { "!" }
-  dice_keyword    = @{ "d" ~ !(ASCII_ALPHA | "_") }
-  closure_prefix  = { "|" ~ (identifier ~ ("," ~ identifier)*)? ~ "|" }
+prefix         = _{ plus_prefix | minus_prefix | not_op | dice_keyword | closure_prefix }
+plus_prefix    =  { "+" }
+minus_prefix   =  { "-" }
+not_op         =  { "!" }
+dice_keyword   = @{ "d" ~ !(ASCII_ALPHA | "_") }
+closure_prefix =  { "|" ~ (identifier ~ ("," ~ identifier)*)? ~ "|" }
 
 // Infix operators — two-char operators must come before single-char
 infix       = _{ join_op | or_op | and_op | eq | ne | le | lt | ge | gt | plus_infix | minus_infix | mul | div | rem | kh | kl | rh | rl | repeat_op | dice_infix }
-  join_op     = { "~" }
-  or_op       = { "||" }
-  and_op      = { "&&" }
-  eq          = { "==" }
-  ne          = { "!=" }
-  lt          = { "<" }
-  le          = { "<=" }
-  gt          = { ">" }
-  ge          = { ">=" }
-  plus_infix  = { "+" }
-  minus_infix = { "-" }
-  mul         = { "*" }
-  div         = { "/" }
-  rem         = { "%" }
-  kh          = { "kh" }
-  kl          = { "kl" }
-  rh          = { "rh" }
-  rl          = { "rl" }
-  repeat_op   = { "^" }
-  dice_infix  = @{ "d" ~ !(ASCII_ALPHA | "_") }
+join_op     =  { "~" }
+or_op       =  { "||" }
+and_op      =  { "&&" }
+eq          =  { "==" }
+ne          =  { "!=" }
+lt          =  { "<" }
+le          =  { "<=" }
+gt          =  { ">" }
+ge          =  { ">=" }
+plus_infix  =  { "+" }
+minus_infix =  { "-" }
+mul         =  { "*" }
+div         =  { "/" }
+rem         =  { "%" }
+kh          =  { "kh" }
+kl          =  { "kl" }
+rh          =  { "rh" }
+rl          =  { "rl" }
+repeat_op   =  { "^" }
+dice_infix  = @{ "d" ~ !(ASCII_ALPHA | "_") }
 
 // Postfix operators
-postfix   = _{ call_args }
-call_args = { "(" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ ")" }
+postfix       = _{ call_args | member_access }
+call_args     =  { "(" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ ")" }
+member_access =  { "[" ~ expr ~ "]" | "." ~ (map_key | int) }
 
 // Primary expressions
-primary = _{ int | string | bool | null | paren_expr | scope | list | map | std | identifier }
-  paren_expr = { "(" ~ expr ~ ")" }
+primary    = _{ int | string | bool | null | paren_expr | scope | list | map | std | identifier }
+paren_expr =  { "(" ~ expr ~ ")" }
 
-list = { "[" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ "]" }
-map  = { "<|" ~ ((map_key ~ ":" ~ expr) ~ ("," ~ map_key ~ ":" ~ expr)* ~ ","?)? ~ "|>" }
-  map_key = _{ string | identifier }
+list    =  { "[" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ "]" }
+map     =  { "<|" ~ ((map_key ~ ":" ~ expr) ~ ("," ~ map_key ~ ":" ~ expr)* ~ ","?)? ~ "|>" }
+map_key = _{ string | identifier }
 
-int     = @{ ASCII_DIGIT+ }
-string  = @{ "\"" ~ (("\\" ~ ANY) | (!"\"" ~ ANY))* ~ "\"" }
-bool    = @{ "true" | "false" }
-null    = @{ "null" }
+int    = @{ ASCII_DIGIT+ }
+string = @{ "\"" ~ (("\\" ~ ANY) | (!"\"" ~ ANY))* ~ "\"" }
+bool   = @{ "true" | "false" }
+null   = @{ "null" }
 
 std = { "std" }

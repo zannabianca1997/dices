@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::LazyLock};
+use std::sync::LazyLock;
 
 use dices_ast::{
     expr::{
@@ -6,11 +6,10 @@ use dices_ast::{
         binary::{BinOp, BinaryExpr},
         unary::{UnOp, UnaryExpr},
     },
-    literal::{Literal, LiteralBool, LiteralInt, LiteralNull},
+    literal::{Literal, LiteralBool, LiteralNull},
 };
-use dices_values::{bool::ValueBool, int::ValueInt, null::ValueNull, string::ValueString};
+use dices_values::{bool::ValueBool, null::ValueNull, string::ValueString};
 use pest::pratt_parser::{Assoc, Op, PrattParser};
-use snafu::ResultExt;
 
 use crate::{ParseError, Rule, literal};
 
@@ -19,6 +18,7 @@ pub(crate) mod call;
 pub(crate) mod closure;
 pub(crate) mod list;
 pub(crate) mod map;
+pub(crate) mod member_access;
 pub(crate) mod scope;
 pub(crate) mod unary;
 
@@ -45,7 +45,7 @@ static PRATT: LazyLock<PrattParser<Rule>> = LazyLock::new(|| {
         .op(Op::infix(repeat_op, Assoc::Left))
         .op(Op::prefix(dice_keyword))
         .op(Op::infix(dice_infix, Assoc::Left))
-        .op(Op::postfix(call_args))
+        .op(Op::postfix(call_args) | Op::postfix(member_access))
 });
 
 pub(crate) fn build_expr(
@@ -59,12 +59,9 @@ pub(crate) fn build_expr(
         }
         Rule::expr => PRATT
             .map_primary(|primary| match primary.as_rule() {
-                Rule::int => {
-                    let s = primary.as_str();
-                    let i = ValueInt::from_str(s).context(crate::IntParseSnafu)?;
-                    Ok(Expr::Literal(Box::new(Literal::Int(LiteralInt(i)))))
-                }
-                Rule::string => literal::parse_string_value(primary, input)
+                Rule::int => literal::build_int_literal(primary)
+                    .map(|i| Expr::Literal(Box::new(Literal::Int(i)))),
+                Rule::string => literal::build_string_value(primary, input)
                     .map(|s| Expr::Literal(Box::new(Literal::String(s)))),
                 Rule::bool => {
                     let b = match primary.as_str() {
@@ -131,11 +128,18 @@ pub(crate) fn build_expr(
                     Rule::rl => BinOp::RemoveLow,
                     Rule::repeat_op => BinOp::Repeat,
                     Rule::dice_infix => BinOp::Dice,
-                    _ => unreachable!(),
+                    r => crate::unexpected_rule(r),
                 };
                 Ok(Expr::Binary(Box::new(BinaryExpr { lhs, op, rhs })))
             })
-            .map_postfix(|lhs, op| call::build_call_expr(lhs?, op, input))
+            .map_postfix(|lhs, op| {
+                let lhs = lhs?;
+                match op.as_rule() {
+                    Rule::call_args => call::build_call_expr(lhs, op, input),
+                    Rule::member_access => member_access::build_member_access(lhs, op, input),
+                    r => crate::unexpected_rule(r),
+                }
+            })
             .parse(pair.into_inner()),
         r => crate::unexpected_rule(r),
     }
