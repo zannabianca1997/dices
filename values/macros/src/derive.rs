@@ -1,0 +1,120 @@
+//! Implementation of `#[derive(Injectable)]`.
+//!
+//! Implements injectable and optionally describable for a struct
+
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::{Attribute, Data, DeriveInput, Expr, Fields, Lit, Meta, parse2, spanned::Spanned};
+
+pub fn derive_injectable(input: TokenStream) -> syn::Result<TokenStream> {
+    let input: DeriveInput = parse2(input)?;
+
+    let fields = named_fields(&input)?;
+
+    let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    // One map entry per field, each referring inside the struct so it stays
+    // injectable.
+    let inserts = fields.iter().map(|field| {
+        let ident = field.ident.as_ref().expect("named field");
+        let key = ident.to_string();
+        quote! {
+            map.insert(
+                ::dices_values::string::ValueString::new_static(#key),
+                ::dices_values::injected::read::ValueOrInject::Inject(&self.#ident),
+            );
+        }
+    });
+
+    let describable = describable_impl(
+        &input.attrs,
+        quote! { impl #impl_generics },
+        quote! { for #name #ty_generics #where_clause },
+    );
+
+    Ok(quote! {
+        #describable
+
+        impl #impl_generics ::dices_values::injected::read::Readable for #name #ty_generics #where_clause {
+            fn read(
+                &self,
+            ) -> ::core::result::Result<
+                ::dices_values::injected::read::ReadValue<'_>,
+                ::std::boxed::Box<dyn ::std::error::Error>,
+            > {
+                let mut map = ::std::collections::BTreeMap::new();
+                #(#inserts)*
+                ::core::result::Result::Ok(::dices_values::injected::read::ReadValue::Map(map))
+            }
+        }
+
+        impl #impl_generics ::dices_values::injected::Injectable for #name #ty_generics #where_clause {
+            fn as_readable(&self) -> ::core::option::Option<&dyn ::dices_values::injected::read::Readable> {
+                ::core::option::Option::Some(self)
+            }
+        }
+    })
+}
+
+/// Extract the named fields of a struct, erroring on anything else.
+fn named_fields(
+    input: &DeriveInput,
+) -> syn::Result<&syn::punctuated::Punctuated<syn::Field, syn::token::Comma>> {
+    match &input.data {
+        Data::Struct(data) => match &data.fields {
+            Fields::Named(named) => Ok(&named.named),
+            other => Err(syn::Error::new(
+                other.span(),
+                "`#[derive(Injectable)]` is only supported on structs with named fields",
+            )),
+        },
+        Data::Enum(_) | Data::Union(_) => Err(syn::Error::new(
+            input.span(),
+            "`#[derive(Injectable)]` is only supported on structs with named fields",
+        )),
+    }
+}
+
+/// Generate a [`Describable`] impl from the doc comment, when present.
+///
+/// `impl_head` is the `impl <generics>` prefix and `impl_tail` is the
+/// `for Type <generics> <where>` suffix, so the same builder is reusable from
+/// the attribute macro.
+pub fn describable_impl(
+    attrs: &[Attribute],
+    impl_head: TokenStream,
+    impl_tail: TokenStream,
+) -> TokenStream {
+    let Some(doc) = extract_doc(attrs) else {
+        return TokenStream::new();
+    };
+    quote! {
+        #impl_head ::dices_values::injected::describable::Describable #impl_tail {
+            fn description(&self) -> impl ::core::fmt::Display + '_ {
+                #doc
+            }
+        }
+    }
+}
+
+/// Collect `#[doc = "..."]` attributes, trim, and join them with newlines.
+pub fn extract_doc(attrs: &[Attribute]) -> Option<String> {
+    let mut lines: Vec<String> = Vec::new();
+    for attr in attrs {
+        if !attr.path().is_ident("doc") {
+            continue;
+        }
+        if let Meta::NameValue(nv) = &attr.meta
+            && let Expr::Lit(expr) = &nv.value
+            && let Lit::Str(s) = &expr.lit
+        {
+            lines.push(s.value().trim().to_string());
+        }
+    }
+    if lines.is_empty() {
+        None
+    } else {
+        Some(lines.join("\n"))
+    }
+}

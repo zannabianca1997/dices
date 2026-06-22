@@ -18,6 +18,7 @@ use read::ReadValue;
 use required_traits::RequiredTraits;
 
 pub mod call;
+pub mod convert;
 pub mod describable;
 pub mod read;
 mod required_traits;
