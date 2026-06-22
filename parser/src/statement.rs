@@ -1,14 +1,11 @@
-use dices_ast::{
-    identifier::Identifier,
-    statement::{
-        Statement,
-        assign::{AssignStatement, Lhs},
-    },
+use dices_ast::statement::{
+    Statement,
+    assign::{AssignStatement, Lhs},
 };
 use dices_values::string::ValueString;
 use pest::iterators::Pair;
 
-use crate::{ParseError, Rule, expr::build_expr};
+use crate::{ParseError, Rule, expr::build_expr, identifier::parse_identifier};
 
 pub(crate) fn build_statement(
     pair: Pair<Rule>,
@@ -48,30 +45,18 @@ pub(crate) fn build_statement(
 
 fn build_let(pair: Pair<Rule>, input: &ValueString) -> Result<Statement, ParseError> {
     let mut inner = pair.into_inner();
-    let ident_text = inner.next().unwrap().as_str();
+    let ident = parse_identifier(inner.next().unwrap(), input)?;
     let _equals = inner.next().unwrap(); // Rule::equals
     let rhs = build_expr(inner.next().unwrap(), input)?;
-
-    let ident = Identifier::new(ValueString::new(ident_text.to_owned())).ok_or_else(|| {
-        ParseError::InvalidIdentifier {
-            text: ident_text.to_owned(),
-        }
-    })?;
 
     Ok(Statement::Assign(AssignStatement::Let { lhs: ident, rhs }))
 }
 
 fn build_set(pair: Pair<Rule>, input: &ValueString) -> Result<Statement, ParseError> {
     let mut inner = pair.into_inner();
-    let ident_text = inner.next().unwrap().as_str();
+    let ident = parse_identifier(inner.next().unwrap(), input)?;
     let _equals = inner.next().unwrap(); // Rule::equals
     let rhs = build_expr(inner.next().unwrap(), input)?;
-
-    let ident = Identifier::new(ValueString::new(ident_text.to_owned())).ok_or_else(|| {
-        ParseError::InvalidIdentifier {
-            text: ident_text.to_owned(),
-        }
-    })?;
 
     Ok(Statement::Assign(AssignStatement::Set {
         lhs: Lhs::Variable(ident),

@@ -8,6 +8,7 @@ pub(crate) mod tests {
 
     use crate::{
         expr::{tests::expr, unary::tests::unary},
+        identifier::ident,
         literal::tests::{bool_val, int, string},
         tests::{parse, parse_err},
     };
@@ -527,11 +528,7 @@ pub(crate) mod tests {
     // Variables
 
     fn variable(name: &'static str) -> Expr {
-        let ident = dices_ast::identifier::Identifier::new(
-            dices_values::string::ValueString::new_static(name),
-        )
-        .unwrap();
-        Expr::Variable(Box::new(ident))
+        Expr::Variable(Box::new(ident(name)))
     }
 
     #[test]

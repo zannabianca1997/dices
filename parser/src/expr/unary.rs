@@ -49,7 +49,7 @@ pub(crate) mod tests {
         let ident = dices_ast::identifier::Identifier::new(
             dices_values::string::ValueString::new_static("dd6"),
         );
-        assert!(ident.is_some());
+        assert!(ident.is_ok());
     }
 
     #[test]

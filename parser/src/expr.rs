@@ -6,7 +6,6 @@ use dices_ast::{
         binary::{BinOp, BinaryExpr},
         unary::{UnOp, UnaryExpr},
     },
-    identifier::Identifier,
     literal::{Literal, LiteralBool, LiteralInt, LiteralNull},
 };
 use dices_values::{bool::ValueBool, int::ValueInt, null::ValueNull, string::ValueString};
@@ -85,18 +84,14 @@ pub(crate) fn build_expr(
                 Rule::scope => scope::build_scope_expr(primary, input),
                 Rule::list => list::build_list_expr(primary, input),
                 Rule::map => map::build_map_expr(primary, input),
-                Rule::identifier => {
-                    let text = primary.as_str().to_owned();
-                    let ident = Identifier::new(ValueString::new(text.clone()))
-                        .ok_or(ParseError::InvalidIdentifier { text })?;
-                    Ok(Expr::Variable(Box::new(ident)))
-                }
+                Rule::identifier => crate::identifier::parse_identifier(primary, input)
+                    .map(|ident| Expr::Variable(Box::new(ident))),
                 r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
             })
             .map_prefix(|op, rhs| {
                 let op_rule = op.as_rule();
                 match op_rule {
-                    Rule::closure_prefix => closure::build_closure_expr(op, rhs?),
+                    Rule::closure_prefix => closure::build_closure_expr(op, rhs?, input),
                     Rule::plus_prefix | Rule::minus_prefix | Rule::not_op | Rule::dice_keyword => {
                         let rhs = rhs?;
                         let op = match op_rule {

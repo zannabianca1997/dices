@@ -53,12 +53,10 @@ pub(crate) fn build_scope_expr(pair: Pair<Rule>, input: &ValueString) -> Result<
 pub(crate) mod tests {
     use dices_ast::{
         expr::{Expr, scope::ScopeInner},
-        identifier::Identifier,
         statement::{Statement, assign::AssignStatement},
     };
-    use dices_values::string::ValueString;
 
-    use crate::{literal::tests::int, tests::parse, tests::parse_err};
+    use crate::{identifier::ident, literal::tests::int, tests::parse, tests::parse_err};
 
     #[test]
     fn scope_single_expr() {
@@ -145,7 +143,7 @@ pub(crate) mod tests {
         assert_eq!(
             scope.0.expr,
             Some(Expr::Variable(Box::new(
-                Identifier::new(ValueString::new_static("x")).unwrap()
+                ident("x")
             )))
         );
     }

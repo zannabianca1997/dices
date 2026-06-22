@@ -1,22 +1,19 @@
 use std::sync::Arc;
 
-use dices_ast::{
-    expr::{Expr, closure::ClosureExpr},
-    identifier::Identifier,
-};
+use dices_ast::expr::{Expr, closure::ClosureExpr};
 use dices_values::string::ValueString;
 use pest::iterators::Pair;
 
-use crate::{ParseError, Rule};
+use crate::{ParseError, Rule, identifier::parse_identifier};
 
-pub(super) fn build_closure_expr(pair: Pair<Rule>, body: Expr) -> Result<Expr, ParseError> {
+pub(super) fn build_closure_expr(
+    pair: Pair<Rule>,
+    body: Expr,
+    input: &ValueString,
+) -> Result<Expr, ParseError> {
     let args: Result<Vec<_>, _> = pair
         .into_inner()
-        .map(|p| {
-            let text = p.as_str().to_owned();
-            Identifier::new(ValueString::new(text.clone()))
-                .ok_or(ParseError::InvalidIdentifier { text })
-        })
+        .map(|p| parse_identifier(p, input))
         .collect();
     Ok(Expr::Closure(Arc::new(ClosureExpr { args: args?, body })))
 }
@@ -25,17 +22,11 @@ pub(super) fn build_closure_expr(pair: Pair<Rule>, body: Expr) -> Result<Expr, P
 pub(crate) mod tests {
     use std::sync::Arc;
 
-    use dices_ast::{
-        expr::{Expr, closure::ClosureExpr},
-        identifier::Identifier,
+    use dices_ast::expr::{Expr, closure::ClosureExpr};
+
+    use crate::{
+        expr::tests::expr, identifier::ident, literal::tests::int, tests::parse,
     };
-    use dices_values::string::ValueString;
-
-    use crate::{expr::tests::expr, literal::tests::int, tests::parse};
-
-    fn ident(s: &'static str) -> Identifier {
-        Identifier::new(ValueString::new_static(s)).unwrap()
-    }
 
     fn closure(args: Vec<&'static str>, body: Expr) -> Expr {
         Expr::Closure(Arc::new(ClosureExpr {

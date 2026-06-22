@@ -18,17 +18,11 @@ pub(super) fn build_call_expr(
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use dices_ast::{
-        expr::{Expr, call::CallExpr},
-        identifier::Identifier,
+    use dices_ast::expr::{Expr, call::CallExpr};
+
+    use crate::{
+        expr::tests::expr, identifier::ident, literal::tests::int, tests::parse,
     };
-    use dices_values::string::ValueString;
-
-    use crate::{expr::tests::expr, literal::tests::int, tests::parse};
-
-    fn ident(s: &'static str) -> Identifier {
-        Identifier::new(ValueString::new_static(s)).unwrap()
-    }
 
     fn call(called: Expr, args: Vec<Expr>) -> Expr {
         Expr::Call(Box::new(CallExpr { called, args }))

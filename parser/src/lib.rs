@@ -11,6 +11,7 @@ use pest::Parser;
 use pest_derive::Parser;
 use snafu::{ResultExt, Snafu};
 
+pub(crate) mod identifier;
 pub(crate) mod literal;
 
 pub(crate) mod expr;
@@ -32,7 +33,7 @@ pub enum ParseError {
     #[snafu(display("Unexpected rule: {rule:?}"))]
     UnexpectedRule { rule: Rule },
     #[snafu(display("Invalid identifier: {text}"))]
-    InvalidIdentifier { text: String },
+    InvalidIdentifier { text: ValueString },
 }
 
 pub fn parse_scope_inner(input: &ValueString) -> Result<ScopeInner, ParseError> {
