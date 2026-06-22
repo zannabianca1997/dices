@@ -16,11 +16,7 @@ use dices_values::{
 };
 use itertools::Itertools;
 
-use crate::{
-    EvalError,
-    context::Context,
-    var_use::VarUse,
-};
+use crate::{EvalError, context::Context, var_use::VarUse};
 
 pub(crate) fn eval(
     closure_expr: &Arc<ClosureExpr>,

@@ -76,6 +76,20 @@ fn write_config_file_if_not_exists(config: &Path) -> io::Result<()> {
         Err(err) if err.kind() == io::ErrorKind::AlreadyExists => return Ok(()),
         Err(err) => return Err(err),
     };
-    let config = toml::to_string_pretty(&Config::default()).unwrap();
+    let config = r#"# Dices config file
+# This can be overridden with a `Dices.toml` in the current
+# or parent directory, or with env variables
+
+[history]
+# file = "alternate/history/file" # Database for the history
+# capacity = 1000                 # History capacity
+
+[skin]
+# theme     = "CatppuccinMocha"  # Default theme (from the `themes` directory)
+# banners   = true               # Show banners
+# graphical = true               # Use unicode characters
+# color     = true               # Colorize output
+"#;
+
     file.write_all(config.as_bytes())
 }

@@ -54,10 +54,7 @@ pub(crate) mod tests {
     use dices_ast::{
         expr::{Expr, scope::ScopeInner},
         identifier::Identifier,
-        statement::{
-            Statement,
-            assign::{AssignStatement},
-        },
+        statement::{Statement, assign::AssignStatement},
     };
     use dices_values::string::ValueString;
 

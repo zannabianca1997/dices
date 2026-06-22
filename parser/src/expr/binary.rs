@@ -500,7 +500,11 @@ pub(crate) mod tests {
         assert_eq!(
             parse("3d6^2kh2"),
             expr(binary(
-                binary(binary(int("3"), BinOp::Dice, int("6")), BinOp::Repeat, int("2")),
+                binary(
+                    binary(int("3"), BinOp::Dice, int("6")),
+                    BinOp::Repeat,
+                    int("2")
+                ),
                 BinOp::KeepHigh,
                 int("2")
             ))
@@ -595,10 +599,7 @@ pub(crate) mod tests {
     #[test]
     fn d20_parses_as_unary_dice() {
         // d20 is a valid dice expression, not an invalid identifier
-        assert_eq!(
-            parse("d20"),
-            expr(unary(UnOp::Dice, int("20")))
-        );
+        assert_eq!(parse("d20"), expr(unary(UnOp::Dice, int("20"))));
     }
 
     #[test]

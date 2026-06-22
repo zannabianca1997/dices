@@ -10,7 +10,10 @@ pub(super) fn build_call_expr(
     input: &ValueString,
 ) -> Result<Expr, ParseError> {
     let args: Result<Vec<_>, _> = pair.into_inner().map(|p| build_expr(p, input)).collect();
-    Ok(Expr::Call(Box::new(CallExpr { called, args: args? })))
+    Ok(Expr::Call(Box::new(CallExpr {
+        called,
+        args: args?,
+    })))
 }
 
 #[cfg(test)]
@@ -21,11 +24,7 @@ pub(crate) mod tests {
     };
     use dices_values::string::ValueString;
 
-    use crate::{
-        expr::tests::expr,
-        literal::tests::int,
-        tests::parse,
-    };
+    use crate::{expr::tests::expr, literal::tests::int, tests::parse};
 
     fn ident(s: &'static str) -> Identifier {
         Identifier::new(ValueString::new_static(s)).unwrap()

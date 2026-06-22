@@ -3,7 +3,10 @@ use snafu::OptionExt;
 
 use crate::{EvalError, VariableDoNotExistsSnafu, context::Context, var_use::VarUse};
 
-pub(super) fn eval(stmt: &AssignStatement, cx: &mut (impl Context + ?Sized)) -> Result<(), EvalError> {
+pub(super) fn eval(
+    stmt: &AssignStatement,
+    cx: &mut (impl Context + ?Sized),
+) -> Result<(), EvalError> {
     let (AssignStatement::Let { rhs, .. } | AssignStatement::Set { rhs, .. }) = stmt;
     let rhs = crate::eval::expr::eval(rhs, cx)?;
 

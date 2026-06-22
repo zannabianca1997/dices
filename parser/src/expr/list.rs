@@ -43,17 +43,18 @@ pub(crate) mod tests {
 
     #[test]
     fn trailing_comma() {
-        assert_eq!(
-            parse("[1, 2,]"),
-            expr(list(vec![int("1"), int("2")]))
-        );
+        assert_eq!(parse("[1, 2,]"), expr(list(vec![int("1"), int("2")])));
     }
 
     #[test]
     fn mixed_expressions() {
         assert_eq!(
             parse(r#"[1, "hello", true]"#),
-            expr(list(vec![int("1"), string("hello"), crate::literal::tests::bool_val(true)]))
+            expr(list(vec![
+                int("1"),
+                string("hello"),
+                crate::literal::tests::bool_val(true)
+            ]))
         );
     }
 

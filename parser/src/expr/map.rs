@@ -24,11 +24,7 @@ pub(crate) mod tests {
     };
     use dices_values::string::ValueString;
 
-    use crate::{
-        expr::tests::expr,
-        literal::tests::int,
-        tests::parse,
-    };
+    use crate::{expr::tests::expr, literal::tests::int, tests::parse};
 
     fn key(s: &'static str) -> LiteralString {
         LiteralString(ValueString::new_static(s))
@@ -55,10 +51,7 @@ pub(crate) mod tests {
     fn multiple_entries() {
         assert_eq!(
             parse(r#"<| "a": 1, "b": 2 |>"#),
-            expr(map(vec![
-                (key("a"), int("1")),
-                (key("b"), int("2")),
-            ]))
+            expr(map(vec![(key("a"), int("1")), (key("b"), int("2")),]))
         );
     }
 

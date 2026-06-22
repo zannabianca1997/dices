@@ -189,7 +189,11 @@ fn eval_dice(lhs: Value, rhs: Value, cx: &mut (impl Context + ?Sized)) -> Result
     )
 }
 
-fn eval_repeat(lhs: &Expr, rhs: Value, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
+fn eval_repeat(
+    lhs: &Expr,
+    rhs: Value,
+    cx: &mut (impl Context + ?Sized),
+) -> Result<Value, EvalError> {
     let mut times = ValueInt::try_from(rhs)?.max(ValueInt::ZERO);
     let mut values = Vec::with_capacity(times.to_usize().unwrap_or(usize::MAX));
     while times > ValueInt::ZERO {

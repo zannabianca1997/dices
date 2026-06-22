@@ -1,6 +1,9 @@
 use dices_ast::{
     identifier::Identifier,
-    statement::{Statement, assign::{AssignStatement, Lhs}},
+    statement::{
+        Statement,
+        assign::{AssignStatement, Lhs},
+    },
 };
 use dices_values::string::ValueString;
 use pest::iterators::Pair;
@@ -49,13 +52,13 @@ fn build_let(pair: Pair<Rule>, input: &ValueString) -> Result<Statement, ParseEr
     let _equals = inner.next().unwrap(); // Rule::equals
     let rhs = build_expr(inner.next().unwrap(), input)?;
 
-    let ident = Identifier::new(ValueString::new(ident_text.to_owned()))
-        .ok_or_else(|| ParseError::InvalidIdentifier { text: ident_text.to_owned() })?;
+    let ident = Identifier::new(ValueString::new(ident_text.to_owned())).ok_or_else(|| {
+        ParseError::InvalidIdentifier {
+            text: ident_text.to_owned(),
+        }
+    })?;
 
-    Ok(Statement::Assign(AssignStatement::Let {
-        lhs: ident,
-        rhs,
-    }))
+    Ok(Statement::Assign(AssignStatement::Let { lhs: ident, rhs }))
 }
 
 fn build_set(pair: Pair<Rule>, input: &ValueString) -> Result<Statement, ParseError> {
@@ -64,8 +67,11 @@ fn build_set(pair: Pair<Rule>, input: &ValueString) -> Result<Statement, ParseEr
     let _equals = inner.next().unwrap(); // Rule::equals
     let rhs = build_expr(inner.next().unwrap(), input)?;
 
-    let ident = Identifier::new(ValueString::new(ident_text.to_owned()))
-        .ok_or_else(|| ParseError::InvalidIdentifier { text: ident_text.to_owned() })?;
+    let ident = Identifier::new(ValueString::new(ident_text.to_owned())).ok_or_else(|| {
+        ParseError::InvalidIdentifier {
+            text: ident_text.to_owned(),
+        }
+    })?;
 
     Ok(Statement::Assign(AssignStatement::Set {
         lhs: Lhs::Variable(ident),

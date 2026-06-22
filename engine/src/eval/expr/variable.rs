@@ -4,7 +4,10 @@ use snafu::OptionExt;
 
 use crate::{EvalError, VariableDoNotExistsSnafu, context::Context, var_use::VarUse};
 
-pub(super) fn eval(ident: &Identifier, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
+pub(super) fn eval(
+    ident: &Identifier,
+    cx: &mut (impl Context + ?Sized),
+) -> Result<Value, EvalError> {
     cx.var(ident)
         .cloned()
         .with_context(|| VariableDoNotExistsSnafu {

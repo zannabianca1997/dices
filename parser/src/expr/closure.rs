@@ -9,10 +9,7 @@ use pest::iterators::Pair;
 
 use crate::{ParseError, Rule};
 
-pub(super) fn build_closure_expr(
-    pair: Pair<Rule>,
-    body: Expr,
-) -> Result<Expr, ParseError> {
+pub(super) fn build_closure_expr(pair: Pair<Rule>, body: Expr) -> Result<Expr, ParseError> {
     let args: Result<Vec<_>, _> = pair
         .into_inner()
         .map(|p| {
@@ -34,11 +31,7 @@ pub(crate) mod tests {
     };
     use dices_values::string::ValueString;
 
-    use crate::{
-        expr::tests::expr,
-        literal::tests::int,
-        tests::parse,
-    };
+    use crate::{expr::tests::expr, literal::tests::int, tests::parse};
 
     fn ident(s: &'static str) -> Identifier {
         Identifier::new(ValueString::new_static(s)).unwrap()
@@ -72,18 +65,12 @@ pub(crate) mod tests {
 
     #[test]
     fn no_args() {
-        assert_eq!(
-            parse("|| 42"),
-            expr(closure(vec![], int("42")))
-        );
+        assert_eq!(parse("|| 42"), expr(closure(vec![], int("42"))));
     }
 
     #[test]
     fn body_literal() {
-        assert_eq!(
-            parse("|x| 42"),
-            expr(closure(vec!["x"], int("42")))
-        );
+        assert_eq!(parse("|x| 42"), expr(closure(vec!["x"], int("42"))));
     }
 
     #[test]
