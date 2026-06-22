@@ -64,8 +64,12 @@ fn main_inner(
         OsRng.r#gen()
     });
 
+    if skin.banners {
+        print_markdown(skin, banners::OPENING)?;
+    }
+
     // Execute command
-    if let Some(command) = command {
+    if let Some(command) = command.as_ref() {
         // Merge args into a single command
         let command = command.into_iter().join(" ");
 
@@ -80,44 +84,38 @@ fn main_inner(
             Ok(value) => print_value(skin, value)?,
             Err(error) => print_error(skin, &error)?,
         }
-
-        if !interactive {
-            println!();
-            return Ok(());
-        }
+        println!()
     }
 
-    // Prepare the repl
-    let mut line_editor = Reedline::create()
-        .with_history(Box::new(history::history(history).context(HistorySnafu)?))
-        .with_ansi_colors(skin.color);
-    let prompt = prompt::Prompt(skin);
+    if command.is_none_or(|_| interactive) {
+        // Prepare the repl
+        let mut line_editor = Reedline::create()
+            .with_history(Box::new(history::history(history).context(HistorySnafu)?))
+            .with_ansi_colors(skin.color);
+        let prompt = prompt::Prompt(skin);
 
-    if skin.banners {
-        print_markdown(skin, banners::OPENING)?;
-    }
+        // Main repl cycle
+        loop {
+            // Read
+            let read = match line_editor.read_line(&prompt).context(ReadLineSnafu)? {
+                Signal::Success(buffer) => buffer,
+                Signal::CtrlD => break,
+                Signal::CtrlC => return Err(Error::Aborted),
+                Signal::HostCommand(_) => unreachable!(),
+                _ => panic!("Unhandled signal"),
+            };
 
-    // Main repl cycle
-    loop {
-        // Read
-        let read = match line_editor.read_line(&prompt).context(ReadLineSnafu)? {
-            Signal::Success(buffer) => buffer,
-            Signal::CtrlD => break,
-            Signal::CtrlC => return Err(Error::Aborted),
-            Signal::HostCommand(_) => unreachable!(),
-            _ => panic!("Unhandled signal"),
-        };
+            // Eval
+            let eval = dices_parser::parse_scope_inner(&read.into())
+                .map_err(CommandError::from)
+                .and_then(|scope_inner| engine.eval(&scope_inner).map_err(CommandError::from));
 
-        // Eval
-        let eval = dices_parser::parse_scope_inner(&read.into())
-            .map_err(CommandError::from)
-            .and_then(|scope_inner| engine.eval(&scope_inner).map_err(CommandError::from));
-
-        // Print
-        match eval {
-            Ok(Value::Null(ValueNull)) => (),
-            Ok(value) => print_value(skin, value)?,
-            Err(error) => print_error(skin, &error)?,
+            // Print
+            match eval {
+                Ok(Value::Null(ValueNull)) => (),
+                Ok(value) => print_value(skin, value)?,
+                Err(error) => print_error(skin, &error)?,
+            }
         }
     }
 
