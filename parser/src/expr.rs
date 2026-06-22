@@ -86,7 +86,8 @@ pub(crate) fn build_expr(
                 Rule::map => map::build_map_expr(primary, input),
                 Rule::identifier => crate::identifier::parse_identifier(primary, input)
                     .map(|ident| Expr::Variable(Box::new(ident))),
-                r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
+                Rule::std => Ok(Expr::Std),
+                r => crate::unexpected_rule(r),
             })
             .map_prefix(|op, rhs| {
                 let op_rule = op.as_rule();
@@ -136,7 +137,7 @@ pub(crate) fn build_expr(
             })
             .map_postfix(|lhs, op| call::build_call_expr(lhs?, op, input))
             .parse(pair.into_inner()),
-        r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
+        r => crate::unexpected_rule(r),
     }
 }
 

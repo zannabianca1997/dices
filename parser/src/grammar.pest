@@ -51,7 +51,7 @@ postfix   = _{ call_args }
 call_args = { "(" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ ")" }
 
 // Primary expressions
-primary = _{ int | string | bool | null | paren_expr | scope | list | map | identifier }
+primary = _{ int | string | bool | null | paren_expr | scope | list | map | std | identifier }
   paren_expr = { "(" ~ expr ~ ")" }
 
 list = { "[" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ "]" }
@@ -62,3 +62,5 @@ int     = @{ ASCII_DIGIT+ }
 string  = @{ "\"" ~ (("\\" ~ ANY) | (!"\"" ~ ANY))* ~ "\"" }
 bool    = @{ "true" | "false" }
 null    = @{ "null" }
+
+std = { "std" }

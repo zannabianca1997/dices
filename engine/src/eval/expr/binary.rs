@@ -9,11 +9,15 @@ use dices_ast::expr::{
     binary::{BinOp, BinaryExpr},
     unary::{UnOp, UnaryExpr},
 };
-use dices_values::{Value, bool::ValueBool, int::ValueInt, list::ValueList, map::ValueMap};
+use dices_values::{
+    Value, bool::ValueBool, cast::push_down_if_injected, int::ValueInt, list::ValueList,
+    map::ValueMap,
+};
 use num::{Integer, ToPrimitive, Zero, traits::ConstZero};
+use snafu::OptionExt;
 
 use crate::{
-    EvalError,
+    EvalError, IncomparableValuesSnafu,
     context::Context,
     utils::{DicesOrd, deep_apply, deep_sum, join_all},
     var_use::VarUse,
@@ -38,8 +42,8 @@ pub fn eval(expr: &BinaryExpr, cx: &mut (impl Context + ?Sized)) -> Result<Value
         };
     }
 
-    let lhs = super::eval(&expr.lhs, cx)?;
-    let rhs = super::eval(&expr.rhs, cx)?;
+    let lhs = push_down_if_injected(super::eval(&expr.lhs, cx)?)?;
+    let rhs = push_down_if_injected(super::eval(&expr.rhs, cx)?)?;
     match expr.op {
         // Math
         BinOp::Add => eval_add(lhs, rhs),
@@ -138,19 +142,43 @@ fn eval_ne(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
 }
 
 fn eval_lt(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    Ok(ValueBool::from(DicesOrd(lhs) < DicesOrd(rhs)).into())
+    Ok(ValueBool::from(
+        DicesOrd::from_ref(&lhs)
+            .partial_cmp(DicesOrd::from_ref(&rhs))
+            .context(IncomparableValuesSnafu { lhs, rhs })?
+            == Ordering::Less,
+    )
+    .into())
 }
 
 fn eval_gt(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    Ok(ValueBool::from(DicesOrd(lhs) > DicesOrd(rhs)).into())
+    Ok(ValueBool::from(
+        DicesOrd::from_ref(&lhs)
+            .partial_cmp(DicesOrd::from_ref(&rhs))
+            .context(IncomparableValuesSnafu { lhs, rhs })?
+            == Ordering::Greater,
+    )
+    .into())
 }
 
 fn eval_le(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    Ok(ValueBool::from(DicesOrd(lhs) <= DicesOrd(rhs)).into())
+    Ok(ValueBool::from(
+        DicesOrd::from_ref(&lhs)
+            .partial_cmp(DicesOrd::from_ref(&rhs))
+            .context(IncomparableValuesSnafu { lhs, rhs })?
+            != Ordering::Greater,
+    )
+    .into())
 }
 
 fn eval_ge(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    Ok(ValueBool::from(DicesOrd(lhs) >= DicesOrd(rhs)).into())
+    Ok(ValueBool::from(
+        DicesOrd::from_ref(&lhs)
+            .partial_cmp(DicesOrd::from_ref(&rhs))
+            .context(IncomparableValuesSnafu { lhs, rhs })?
+            != Ordering::Less,
+    )
+    .into())
 }
 
 fn eval_and(lhs: Value, rhs: &Expr, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {

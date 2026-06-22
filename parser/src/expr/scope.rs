@@ -35,7 +35,7 @@ pub(crate) fn build_scope_inner(
                     other => statements.push(other),
                 }
             }
-            r => return crate::UnexpectedRuleSnafu { rule: r }.fail(),
+            r => crate::unexpected_rule(r),
         }
     }
 

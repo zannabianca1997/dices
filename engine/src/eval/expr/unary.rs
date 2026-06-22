@@ -3,12 +3,12 @@
 #![allow(unused_variables)]
 
 use dices_ast::expr::unary::{UnOp, UnaryExpr};
-use dices_values::{Value, int::ValueInt};
+use dices_values::{Value, cast::push_down_if_injected, int::ValueInt};
 
 use crate::{EvalError, context::Context, utils::deep_sum, var_use::VarUse};
 
 pub fn eval(expr: &UnaryExpr, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
-    let operand = super::eval(&expr.operand, cx)?;
+    let operand = push_down_if_injected(super::eval(&expr.operand, cx)?)?;
     match expr.op {
         // Math
         UnOp::Plus => eval_plus(operand),

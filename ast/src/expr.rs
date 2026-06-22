@@ -46,4 +46,6 @@ pub enum Expr {
     Closure(Arc<ClosureExpr>),
     /// Call expression
     Call(Box<CallExpr>),
+    /// Standard library constant
+    Std
 }

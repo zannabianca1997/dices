@@ -8,7 +8,7 @@ use phf::phf_set;
 
 use crate::string::ValueString;
 
-static KEYWORDS: phf::Set<&'static str> = phf_set!("d", "kh", "kl", "rh", "rl", "let");
+static KEYWORDS: phf::Set<&'static str> = phf_set!("d", "kh", "kl", "rh", "rl", "let", "std");
 
 /// A valid identifier
 ///

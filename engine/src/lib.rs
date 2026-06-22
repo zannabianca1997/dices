@@ -58,6 +58,8 @@ pub enum EvalError {
         lhs: CastIntoIntError,
         rhs: CastIntoIntError,
     },
+    #[snafu(display("Cannot compare value of type {} with value of type {}", lhs.typ(), rhs.typ()))]
+    IncomparableValues { lhs: Value, rhs: Value },
     #[snafu(display("Unknown variable {name}"))]
     VariableDoNotExists { name: Identifier },
     #[snafu(display("Error in calling value of type {}", value.typ()))]

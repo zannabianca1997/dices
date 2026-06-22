@@ -96,14 +96,14 @@ pub fn deep_apply(
 pub struct DicesOrd(pub Value);
 
 impl DicesOrd {
-    fn from_ref(value: &Value) -> &Self {
+    pub fn from_ref(value: &Value) -> &Self {
         unsafe {
             // Safety: `#[repr(transparent)]`
             &*(value as *const _ as *const _)
         }
     }
 
-    fn from_slice_ref(slice: &[Value]) -> &[Self] {
+    pub fn from_slice_ref(slice: &[Value]) -> &[Self] {
         unsafe {
             // Safety: `#[repr(transparent)]`
             &*(slice as *const _ as *const _)

@@ -23,7 +23,7 @@ pub(crate) fn build_statement(
                         match assign_inner.as_rule() {
                             Rule::let_stmt => build_let(assign_inner, input),
                             Rule::set_stmt => build_set(assign_inner, input),
-                            r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
+                            r => crate::unexpected_rule(r),
                         }
                     }
                     _ => Ok(Statement::Expr(build_expr(inner, input)?)),
@@ -36,10 +36,10 @@ pub(crate) fn build_statement(
             match inner.as_rule() {
                 Rule::let_stmt => build_let(inner, input),
                 Rule::set_stmt => build_set(inner, input),
-                r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
+                r => crate::unexpected_rule(r),
             }
         }
-        r => crate::UnexpectedRuleSnafu { rule: r }.fail(),
+        r => crate::unexpected_rule(r),
     }
 }
 

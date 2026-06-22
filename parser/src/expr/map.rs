@@ -19,7 +19,7 @@ pub(super) fn build_map_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Ex
                 let span = key_pair.as_span();
                 LiteralString(input.slice(span.start()..span.end()).unwrap())
             }
-            r => return crate::UnexpectedRuleSnafu { rule: r }.fail(),
+            r => crate::unexpected_rule(r),
         };
         let value = build_expr(value_pair, input)?;
         items.push((key, value));

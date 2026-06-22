@@ -30,8 +30,6 @@ pub enum ParseError {
     IntParse { source: <ValueInt as FromStr>::Err },
     #[snafu(display("Failed to unescape string"))]
     StringUnescape { source: EscapeError },
-    #[snafu(display("Unexpected rule: {rule:?}"))]
-    UnexpectedRule { rule: Rule },
     #[snafu(display("Invalid identifier: {text}"))]
     InvalidIdentifier { text: ValueString },
 }
@@ -41,6 +39,10 @@ pub fn parse_scope_inner(input: &ValueString) -> Result<ScopeInner, ParseError> 
     let mut pairs = Grammar::parse(Rule::main, raw).context(PestSnafu)?;
     let scope_inner_pair = pairs.next().unwrap();
     expr::scope::build_scope_inner(scope_inner_pair, input)
+}
+
+fn unexpected_rule(r:Rule)->! {
+    panic!("Unexpected rule {r:?}")
 }
 
 #[cfg(test)]
