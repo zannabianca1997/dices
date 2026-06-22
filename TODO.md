@@ -20,17 +20,13 @@
   - [ ] `call`
   - [ ] `sum`
   - [ ] `mult`
-- [ ] Sys
+- [x] Sys
   - [x] `now`
-  - [ ] `read` and `write` (if supported)
+  - [x] `read` and `write` (if supported)
 - [ ] Repl
   - [ ] `help`
   - [ ] `quit` (if supported)
   - [ ] `print`
-- [ ] Version
-  - [ ] `ast`
-  - [ ] `engine`
-  - [ ] `tui` (if in tui)
 - [ ] Prelude
 
 ## Tui
