@@ -202,7 +202,7 @@ impl<'a> Context for dyn InjectedContext + 'a {
 }
 
 #[derive(Debug, Clone)]
-pub struct Scope {
+pub(crate) struct Scope {
     vars: BTreeMap<Identifier, Value>,
 }
 

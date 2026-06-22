@@ -320,6 +320,7 @@ name = "dices-engine"
 version = "0.4.0"
 dependencies = [
  "dices-ast",
+ "dices-std",
  "dices-values",
  "itertools 0.15.0",
  "num",
@@ -348,6 +349,14 @@ dependencies = [
  "pretty",
  "pulldown-cmark",
  "serde",
+]
+
+[[package]]
+name = "dices-std"
+version = "0.4.0"
+dependencies = [
+ "chrono",
+ "dices-values",
 ]
 
 [[package]]
@@ -381,6 +390,7 @@ version = "0.4.0"
 dependencies = [
  "derive_more",
  "dices-print",
+ "dices-values-macros",
  "num",
  "paste",
  "pretty",
@@ -389,6 +399,15 @@ dependencies = [
  "snafu",
  "strum 0.28.0",
  "yoke",
+]
+
+[[package]]
+name = "dices-values-macros"
+version = "0.4.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
