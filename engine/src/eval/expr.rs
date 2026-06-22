@@ -8,10 +8,11 @@ mod call;
 mod closure;
 mod list;
 mod map;
+mod member_access;
 pub mod scope;
+mod std;
 mod unary;
 mod variable;
-mod std;
 
 pub fn eval(expr: &Expr, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
     match expr {
@@ -26,6 +27,7 @@ pub fn eval(expr: &Expr, cx: &mut (impl Context + ?Sized)) -> Result<Value, Eval
         Expr::Closure(closure_expr) => closure::eval(closure_expr, cx),
         Expr::Call(call_expr) => call::eval(call_expr, cx),
         Expr::Std => std::eval(cx),
+        Expr::MemberAccess(member_access_expr) => member_access::eval(member_access_expr, cx),
     }
 }
 
@@ -42,5 +44,6 @@ pub fn var_use(expr: &Expr) -> VarUse {
         Expr::Closure(closure_expr) => closure::var_use(closure_expr),
         Expr::Call(call_expr) => call::var_use(call_expr),
         Expr::Std => std::var_use(),
+        Expr::MemberAccess(member_access_expr) => member_access::var_use(member_access_expr),
     }
 }

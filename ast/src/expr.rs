@@ -3,7 +3,7 @@ use std::sync::Arc;
 use derive_more::{From, IsVariant, TryInto, TryUnwrap, Unwrap};
 use dices_values::Value;
 
-use crate::{identifier::Identifier, literal::Literal};
+use crate::{expr::member_access::MemberAccessExpr, identifier::Identifier, literal::Literal};
 use {
     binary::BinaryExpr, call::CallExpr, closure::ClosureExpr, list::ListExpr, map::MapExpr,
     scope::ScopeExpr, unary::UnaryExpr,
@@ -14,6 +14,7 @@ pub mod call;
 pub mod closure;
 pub mod list;
 pub mod map;
+pub mod member_access;
 pub mod scope;
 pub mod unary;
 
@@ -47,5 +48,7 @@ pub enum Expr {
     /// Call expression
     Call(Box<CallExpr>),
     /// Standard library constant
-    Std
+    Std,
+    /// Member access
+    MemberAccess(Box<MemberAccessExpr>),
 }

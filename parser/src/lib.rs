@@ -41,7 +41,7 @@ pub fn parse_scope_inner(input: &ValueString) -> Result<ScopeInner, ParseError> 
     expr::scope::build_scope_inner(scope_inner_pair, input)
 }
 
-fn unexpected_rule(r:Rule)->! {
+fn unexpected_rule(r: Rule) -> ! {
     panic!("Unexpected rule {r:?}")
 }
 

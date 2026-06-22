@@ -27,12 +27,17 @@ impl ValueString {
         Self(content)
     }
 
-    /// Create a new string from static data
-    pub const fn new_static(value: &'static str) -> Self {
-        let content = Yoke::new_owned(value);
+        /// Create a new string from static data
+        pub const fn new_static(value: &'static str) -> Self {
+            let content = Yoke::new_owned(value);
 
-        Self(content)
-    }
+            Self(content)
+        }
+
+            /// Empty string
+            pub const fn empty() -> Self {
+                Self::new_static("")
+            }
 
     /// Value as a string
     pub fn as_str(&self) -> &str {

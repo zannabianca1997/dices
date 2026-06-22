@@ -64,4 +64,10 @@ pub enum EvalError {
     VariableDoNotExists { name: Identifier },
     #[snafu(display("Error in calling value of type {}", value.typ()))]
     Call { value: Value, source: CallError },
+    #[snafu(display("Cannot index value of type {}", container.typ()))]
+    NonIndexable { container: Value },
+    #[snafu(display("Cannot index value of type {} with value of type {}", container.typ(), index.typ()))]
+    NonIndexableWith { container: Value, index: Value },
+    #[snafu(display("Cannot index with a list of lenght different that 2 (found {len})"))]
+    IndexingWithListNeedLenghtTwo { len: usize },
 }
