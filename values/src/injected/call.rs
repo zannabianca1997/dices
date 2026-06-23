@@ -62,7 +62,13 @@ pub trait InjectedContext {
     fn std(&self) -> ValueInjected;
 
     /// Print a value exactly like an expression result
-    fn print(&self, value: Value);
+    fn print(&self, value: Value) -> Result<(), Box<dyn Error>>;
+
+    /// Print a value exactly like an expression result
+    fn print_str(&self, value: ValueString) -> Result<(), Box<dyn Error>>;
+
+    /// Print a value exactly like an expression result
+    fn print_md(&self, value: ValueString) -> Result<(), Box<dyn Error>>;
 
     /// Display a manual page
     ///

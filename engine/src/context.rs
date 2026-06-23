@@ -1,5 +1,6 @@
 //! Evaluation context
 
+use std::error::Error;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
@@ -196,8 +197,24 @@ where
 }
 
 impl<U: Ui> Ui for EngineContext<'_, U> {
-    fn print(&self, value: impl Into<Value>) {
-        self.ui.print(value);
+    type PrintError = U::PrintError;
+
+    fn print(&self, value: impl Into<Value>) -> Result<(), Self::PrintError> {
+        self.ui.print(value)
+    }
+
+    fn print_str<V: AsRef<str> + Into<ValueString>>(
+        &self,
+        value: V,
+    ) -> Result<(), Self::PrintError> {
+        self.ui.print_str(value)
+    }
+
+    fn print_md<V: AsRef<str> + Into<ValueString>>(
+        &self,
+        value: V,
+    ) -> Result<(), Self::PrintError> {
+        self.ui.print_md(value)
     }
 
     fn manual(&self, page: impl Into<ValueString>) -> Result<(), ManualError> {
@@ -264,16 +281,24 @@ impl<U: Ui> InjectedContext for EngineContext<'_, U> {
         TypedValueInjected::type_erase(Context::std(self))
     }
 
-    fn abort(&mut self, reason: Value) -> ! {
-        Context::abort(self, reason)
-    }
-
-    fn print(&self, value: Value) {
-        Ui::print(self, value)
+    fn print(&self, value: Value) -> Result<(), Box<dyn Error>> {
+        Ui::print(self, value).map_err(Into::into)
     }
 
     fn manual(&self, page: ValueString) -> Result<(), ManualError> {
         Ui::manual(self, page)
+    }
+
+    fn abort(&mut self, reason: Value) -> ! {
+        Context::abort(self, reason)
+    }
+
+    fn print_str(&self, value: ValueString) -> Result<(), Box<dyn std::error::Error>> {
+        Ui::print_str(self, value).map_err(Into::into)
+    }
+
+    fn print_md(&self, value: ValueString) -> Result<(), Box<dyn std::error::Error>> {
+        Ui::print_md(self, value).map_err(Into::into)
     }
 }
 
@@ -372,12 +397,28 @@ impl Context for dyn InjectedContext + '_ {
 }
 
 impl Ui for dyn InjectedContext + '_ {
-    fn print(&self, value: impl Into<Value>) {
-        InjectedContext::print(self, value.into());
+    fn print(&self, value: impl Into<Value>) -> Result<(), Self::PrintError> {
+        InjectedContext::print(self, value.into())
     }
 
     fn manual(&self, page: impl Into<ValueString>) -> Result<(), ManualError> {
         InjectedContext::manual(self, page.into())
+    }
+
+    type PrintError = Box<dyn Error>;
+
+    fn print_str<V: AsRef<str> + Into<ValueString>>(
+        &self,
+        value: V,
+    ) -> Result<(), Self::PrintError> {
+        InjectedContext::print_str(self, value.into())
+    }
+
+    fn print_md<V: AsRef<str> + Into<ValueString>>(
+        &self,
+        value: V,
+    ) -> Result<(), Self::PrintError> {
+        InjectedContext::print_md(self, value.into())
     }
 }
 

@@ -55,13 +55,34 @@ pub enum CommandError {
 struct Ui<'a>(&'a Skin);
 
 impl dices_engine::ui::Ui for Ui<'_> {
-    fn print(&self, value: impl Into<Value>) {
+    fn print(&self, value: impl Into<Value>) -> Result<(), Self::PrintError> {
         print_value(self.0, value.into()).unwrap();
-        println!()
+        println!();
+        Ok(())
     }
 
     fn manual(&self, _page: impl Into<ValueString>) -> Result<(), ManualError> {
         todo!()
+    }
+
+    type PrintError = Error;
+
+    fn print_str<V: AsRef<str> + Into<ValueString>>(
+        &self,
+        value: V,
+    ) -> Result<(), Self::PrintError> {
+        print!("{}", value.as_ref());
+        if !value.as_ref().ends_with('\n') {
+            println!()
+        }
+        Ok(())
+    }
+
+    fn print_md<V: AsRef<str> + Into<ValueString>>(
+        &self,
+        value: V,
+    ) -> Result<(), Self::PrintError> {
+        print_markdown(self.0, value.as_ref())
     }
 }
 

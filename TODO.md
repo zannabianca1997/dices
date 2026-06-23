@@ -26,7 +26,7 @@
 - [ ] Repl
   - [ ] `help`
   - [x] `quit`
-  - [ ] `print`
+  - [x] `print`
 - [ ] Prelude
 
 ## Tui

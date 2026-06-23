@@ -64,11 +64,19 @@ impl InjectedContext for DummyCx {
         panic!()
     }
 
-    fn print(&self, _value: Value) {
+    fn print(&self, _value: Value) -> Result<(), Box<dyn std::error::Error>> {
         panic!()
     }
 
     fn manual(&self, _page: ValueString) -> Result<(), ManualError> {
+        panic!()
+    }
+
+    fn print_str(&self, _value: ValueString) -> Result<(), Box<dyn std::error::Error>> {
+        panic!()
+    }
+
+    fn print_md(&self, _value: ValueString) -> Result<(), Box<dyn std::error::Error>> {
         panic!()
     }
 }

@@ -11,6 +11,8 @@ use dices_values::{
 pub struct Repl {
     quit: Quit,
     print: Print,
+    print_str: PrintStr,
+    print_markdown: PrintMarkdown,
     help: Help,
 }
 
@@ -19,18 +21,40 @@ impl Repl {
         Self {
             quit: Quit,
             print: Print,
+            print_str: PrintStr,
+            print_markdown: PrintMarkdown,
             help: Help,
         }
     }
 }
 
 /// Print the given values
-// TODO: change return to ! when stable
 #[injectable]
-fn Print(#[cx] cx: &mut (impl InjectedContext + ?Sized), args: &mut [Value]) {
+fn Print(
+    #[cx] cx: &mut (impl InjectedContext + ?Sized),
+    args: &mut [Value],
+) -> Result<(), Box<dyn std::error::Error>> {
     for value in args {
-        cx.print(mem::take(value));
+        cx.print(mem::take(value))?;
     }
+    Ok(())
+}
+/// Print the given string as text
+#[injectable]
+fn PrintStr(
+    #[cx] cx: &mut (impl InjectedContext + ?Sized),
+    value: ValueString,
+) -> Result<(), Box<dyn std::error::Error>> {
+    cx.print_str(value)
+}
+
+/// Print the given string as markdown
+#[injectable]
+fn PrintMarkdown(
+    #[cx] cx: &mut (impl InjectedContext + ?Sized),
+    value: ValueString,
+) -> Result<(), Box<dyn std::error::Error>> {
+    cx.print_md(value)
 }
 
 /// Stop the calculation and return immediately

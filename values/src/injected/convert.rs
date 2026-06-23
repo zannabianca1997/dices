@@ -118,11 +118,11 @@ pub trait ReturnFallibleViaSerialize<T> {
 impl<T, E> ReturnFallibleViaSerialize<Result<T, E>> for &&RetTag<Result<T, E>>
 where
     T: Serialize,
-    E: Error + 'static,
+    E: Into<BoxError>,
 {
     fn convert(&self, value: Result<T, E>) -> Result<Value, BoxError> {
-        let value = value.map_err(|err| Box::new(err) as BoxError)?;
-        crate::serde::to_value(&value).map_err(|err| Box::new(err) as BoxError)
+        let value = value.map_err(Into::into)?;
+        crate::serde::to_value(&value).map_err(Into::into)
     }
 }
 
@@ -135,10 +135,10 @@ impl<T, E> ReturnFallibleViaTryInto<Result<T, E>> for &&&RetTag<Result<T, E>>
 where
     T: TryInto<Value>,
     T::Error: Into<BoxError>,
-    E: Error + 'static,
+    E: Into<BoxError>,
 {
     fn convert(&self, value: Result<T, E>) -> Result<Value, BoxError> {
-        let value = value.map_err(|err| Box::new(err) as BoxError)?;
+        let value = value.map_err(Into::into)?;
         value.try_into().map_err(Into::into)
     }
 }
