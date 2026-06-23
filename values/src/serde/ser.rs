@@ -25,8 +25,8 @@ use serde::{
 
 use super::error::{Error, Result};
 use crate::{
-    Value, bool::ValueBool, int::ValueInt, list::ValueList, map::ValueMap, null::ValueNull,
-    string::ValueString,
+    Value, bool::ValueBool, cast::push_down_injected, int::ValueInt, list::ValueList,
+    map::ValueMap, null::ValueNull, string::ValueString,
 };
 
 /// Serialize a value into a [`Value`].
@@ -660,10 +660,17 @@ impl Serialize for Value {
                 }
                 entries.end()
             }
-            Value::Injected(value_injected) => Err(ser::Error::custom(format_args!(
-                "Injected value `{}` is not serializable",
-                value_injected.description()
-            ))),
+            Value::Injected(value_injected) => {
+                let value = push_down_injected(value_injected.clone())
+                    .map_err(serde::ser::Error::custom)?;
+                if let Value::Injected(value_injected) = value {
+                    return Err(ser::Error::custom(format_args!(
+                        "Injected value `{}` is not serializable",
+                        value_injected.description()
+                    )));
+                };
+                value.serialize(serializer)
+            }
         }
     }
 }

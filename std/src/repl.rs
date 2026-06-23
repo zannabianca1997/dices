@@ -58,7 +58,6 @@ fn PrintMarkdown(
 }
 
 /// Stop the calculation and return immediately
-// TODO: change return to ! when stable
 #[injectable]
 fn Help(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),

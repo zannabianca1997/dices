@@ -10,11 +10,13 @@
 - [x] Rng
   - [x] `seed`
   - [x] `save` and `restore`
-- [ ] Conversions
-  - [ ] `to_json`, `from_json`
-  - [ ] `parse`, `to_string`
-  - [ ] `to_list`
-  - [ ] `to_number`
+- [x] Conversions
+  - [x] `to_json`, `from_json` (as `convert.json.serialize`/`deserialize`)
+  - [x] `parse` (as `convert.dices.serialize`)
+  - [x] `to_string` (as `convert.string`)
+  - [x] `to_list` (as `convert.list`)
+  - [x] `to_number` (as `convert.number`)
+  - [x] `to_bool` (as `convert.bool`)
 - [x] Variadics
   - [x] `join`
   - [x] `call`

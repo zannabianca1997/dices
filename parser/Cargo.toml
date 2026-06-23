@@ -9,6 +9,7 @@ dices-ast.workspace = true
 dices-values.workspace = true
 
 derive_more.workspace = true
+itertools.workspace = true
 pest = "2.8.6"
 pest_derive = "2.8.6"
 snafu.workspace = true

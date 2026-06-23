@@ -23,8 +23,8 @@ use snafu::OptionExt;
 
 use super::error::{Error, IntegerOutOfRangeSnafu, Result};
 use crate::{
-    Value, bool::ValueBool, int::ValueInt, list::ValueList, map::ValueMap, null::ValueNull,
-    string::ValueString,
+    Value, bool::ValueBool, cast::push_down_if_injected, int::ValueInt, list::ValueList,
+    map::ValueMap, null::ValueNull, string::ValueString,
 };
 
 /// Deserialize a value out of a [`Value`].
@@ -60,7 +60,8 @@ impl<'de> de::Deserializer<'de> for ValueDeserializer {
     where
         V: Visitor<'de>,
     {
-        match self.0 {
+        let value = push_down_if_injected(self.0).map_err(serde::de::Error::custom)?;
+        match value {
             Value::Null(_) => visitor.visit_unit(),
             Value::Bool(b) => visitor.visit_bool(b.get()),
             Value::Int(int) => {

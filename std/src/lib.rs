@@ -2,11 +2,13 @@
 
 use dices_values::Injectable;
 
+use convert::Convert;
 use serde::{Deserialize, Serialize};
 use sys::Sys;
 
 use {ops::Ops, repl::Repl, rng::Rng};
 
+mod convert;
 mod ops;
 mod repl;
 mod rng;
@@ -19,6 +21,7 @@ pub struct Std {
     rng: Rng,
     ops: Ops,
     repl: Repl,
+    convert: Convert,
 }
 
 impl Std {
@@ -28,6 +31,7 @@ impl Std {
             rng: Rng::new(),
             ops: Ops::new(),
             repl: Repl::new(),
+            convert: Convert::new(),
         }
     }
 }

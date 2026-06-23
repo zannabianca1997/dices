@@ -17,8 +17,10 @@ pub(crate) mod literal;
 pub(crate) mod expr;
 pub(crate) mod statement;
 
+pub mod value;
+
 #[derive(Parser)]
-#[grammar = "grammar.pest"]
+#[grammar = "ast.pest"]
 struct Grammar;
 
 #[derive(Debug, Snafu)]
