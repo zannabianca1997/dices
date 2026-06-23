@@ -15,11 +15,11 @@
   - [ ] `parse`, `to_string`
   - [ ] `to_list`
   - [ ] `to_number`
-- [ ] Variadics
-  - [ ] `join`
-  - [ ] `call`
-  - [ ] `sum`
-  - [ ] `mult`
+- [x] Variadics
+  - [x] `join`
+  - [x] `call`
+  - [x] `sum`
+  - [ ] `mult` (deferred, need to think of the behaviour)
 - [x] Sys
   - [x] `now`
   - [x] `read` and `write` (if supported)

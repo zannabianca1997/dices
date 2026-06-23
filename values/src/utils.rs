@@ -69,7 +69,7 @@ pub fn deep_sum(values: impl IntoIterator<Item = Value>) -> Result<ValueInt, Cas
         .try_fold(ValueInt::ZERO, |a, b| b.map(|b| a + b))
 }
 
-/// Force the value to integer and apply a fallible function. If the value is a
+/// Force the value to integer and apply a function. If the value is a
 /// collection, mantain it's shape and do it on it's elements instead.
 pub fn deep_apply(
     value: Value,

@@ -6,7 +6,8 @@ use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    FnArg, ItemFn, PatType, ReturnType, Type, TypeReference, TypeSlice, parse2, spanned::Spanned,
+    FnArg, ItemFn, PatType, ReturnType, Token, Type, TypeReference, TypeSlice, parse2,
+    spanned::Spanned,
 };
 
 use crate::derive::describable_impl;
@@ -32,7 +33,7 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
     // `Some(i)` means it is the `i`-th value parameter.
     let mut order: Vec<Option<usize>> = Vec::new();
     // Variadic parameter position
-    let mut variadic: Option<&Type> = None;
+    let mut variadic: Option<(&Option<Token![mut]>, &Type)> = None;
 
     for (position, input) in func.sig.inputs.iter().with_position() {
         match input {
@@ -53,9 +54,7 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
                     cx_seen = true;
                     order.push(None);
                 } else if let Type::Reference(TypeReference {
-                    mutability: None,
-                    elem,
-                    ..
+                    mutability, elem, ..
                 }) = &**ty
                     && let Type::Slice(TypeSlice { elem, .. }) = &**elem
                 {
@@ -65,7 +64,7 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
                             "variadic parameters must be last",
                         ));
                     }
-                    variadic = Some(elem);
+                    variadic = Some((mutability, elem));
                 } else {
                     order.push(Some(value_tys.len()));
                     value_tys.push(ty);
@@ -102,9 +101,9 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
                     .convert(::core::clone::Clone::clone(#slot))?;
             }
         })
-        .chain(variadic.map(|ty| {
+        .chain(variadic.map(|(mutability, ty)| {
             quote! {
-                let __values: ::std::vec::Vec<#ty> = __args.iter().map(|item| {
+                let #mutability __values: ::std::vec::Vec<#ty> = __args.iter().map(|item| {
                     (&&::dices_values::injected::convert::ArgTag::<#ty>::new())
                         .convert(::core::clone::Clone::clone(item))
                 }).collect::<::core::result::Result<_, _>>()?;
@@ -121,7 +120,7 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
                 quote! { #bind }
             }
         })
-        .chain(variadic.map(|_| quote! { & __values }));
+        .chain(variadic.map(|(mutability, _)| quote! { & #mutability __values }));
 
     // The return type, used to drive the return conversion.
     let ret_ty = match &func.sig.output {

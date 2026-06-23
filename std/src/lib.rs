@@ -5,8 +5,9 @@ use dices_values::Injectable;
 use serde::{Deserialize, Serialize};
 use sys::Sys;
 
-use crate::rng::Rng;
+use crate::{ops::Ops, rng::Rng};
 
+mod ops;
 mod rng;
 mod sys;
 
@@ -15,6 +16,7 @@ mod sys;
 pub struct Std {
     sys: Sys,
     rng: Rng,
+    ops: Ops,
 }
 
 impl Std {
@@ -22,6 +24,7 @@ impl Std {
         Self {
             sys: Sys::new(filesystem),
             rng: Rng::new(),
+            ops: Ops::new(),
         }
     }
 }
