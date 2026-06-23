@@ -5,11 +5,12 @@ use dices_values::Injectable;
 use serde::{Deserialize, Serialize};
 use sys::Sys;
 
-use crate::{ops::Ops, rng::Rng};
+use {ops::Ops, repl::Repl, rng::Rng};
 
 mod ops;
 mod rng;
 mod sys;
+mod repl;
 
 /// Standard library
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
@@ -17,6 +18,7 @@ pub struct Std {
     sys: Sys,
     rng: Rng,
     ops: Ops,
+    repl: Repl,
 }
 
 impl Std {
@@ -25,6 +27,7 @@ impl Std {
             sys: Sys::new(filesystem),
             rng: Rng::new(),
             ops: Ops::new(),
+            repl: Repl::new(),
         }
     }
 }

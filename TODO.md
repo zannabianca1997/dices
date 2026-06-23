@@ -25,7 +25,7 @@
   - [x] `read` and `write` (if supported)
 - [ ] Repl
   - [ ] `help`
-  - [ ] `quit` (if supported)
+  - [x] `quit`
   - [ ] `print`
 - [ ] Prelude
 

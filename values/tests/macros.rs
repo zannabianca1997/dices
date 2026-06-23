@@ -59,6 +59,10 @@ impl InjectedContext for DummyCx {
     fn std(&self) -> ValueInjected {
         panic!()
     }
+
+    fn abort(&mut self, _: Value) -> ! {
+        panic!()
+    }
 }
 
 fn int(n: i64) -> Value {

@@ -2,8 +2,10 @@
 
 use std::hash::{Hash, Hasher};
 use std::mem;
+use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::{collections::BTreeMap, iter::once};
 
+use dices_ast::expr::scope::ScopeInner;
 use dices_ast::identifier::Identifier;
 use dices_std::Std;
 use dices_values::Value;
@@ -19,7 +21,7 @@ use rand::Rng;
 use rand_seeder::Seeder;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::Engine;
+use crate::{Engine, EvalError};
 
 pub(crate) trait Context {
     /// Seed the random number generator
@@ -63,12 +65,19 @@ pub(crate) trait Context {
 
     /// Get the standard library
     fn std(&self) -> TypedValueInjected<Std>;
+
+    /// Stop execution
+    fn abort(&mut self, reason: Value) -> !;
 }
 
 /// Evaluation context
 pub struct EngineContext<'engine> {
     engine: &'engine mut Engine,
     scopes: Vec<Scope>,
+}
+
+struct Abort {
+    reason: Value,
 }
 
 impl<'engine> EngineContext<'engine> {
@@ -89,7 +98,20 @@ impl<'engine> EngineContext<'engine> {
             .rev()
             .chain(once(&mut self.engine.globals))
     }
+
+    pub(crate) fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError> {
+        match catch_unwind(AssertUnwindSafe(|| {
+            crate::eval::expr::scope::eval_inner(stmt, self)
+        })) {
+            Ok(r) => r,
+            Err(err) => match err.downcast::<Abort>() {
+                Ok(abort) => Ok(abort.reason),
+                Err(panic) => resume_unwind(panic),
+            },
+        }
+    }
 }
+
 impl<'engine> Context for EngineContext<'engine> {
     fn rng_seed(&mut self, seed: impl Hash) {
         self.engine.rng = Seeder::from(seed).make_rng();
@@ -154,6 +176,13 @@ impl<'engine> Context for EngineContext<'engine> {
     fn std(&self) -> TypedValueInjected<Std> {
         self.engine.std.clone()
     }
+
+    fn abort(&mut self, reason: Value) -> ! {
+        #[cfg(not(panic = "unwind"))]
+        compile_error!("Panic must be implemented via unwind to support abort");
+
+        resume_unwind(Box::new(Abort { reason }))
+    }
 }
 
 impl InjectedContext for EngineContext<'_> {
@@ -213,6 +242,10 @@ impl InjectedContext for EngineContext<'_> {
 
     fn std(&self) -> ValueInjected {
         TypedValueInjected::type_erase(Context::std(self))
+    }
+
+    fn abort(&mut self, reason: Value) -> ! {
+        Context::abort(self, reason)
     }
 }
 
@@ -303,6 +336,10 @@ impl<'a> Context for dyn InjectedContext + 'a {
         InjectedContext::std(self)
             .downcast()
             .expect("Only the standard library should be returned from `std`")
+    }
+
+    fn abort(&mut self, reason: Value) -> ! {
+        InjectedContext::abort(self, reason)
     }
 }
 

@@ -52,7 +52,7 @@ impl Engine {
 
 impl Evaluator for Engine {
     fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError> {
-        eval::expr::scope::eval_inner(stmt, &mut EngineContext::new(self))
+        EngineContext::new(self).eval(stmt)
     }
 }
 

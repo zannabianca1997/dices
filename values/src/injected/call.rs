@@ -57,4 +57,7 @@ pub trait InjectedContext {
 
     /// Get the standard library
     fn std(&self) -> ValueInjected;
+
+    /// Stop execution
+    fn abort(&mut self, reason: Value) -> !;
 }
