@@ -393,6 +393,7 @@ dependencies = [
  "derive_more",
  "dices-print",
  "dices-values-macros",
+ "itertools 0.15.0",
  "lazy-regex",
  "num",
  "paste",

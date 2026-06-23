@@ -1,6 +1,4 @@
-// Operator stubs intentionally accept their operands and context without using
-// them yet; the real implementations land in a follow-up.
-#![allow(unused_variables)]
+//! Binary operators implementation
 
 use std::cmp::Ordering;
 
@@ -10,18 +8,18 @@ use dices_ast::expr::{
     unary::{UnOp, UnaryExpr},
 };
 use dices_values::{
-    Value, bool::ValueBool, cast::push_down_if_injected, int::ValueInt, list::ValueList,
+    Value,
+    bool::ValueBool,
+    cast::push_down_if_injected,
+    int::ValueInt,
+    list::ValueList,
     map::ValueMap,
+    utils::{DicesOrd, deep_apply, deep_sum, join_all},
 };
 use num::{Integer, ToPrimitive, Zero, traits::ConstZero};
 use snafu::OptionExt;
 
-use crate::{
-    EvalError, IncomparableValuesSnafu,
-    context::Context,
-    utils::{DicesOrd, deep_apply, deep_sum, join_all},
-    var_use::VarUse,
-};
+use crate::{EvalError, IncomparableValuesSnafu, context::Context, var_use::VarUse};
 
 pub fn eval(expr: &BinaryExpr, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
     // Repeat does not evaluate the body
@@ -97,7 +95,7 @@ pub fn var_use(expr: &BinaryExpr) -> VarUse {
 }
 
 fn eval_add(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    deep_sum([lhs, rhs]).map(Value::from)
+    deep_sum([lhs, rhs]).map(Value::from).map_err(Into::into)
 }
 
 fn eval_sub(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
@@ -106,9 +104,9 @@ fn eval_sub(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
 
 fn eval_mul(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
     match ValueInt::try_from(lhs.clone()) {
-        Ok(lhs) => deep_apply(rhs, &mut |value| Ok(lhs.clone() * value)),
+        Ok(lhs) => deep_apply(rhs, &mut |value| lhs.clone() * value).map_err(Into::into),
         Err(lhs_err) => match ValueInt::try_from(rhs) {
-            Ok(rhs) => deep_apply(lhs, &mut |value| Ok(value * rhs.clone())),
+            Ok(rhs) => deep_apply(lhs, &mut |value| value * rhs.clone()).map_err(Into::into),
             Err(rhs_err) => Err(EvalError::MulBetweenNonScalars {
                 lhs: lhs_err,
                 rhs: rhs_err,
@@ -122,7 +120,7 @@ fn eval_div(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
     if rhs.is_zero() {
         return Err(EvalError::DivisionByZero);
     }
-    deep_apply(lhs, &mut |value| Ok(value / rhs.clone()))
+    deep_apply(lhs, &mut |value| value / rhs.clone()).map_err(Into::into)
 }
 
 fn eval_rem(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
@@ -130,7 +128,7 @@ fn eval_rem(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
     if rhs.is_zero() {
         return Err(EvalError::DivisionByZero);
     }
-    deep_apply(lhs, &mut |value| Ok(value % rhs.clone()))
+    deep_apply(lhs, &mut |value| value % rhs.clone()).map_err(Into::into)
 }
 
 fn eval_eq(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
@@ -202,7 +200,7 @@ fn eval_or(lhs: Value, rhs: &Expr, cx: &mut (impl Context + ?Sized)) -> Result<V
 }
 
 fn eval_join(lhs: Value, rhs: Value) -> Result<Value, EvalError> {
-    join_all(&mut [lhs, rhs])
+    join_all(&mut [lhs, rhs]).map_err(Into::into)
 }
 
 fn eval_dice(lhs: Value, rhs: Value, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {

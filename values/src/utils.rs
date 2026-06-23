@@ -1,16 +1,19 @@
 use std::{cmp::Ordering, collections::BTreeMap, mem};
 
-use dices_values::{
-    Value, cast::push_down_if_injected, int::ValueInt, list::ValueList, map::ValueMap,
-    string::ValueString,
-};
 use itertools::Itertools;
 use num::traits::ConstZero;
 
-use crate::EvalError;
+use crate::{
+    Value,
+    cast::{CastInjectedError, CastIntoIntError, push_down_if_injected},
+    int::ValueInt,
+    list::ValueList,
+    map::ValueMap,
+    string::ValueString,
+};
 
 /// Push down all injected values
-fn push_down_all_injected(values: &mut [Value]) -> Result<(), EvalError> {
+fn push_down_all_injected(values: &mut [Value]) -> Result<(), CastInjectedError> {
     for dest in values {
         let value = mem::take(dest);
         *dest = push_down_if_injected(value)?;
@@ -18,7 +21,7 @@ fn push_down_all_injected(values: &mut [Value]) -> Result<(), EvalError> {
     Ok(())
 }
 
-pub fn join_all(values: &mut [Value]) -> Result<Value, EvalError> {
+pub fn join_all(values: &mut [Value]) -> Result<Value, CastInjectedError> {
     push_down_all_injected(values)?;
 
     // Map merge if all map
@@ -55,7 +58,7 @@ pub fn join_all(values: &mut [Value]) -> Result<Value, EvalError> {
 /// Sum all the values, recursing inside containers
 ///
 /// Used to implement sums and subs so that `3d6 + 3` works
-pub fn deep_sum(values: impl IntoIterator<Item = Value>) -> Result<ValueInt, EvalError> {
+pub fn deep_sum(values: impl IntoIterator<Item = Value>) -> Result<ValueInt, CastIntoIntError> {
     values
         .into_iter()
         .map(|value| match push_down_if_injected(value)? {
@@ -70,8 +73,8 @@ pub fn deep_sum(values: impl IntoIterator<Item = Value>) -> Result<ValueInt, Eva
 /// collection, mantain it's shape and do it on it's elements instead.
 pub fn deep_apply(
     value: Value,
-    op: &mut impl FnMut(ValueInt) -> Result<ValueInt, EvalError>,
-) -> Result<Value, EvalError> {
+    op: &mut impl FnMut(ValueInt) -> ValueInt,
+) -> Result<Value, CastIntoIntError> {
     match push_down_if_injected(value)? {
         Value::List(values) => values
             .into_iter()
@@ -83,7 +86,7 @@ pub fn deep_apply(
             .map(|(key, value)| deep_apply(value, op).map(|value| (key, value)))
             .try_collect()
             .map(Value::Map),
-        other => op(ValueInt::try_from(other)?).map(Value::Int),
+        other => Ok(op(ValueInt::try_from(other)?).into()),
     }
 }
 

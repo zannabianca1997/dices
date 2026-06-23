@@ -22,6 +22,7 @@ pub mod null;
 pub mod string;
 
 pub mod cast;
+pub mod utils;
 
 #[cfg(feature = "macros")]
 pub use dices_values_macros::{Injectable, injectable};

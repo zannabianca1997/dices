@@ -14,7 +14,6 @@ use crate::context::EngineContext;
 
 pub mod context;
 mod eval;
-mod utils;
 mod var_use;
 
 pub trait Evaluator {

@@ -1,11 +1,9 @@
-// Operator stubs intentionally accept their operand and context without using
-// them yet; the real implementations land in a follow-up.
-#![allow(unused_variables)]
+//! Unary operator implementation
 
 use dices_ast::expr::unary::{UnOp, UnaryExpr};
-use dices_values::{Value, cast::push_down_if_injected, int::ValueInt};
+use dices_values::{Value, cast::push_down_if_injected, int::ValueInt, utils::deep_sum};
 
-use crate::{EvalError, context::Context, utils::deep_sum, var_use::VarUse};
+use crate::{EvalError, context::Context, var_use::VarUse};
 
 pub fn eval(expr: &UnaryExpr, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
     let operand = push_down_if_injected(super::eval(&expr.operand, cx)?)?;
@@ -25,11 +23,13 @@ pub fn var_use(expr: &UnaryExpr) -> VarUse {
 }
 
 fn eval_plus(operand: Value) -> Result<Value, EvalError> {
-    deep_sum([operand]).map(Value::from)
+    deep_sum([operand]).map(Value::from).map_err(Into::into)
 }
 
 fn eval_minus(operand: Value) -> Result<Value, EvalError> {
-    deep_sum([operand]).map(|int| Value::from(-int))
+    deep_sum([operand])
+        .map(|int| Value::from(-int))
+        .map_err(Into::into)
 }
 
 fn eval_not(operand: Value) -> Result<Value, EvalError> {
