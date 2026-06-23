@@ -124,9 +124,13 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
 
     // The return type, used to drive the return conversion.
     let ret_conversion = match &func.sig.output {
-        ReturnType::Default => quote! { let () = __ret; ::std::result::Result::Ok(::dices_values::Value::Null(::dices_values::null::ValueNull)) },
+        ReturnType::Default => {
+            quote! { let () = __ret; ::std::result::Result::Ok(::dices_values::Value::Null(::dices_values::null::ValueNull)) }
+        }
         ReturnType::Type(_, ty) if matches!(**ty, Type::Never(_)) => quote! { __ret },
-        ReturnType::Type(_, ty) => quote! { (&&&&::dices_values::injected::convert::RetTag::<#ty>::new()).convert(__ret) },
+        ReturnType::Type(_, ty) => {
+            quote! { (&&&&::dices_values::injected::convert::RetTag::<#ty>::new()).convert(__ret) }
+        }
     };
 
     // The context parameter is named `cx` when the function actually uses one,

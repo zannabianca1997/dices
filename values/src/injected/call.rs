@@ -1,11 +1,14 @@
 use std::{any::Any, error::Error};
 
+use snafu::Snafu;
+
 use crate::{
     Value,
     identifier::Identifier,
     injected::ValueInjected,
     int::ValueInt,
     serde::{de::ValueDeserializer, ser::ValueSerializer},
+    string::ValueString,
 };
 
 /// Wrapped value is callable
@@ -58,6 +61,20 @@ pub trait InjectedContext {
     /// Get the standard library
     fn std(&self) -> ValueInjected;
 
+    /// Print a value exactly like an expression result
+    fn print(&self, value: Value);
+
+    /// Display a manual page
+    ///
+    /// Returns only when the user exit the page
+    fn manual(&self, page: ValueString) -> Result<(), ManualError>;
+
     /// Stop execution
     fn abort(&mut self, reason: Value) -> !;
+}
+
+#[derive(Debug, Snafu)]
+pub enum ManualError {
+    #[snafu(display("Unknown manual page {page}"))]
+    UnknownPage { page: ValueString },
 }

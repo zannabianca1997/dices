@@ -10,20 +10,22 @@ use dices_ast::identifier::Identifier;
 use dices_std::Std;
 use dices_values::Value;
 use dices_values::injected::ValueInjected;
-use dices_values::injected::call::InjectedContext;
+use dices_values::injected::call::{InjectedContext, ManualError};
 use dices_values::injected::typed::TypedValueInjected;
 use dices_values::int::ValueInt;
 use dices_values::serde::de::ValueDeserializer;
 use dices_values::serde::ser::ValueSerializer;
+use dices_values::string::ValueString;
 use num::FromPrimitive;
 use num::traits::ConstOne;
 use rand::Rng;
 use rand_seeder::Seeder;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::ui::Ui;
 use crate::{Engine, EvalError};
 
-pub(crate) trait Context {
+pub(crate) trait Context: Ui {
     /// Seed the random number generator
     fn rng_seed(&mut self, seed: impl Hash);
 
@@ -61,7 +63,7 @@ pub(crate) trait Context {
     /// Get a mutable variable value
     fn var_mut(&mut self, name: &Identifier) -> Option<&mut Value>;
 
-    fn inject(&mut self) -> &mut dyn InjectedContext;
+    fn as_injected(&mut self) -> &mut dyn InjectedContext;
 
     /// Get the standard library
     fn std(&self) -> TypedValueInjected<Std>;
@@ -71,21 +73,23 @@ pub(crate) trait Context {
 }
 
 /// Evaluation context
-pub struct EngineContext<'engine> {
+pub struct EngineContext<'engine, Ui> {
     engine: &'engine mut Engine,
     scopes: Vec<Scope>,
+    ui: Ui,
 }
 
 struct Abort {
     reason: Value,
 }
 
-impl<'engine> EngineContext<'engine> {
+impl<'engine, Ui> EngineContext<'engine, Ui> {
     /// Create a new context
-    pub(crate) fn new(engine: &'engine mut Engine) -> Self {
+    pub(crate) fn new(engine: &'engine mut Engine, ui: Ui) -> Self {
         Self {
             engine,
             scopes: vec![],
+            ui,
         }
     }
 
@@ -99,7 +103,10 @@ impl<'engine> EngineContext<'engine> {
             .chain(once(&mut self.engine.globals))
     }
 
-    pub(crate) fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError> {
+    pub(crate) fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError>
+    where
+        Ui: crate::ui::Ui,
+    {
         match catch_unwind(AssertUnwindSafe(|| {
             crate::eval::expr::scope::eval_inner(stmt, self)
         })) {
@@ -112,7 +119,10 @@ impl<'engine> EngineContext<'engine> {
     }
 }
 
-impl<'engine> Context for EngineContext<'engine> {
+impl<'engine, Ui> Context for EngineContext<'engine, Ui>
+where
+    Ui: crate::ui::Ui,
+{
     fn rng_seed(&mut self, seed: impl Hash) {
         self.engine.rng = Seeder::from(seed).make_rng();
     }
@@ -169,7 +179,7 @@ impl<'engine> Context for EngineContext<'engine> {
         res
     }
 
-    fn inject(&mut self) -> &mut dyn InjectedContext {
+    fn as_injected(&mut self) -> &mut dyn InjectedContext {
         self
     }
 
@@ -185,7 +195,17 @@ impl<'engine> Context for EngineContext<'engine> {
     }
 }
 
-impl InjectedContext for EngineContext<'_> {
+impl<U: Ui> Ui for EngineContext<'_, U> {
+    fn print(&self, value: impl Into<Value>) {
+        self.ui.print(value);
+    }
+
+    fn manual(&self, page: impl Into<ValueString>) -> Result<(), ManualError> {
+        self.ui.manual(page)
+    }
+}
+
+impl<U: Ui> InjectedContext for EngineContext<'_, U> {
     fn rng_seed(&mut self, seed: &[Value]) {
         Context::rng_seed(self, seed);
     }
@@ -247,9 +267,17 @@ impl InjectedContext for EngineContext<'_> {
     fn abort(&mut self, reason: Value) -> ! {
         Context::abort(self, reason)
     }
+
+    fn print(&self, value: Value) {
+        Ui::print(self, value)
+    }
+
+    fn manual(&self, page: ValueString) -> Result<(), ManualError> {
+        Ui::manual(self, page)
+    }
 }
 
-impl<'a> Context for dyn InjectedContext + 'a {
+impl Context for dyn InjectedContext + '_ {
     fn rng_seed(&mut self, seed: impl Hash) {
         /// Hasher storing all bytes as values
         struct HashToValues(Vec<Value>);
@@ -328,7 +356,7 @@ impl<'a> Context for dyn InjectedContext + 'a {
         InjectedContext::var_mut(self, name)
     }
 
-    fn inject(&mut self) -> &mut dyn InjectedContext {
+    fn as_injected(&mut self) -> &mut dyn InjectedContext {
         self
     }
 
@@ -340,6 +368,16 @@ impl<'a> Context for dyn InjectedContext + 'a {
 
     fn abort(&mut self, reason: Value) -> ! {
         InjectedContext::abort(self, reason)
+    }
+}
+
+impl Ui for dyn InjectedContext + '_ {
+    fn print(&self, value: impl Into<Value>) {
+        InjectedContext::print(self, value.into());
+    }
+
+    fn manual(&self, page: impl Into<ValueString>) -> Result<(), ManualError> {
+        InjectedContext::manual(self, page.into())
     }
 }
 

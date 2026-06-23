@@ -8,9 +8,9 @@ use sys::Sys;
 use {ops::Ops, repl::Repl, rng::Rng};
 
 mod ops;
+mod repl;
 mod rng;
 mod sys;
-mod repl;
 
 /// Standard library
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]

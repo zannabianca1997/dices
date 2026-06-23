@@ -9,7 +9,7 @@ use dices_values::{
     injectable,
     injected::{
         ValueInjected,
-        call::{Callable, InjectedContext},
+        call::{Callable, InjectedContext, ManualError},
     },
     int::ValueInt,
     serde::{de::ValueDeserializer, ser::ValueSerializer},
@@ -61,6 +61,14 @@ impl InjectedContext for DummyCx {
     }
 
     fn abort(&mut self, _: Value) -> ! {
+        panic!()
+    }
+
+    fn print(&self, _value: Value) {
+        panic!()
+    }
+
+    fn manual(&self, _page: ValueString) -> Result<(), ManualError> {
         panic!()
     }
 }

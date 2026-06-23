@@ -15,9 +15,23 @@ use crate::context::EngineContext;
 pub mod context;
 mod eval;
 mod var_use;
+pub mod ui {
+    use dices_values::{Value, injected::call::ManualError, string::ValueString};
+
+    /// Handler to the user interface
+    pub trait Ui {
+        /// Print a value exactly like an expression result
+        fn print(&self, value: impl Into<Value>);
+
+        /// Display a manual page
+        ///
+        /// Returns only when the user exit the page
+        fn manual(&self, page: impl Into<ValueString>) -> Result<(), ManualError>;
+    }
+}
 
 pub trait Evaluator {
-    fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError>;
+    fn eval<Ui: ui::Ui>(&mut self, stmt: &ScopeInner, ui: Ui) -> Result<Value, EvalError>;
 }
 
 /// An engine evaluating dices statements
@@ -51,8 +65,8 @@ impl Engine {
 }
 
 impl Evaluator for Engine {
-    fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError> {
-        EngineContext::new(self).eval(stmt)
+    fn eval<Ui: ui::Ui>(&mut self, stmt: &ScopeInner, ui: Ui) -> Result<Value, EvalError> {
+        EngineContext::new(self, ui).eval(stmt)
     }
 }
 

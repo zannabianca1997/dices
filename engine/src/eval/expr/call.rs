@@ -34,7 +34,7 @@ pub(crate) fn eval(expr: &CallExpr, cx: &mut (impl Context + ?Sized)) -> Result<
 
     cx.jail(|cx| {
         callable
-            .call(cx.inject(), &args)
+            .call(cx.as_injected(), &args)
             .context(CallSnafu { value: called })
     })
 }

@@ -8,7 +8,7 @@ use std::{
 
 use dices_engine::{Engine, Evaluator};
 use dices_std::Std;
-use dices_values::{Value, null::ValueNull};
+use dices_values::{Value, injected::call::ManualError, null::ValueNull, string::ValueString};
 use itertools::Itertools;
 use rand::{Rng, rngs::OsRng};
 use rand_seeder::Seeder;
@@ -17,7 +17,7 @@ use snafu::{ResultExt, Snafu};
 
 use crate::{
     cli::Cli,
-    config::Config,
+    config::{Config, skin::Skin},
     print::{print_error, print_markdown, print_value},
 };
 
@@ -52,6 +52,19 @@ pub enum CommandError {
     Eval { source: dices_engine::EvalError },
 }
 
+struct Ui<'a>(&'a Skin);
+
+impl dices_engine::ui::Ui for Ui<'_> {
+    fn print(&self, value: impl Into<Value>) {
+        print_value(self.0, value.into()).unwrap();
+        println!()
+    }
+
+    fn manual(&self, _page: impl Into<ValueString>) -> Result<(), ManualError> {
+        todo!()
+    }
+}
+
 fn main_inner(
     seed: Option<impl Hash>,
     Config {
@@ -84,7 +97,11 @@ fn main_inner(
         // Eval
         let eval = dices_parser::parse_scope_inner(&command.into())
             .map_err(CommandError::from)
-            .and_then(|scope_inner| engine.eval(&scope_inner).map_err(CommandError::from));
+            .and_then(|scope_inner| {
+                engine
+                    .eval(&scope_inner, Ui(skin))
+                    .map_err(CommandError::from)
+            });
 
         // Print
         match eval {
@@ -116,7 +133,11 @@ fn main_inner(
             // Eval
             let eval = dices_parser::parse_scope_inner(&read.into())
                 .map_err(CommandError::from)
-                .and_then(|scope_inner| engine.eval(&scope_inner).map_err(CommandError::from));
+                .and_then(|scope_inner| {
+                    engine
+                        .eval(&scope_inner, Ui(skin))
+                        .map_err(CommandError::from)
+                });
 
             // Print
             match eval {
