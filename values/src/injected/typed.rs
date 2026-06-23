@@ -81,7 +81,7 @@ impl<T> Clone for TypedValueInjected<T> {
     fn clone(&self) -> Self {
         Self {
             value: self.value.clone(),
-            _phantom: self._phantom.clone(),
+            _phantom: self._phantom,
         }
     }
 }

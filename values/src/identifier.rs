@@ -26,12 +26,12 @@ impl Identifier {
         // Must be a valid C identifier
         regex_is_match!(r"^[_a-zA-Z][_a-zA-Z0-9]*$", text)
         // Must not be made of only underscores
-        &&! text.chars().all(|ch| ch == '_')
+        && !text.chars().all(|ch| ch == '_')
         // Must not contain word operators at the start or between two
         // digits
-        &&! regex_is_match!(r"(?:^|[0-9])(?:d|kh|kl|rh|rl)(?:$|[0-9])", text)
+        && !regex_is_match!(r"(?:^|[0-9])(?:d|kh|kl|rh|rl)(?:$|[0-9])", text)
         // Must not be a keyword
-        &&! KEYWORDS.contains(text)
+        && !KEYWORDS.contains(text)
     }
 
     pub fn new(text: ValueString) -> Result<Self, ValueString> {
@@ -43,7 +43,7 @@ impl Identifier {
     }
 
     pub fn new_ref(text: &ValueString) -> Option<&Self> {
-        Self::is_valid(&text).then(|| unsafe {
+        Self::is_valid(text).then(|| unsafe {
             // Safety: `repr(transparent)`
             &*(text as *const _ as *const _)
         })

@@ -9,7 +9,7 @@ pub(super) fn eval(expr: &ScopeExpr, cx: &mut (impl Context + ?Sized)) -> Result
 
 pub fn eval_inner(expr: &ScopeInner, cx: &mut (impl Context + ?Sized)) -> Result<Value, EvalError> {
     for stmt in &expr.statements {
-        crate::eval::statement::eval(&stmt, cx)?;
+        crate::eval::statement::eval(stmt, cx)?;
     }
 
     if let Some(expr) = &expr.expr {

@@ -36,5 +36,8 @@ serde = { version = "1.0.228", features = ["derive"] }
 snafu = "0.9.1"
 strum = { version = "0.28.0", features = ["derive"] }
 
+[workspace.lints.clippy]
+result_large_err = "allow"
+
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

@@ -113,7 +113,7 @@ fn main_inner(
     // Execute command
     if let Some(command) = command.as_ref() {
         // Merge args into a single command
-        let command = command.into_iter().join(" ");
+        let command = command.iter().join(" ");
 
         // Eval
         let eval = dices_parser::parse_scope_inner(&command.into())

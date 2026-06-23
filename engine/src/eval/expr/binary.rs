@@ -91,7 +91,7 @@ pub fn var_use(expr: &BinaryExpr) -> VarUse {
         debug_assert!(rhs.lets.is_empty(), "Expressions cannot define variables");
     }
 
-    return lhs.then(rhs);
+    lhs.then(rhs)
 }
 
 fn eval_add(lhs: Value, rhs: Value) -> Result<Value, EvalError> {

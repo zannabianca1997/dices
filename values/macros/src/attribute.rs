@@ -123,13 +123,21 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
         .chain(variadic.map(|(mutability, _)| quote! { & #mutability __values }));
 
     // The return type, used to drive the return conversion.
-    let ret_conversion = match &func.sig.output {
+    let call_and_return = match &func.sig.output {
         ReturnType::Default => {
-            quote! { let () = __ret; ::std::result::Result::Ok(::dices_values::Value::Null(::dices_values::null::ValueNull)) }
+            quote! {
+                let () = Self::call(#(#call_args),*);
+                ::std::result::Result::Ok(::dices_values::Value::Null(::dices_values::null::ValueNull))
+            }
         }
-        ReturnType::Type(_, ty) if matches!(**ty, Type::Never(_)) => quote! { __ret },
+        ReturnType::Type(_, ty) if matches!(**ty, Type::Never(_)) => {
+            quote! { Self::call(#(#call_args),*) }
+        }
         ReturnType::Type(_, ty) => {
-            quote! { (&&&&::dices_values::injected::convert::RetTag::<#ty>::new()).convert(__ret) }
+            quote! {
+                let __ret = Self::call(#(#call_args),*);
+                (&&&&::dices_values::injected::convert::RetTag::<#ty>::new()).convert(__ret)
+            }
         }
     };
 
@@ -191,11 +199,7 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
                 };
                 #(#conversions)*
 
-                #[allow(unreachable_code)]
-                {
-                    let __ret = Self::call(#(#call_args),*);
-                    #ret_conversion
-                }
+                #call_and_return
             }
         }
 
