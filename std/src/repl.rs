@@ -15,6 +15,6 @@ impl Repl {
 /// Stop the calculation and return immediately
 // TODO: change return to ! when stable
 #[injectable]
-fn Quit(#[cx] cx: &mut (impl InjectedContext + ?Sized), reason: Value) -> Value {
+fn Quit(#[cx] cx: &mut (impl InjectedContext + ?Sized), reason: Value) -> ! {
     cx.abort(reason)
 }
