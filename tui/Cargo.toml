@@ -27,6 +27,7 @@ pretty = { workspace = true, features = ["termcolor"] }
 rand.workspace = true
 rand_seeder.workspace = true
 reedline = "0.48.0"
+rust-embed.workspace = true
 serde.workspace = true
 snafu.workspace = true
 toml = "1.1.2"

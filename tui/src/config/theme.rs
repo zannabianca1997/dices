@@ -4,20 +4,14 @@ use std::path::Path;
 
 use dices_print::{Annotation, PromptElement};
 use pretty::termcolor::{Color as TermColor, ColorSpec};
+use rust_embed::Embed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Themes bundled into the binary, written to disk on first run.
-static BUNDLED: &[(&str, &str)] = &[
-    (
-        "CatppuccinLatte",
-        include_str!("themes/CatppuccinLatte.toml"),
-    ),
-    (
-        "CatppuccinMocha",
-        include_str!("themes/CatppuccinMocha.toml"),
-    ),
-    ("LowColor", include_str!("themes/LowColor.toml")),
-];
+#[derive(Embed)]
+#[folder = "$CARGO_MANIFEST_DIR/themes"]
+struct Themes;
+
 const DEFAULT_TRUE_COLORS: &str = "CatppuccinMocha";
 const DEFAULT_LOW_COLORS: &str = "LowColor";
 
@@ -25,10 +19,10 @@ const DEFAULT_LOW_COLORS: &str = "LowColor";
 /// mirroring `write_config_file_if_not_exists`.
 pub fn write_themes_if_not_exists(themes_dir: &Path) -> io::Result<()> {
     fs::create_dir_all(themes_dir)?;
-    for (name, content) in BUNDLED {
-        let path = themes_dir.join(format!("{name}.toml"));
+    for name in Themes::iter() {
+        let path = themes_dir.join(&*name);
         match File::create_new(&path) {
-            Ok(mut file) => file.write_all(content.as_bytes())?,
+            Ok(mut file) => file.write_all(&Themes::get(&name).unwrap().data)?,
             Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {}
             Err(err) => return Err(err),
         }
@@ -265,8 +259,9 @@ mod tests {
     /// path/`SerDeColorSpec` schema, guarding the embedded TOML from drift.
     #[test]
     fn bundled_themes_are_valid() {
-        for (name, content) in BUNDLED {
-            toml::from_str::<dices_print::theme::Theme<SerDeColorSpec>>(content)
+        for name in Themes::iter() {
+            let content = Themes::get(&*name).unwrap().data;
+            toml::from_slice::<dices_print::theme::Theme<SerDeColorSpec>>(&content)
                 .unwrap_or_else(|err| panic!("bundled theme `{name}` is invalid: {err}"));
         }
     }
@@ -279,8 +274,8 @@ mod tests {
         write_themes_if_not_exists(&dir).expect("first write");
         write_themes_if_not_exists(&dir).expect("second write is a no-op");
 
-        for (name, _) in BUNDLED {
-            assert!(dir.join(format!("{name}.toml")).is_file(), "{name} written");
+        for name in Themes::iter() {
+            assert!(dir.join(&*name).is_file(), "{name} written");
         }
         let _ = fs::remove_dir_all(&dir);
     }

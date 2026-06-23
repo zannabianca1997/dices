@@ -352,6 +352,19 @@ impl From<String> for ValueString {
         Self::new(value)
     }
 }
+impl From<&'static str> for ValueString {
+    fn from(value: &'static str) -> Self {
+        Self::new_static(value)
+    }
+}
+impl From<Cow<'static, str>> for ValueString {
+    fn from(value: Cow<'static, str>) -> Self {
+        match value {
+            Cow::Borrowed(b) => b.into(),
+            Cow::Owned(o) => o.into(),
+        }
+    }
+}
 
 impl Default for ValueString {
     fn default() -> Self {
