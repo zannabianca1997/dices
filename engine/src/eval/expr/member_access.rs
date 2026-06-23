@@ -3,7 +3,7 @@ use dices_values::{
     Value, cast::push_down_if_injected, int::ValueInt, list::ValueList, map::ValueMap,
     string::ValueString,
 };
-use num::{FromPrimitive, ToPrimitive, traits::ConstZero};
+use num::{FromPrimitive, Integer, ToPrimitive, traits::ConstZero};
 
 use crate::{EvalError, context::Context, var_use::VarUse};
 
@@ -32,7 +32,8 @@ pub(crate) fn eval(
 }
 
 fn index_string(value_string: ValueString, index: Value) -> Result<Value, EvalError> {
-    let len = ValueInt::from_usize(value_string.chars().count()).unwrap();
+    let mut len = ValueInt::from_usize(value_string.chars().count()).unwrap();
+    len.dec();
     match into_sequence_index(index)? {
         SequenceIndex::Item { idx } => {
             let idx = idx.clamp(ValueInt::ZERO, len).to_usize().unwrap();
@@ -62,16 +63,17 @@ fn index_string(value_string: ValueString, index: Value) -> Result<Value, EvalEr
 
             let mut indices = value_string.char_indices();
 
-            let (start, _) = indices.nth(start).unwrap();
-            let (stop, _) = indices.nth(stop - start).unwrap();
+            let (start_idx, _) = indices.nth(start).unwrap();
+            let (stop_idx, _) = indices.nth(stop - start - 1).unwrap();
 
-            Ok(value_string.slice(start..stop).unwrap().into())
+            Ok(value_string.slice(start_idx..stop_idx).unwrap().into())
         }
     }
 }
 
 fn index_list(value_list: ValueList, index: Value) -> Result<Value, EvalError> {
-    let len = ValueInt::from_usize(value_list.len()).unwrap();
+    let mut len = ValueInt::from_usize(value_list.len()).unwrap();
+    len.dec();
     match into_sequence_index(index)? {
         SequenceIndex::Item { idx } => {
             let idx = idx.clamp(ValueInt::ZERO, len).to_usize().unwrap();
