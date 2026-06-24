@@ -2,7 +2,7 @@
 
 use std::{borrow::Cow, iter::repeat, usize};
 
-use dices_print::{Annotation, markdown::Markdown};
+use dices_print::{Element, markdown::Markdown};
 use itertools::Itertools;
 use pretty::{DocAllocator, DocBuilder, Pretty};
 use rust_embed::Embed;
@@ -129,12 +129,12 @@ impl ManItem {
     }
 }
 
-impl<'a, D> Pretty<'a, D, Annotation> for &ManItem
+impl<'a, D> Pretty<'a, D, Element> for &ManItem
 where
-    D: DocAllocator<'a, Annotation> + 'a,
-    DocBuilder<'a, D, Annotation>: Clone,
+    D: DocAllocator<'a, Element> + 'a,
+    DocBuilder<'a, D, Element>: Clone,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
         let title = if self.path().is_empty() {
             format!("# {}\n\n", self.title())
         } else {

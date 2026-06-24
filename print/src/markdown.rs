@@ -1,7 +1,7 @@
 use pretty::{DocAllocator, DocBuilder, Pretty};
 use pulldown_cmark::{Event, Parser, Tag, TagEnd};
 
-use crate::{Annotation, List, ListStyle, MarkdownElement};
+use crate::{Element, List, ListStyle, MarkdownElement};
 
 pub struct Markdown<T>(pub T);
 
@@ -26,14 +26,14 @@ impl ListCtx {
     }
 }
 
-fn tag_annotation(tag: &Tag<'_>) -> Option<Annotation> {
+fn tag_annotation(tag: &Tag<'_>) -> Option<Element> {
     match tag {
-        Tag::Paragraph => Some(Annotation::Markdown(None)),
-        Tag::Heading { level, .. } => Some(Annotation::Markdown(Some(MarkdownElement::Header {
+        Tag::Paragraph => Some(Element::Markdown(None)),
+        Tag::Heading { level, .. } => Some(Element::Markdown(Some(MarkdownElement::Header {
             level: *level as u8,
         }))),
-        Tag::Strong => Some(Annotation::Markdown(Some(MarkdownElement::Bold))),
-        Tag::Emphasis => Some(Annotation::Markdown(Some(MarkdownElement::Italic))),
+        Tag::Strong => Some(Element::Markdown(Some(MarkdownElement::Bold))),
+        Tag::Emphasis => Some(Element::Markdown(Some(MarkdownElement::Italic))),
         _ => None,
     }
 }
@@ -45,15 +45,15 @@ fn is_supported_end(tag_end: &TagEnd) -> bool {
     )
 }
 
-impl<'a, D, T> Pretty<'a, D, Annotation> for Markdown<T>
+impl<'a, D, T> Pretty<'a, D, Element> for Markdown<T>
 where
-    D: DocAllocator<'a, Annotation> + 'a,
-    DocBuilder<'a, D, Annotation>: Clone,
+    D: DocAllocator<'a, Element> + 'a,
+    DocBuilder<'a, D, Element>: Clone,
     T: AsRef<str>,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
         let mut doc = allocator.nil();
-        let mut annotations: Vec<Annotation> = Vec::new();
+        let mut annotations: Vec<Element> = Vec::new();
         let mut lists: Vec<ListCtx> = Vec::new();
         // Whether any content has been appended yet, so the first list item does
         // not start with a spurious leading blank line.
@@ -66,10 +66,10 @@ where
                         ordered: start,
                         marker_width: 0,
                     };
-                    annotations.push(Annotation::List {
+                    annotations.push(Element::Markdown(Some(MarkdownElement::List {
                         style: ctx.style(),
                         element: None,
-                    });
+                    })));
                     lists.push(ctx);
                 }
                 Event::Start(Tag::Item) => {
@@ -94,17 +94,19 @@ where
                     };
                     ctx.marker_width = marker.len();
 
-                    annotations.push(Annotation::List {
+                    annotations.push(Element::Markdown(Some(MarkdownElement::List {
                         style,
                         element: Some(List::Item),
-                    });
+                    })));
 
                     // The marker glyph carries its own annotation (innermost, so
                     // it wins) wrapped by the active list/item annotations.
-                    let mut marker_doc = allocator.text(marker).annotate(Annotation::List {
-                        style,
-                        element: Some(List::Marker),
-                    });
+                    let mut marker_doc = allocator.text(marker).annotate(Element::Markdown(Some(
+                        MarkdownElement::List {
+                            style,
+                            element: Some(List::Marker),
+                        },
+                    )));
                     for ann in annotations.iter().rev() {
                         marker_doc = marker_doc.annotate(*ann);
                     }
@@ -151,7 +153,7 @@ where
                 Event::Code(code) => {
                     let mut code_doc = allocator
                         .text(code.to_string())
-                        .annotate(Annotation::Markdown(Some(MarkdownElement::InlineCode)));
+                        .annotate(Element::Markdown(Some(MarkdownElement::InlineCode)));
                     for ann in annotations.iter().rev() {
                         code_doc = code_doc.annotate(*ann);
                     }

@@ -1,4 +1,4 @@
-use dices_print::{Annotation, AstElement, DelimiterKind, ValueElement};
+use dices_print::{Element, AstElement, DelimiterKind, ValueElement};
 use pretty::{DocAllocator, DocBuilder, Pretty};
 
 use crate::{
@@ -22,33 +22,33 @@ fn delim<'a, D>(
     text: &'a str,
     kind: DelimiterKind,
     depth: u8,
-) -> DocBuilder<'a, D, Annotation>
+) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
     alloc
         .text(text)
-        .annotate(Annotation::Value(Some(ValueElement::Delimiter {
+        .annotate(Element::Value(Some(ValueElement::Delimiter {
             kind,
             depth,
         })))
 }
 
 /// A punctuator token (`,`, `:`, ...).
-fn punct<'a, D>(alloc: &'a D, text: &'a str) -> DocBuilder<'a, D, Annotation>
+fn punct<'a, D>(alloc: &'a D, text: &'a str) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
     alloc
         .text(text)
-        .annotate(Annotation::Value(Some(ValueElement::Punctuator)))
+        .annotate(Element::Value(Some(ValueElement::Punctuator)))
 }
 
 /// A trailing comma that appears only when a container is broken over
 /// multiple lines (nothing when it stays flat).
-fn trailing_comma<'a, D>(alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn trailing_comma<'a, D>(alloc: &'a D) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
     punct(alloc, ",").flat_alt(alloc.nil())
 }
@@ -58,9 +58,9 @@ where
 /// This is the single point of recursion: leaf [`Pretty`] impls and the
 /// container helpers all route through here so that `depth` keeps climbing as
 /// we descend into nested lists and maps.
-fn value_doc<'a, D>(value: Value, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Annotation>
+fn value_doc<'a, D>(value: Value, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
     D::Doc: Clone,
 {
     match value {
@@ -74,40 +74,40 @@ where
     }
 }
 
-fn null_doc<'a, D>(_value: ValueNull, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn null_doc<'a, D>(_value: ValueNull, alloc: &'a D) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
     alloc
         .text("null")
-        .annotate(Annotation::Value(Some(ValueElement::Null)))
+        .annotate(Element::Value(Some(ValueElement::Null)))
 }
 
-fn bool_doc<'a, D>(value: ValueBool, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn bool_doc<'a, D>(value: ValueBool, alloc: &'a D) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
     alloc
         .text(if value.get() { "true" } else { "false" })
-        .annotate(Annotation::Value(Some(ValueElement::Bool {
+        .annotate(Element::Value(Some(ValueElement::Bool {
             value: value.get(),
         })))
 }
 
-fn int_doc<'a, D>(value: ValueInt, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn int_doc<'a, D>(value: ValueInt, alloc: &'a D) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
     alloc
         .text(value.to_string())
-        .annotate(Annotation::Value(Some(ValueElement::Integer)))
+        .annotate(Element::Value(Some(ValueElement::Integer)))
 }
 
-fn string_doc<'a, D>(value: ValueString, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn string_doc<'a, D>(value: ValueString, alloc: &'a D) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
-    let string_elem = |escape| Annotation::Value(Some(ValueElement::String { escape }));
+    let string_elem = |escape| Element::Value(Some(ValueElement::String { escape }));
     let escape = Escape::default();
 
     // Group consecutive chars into runs of equal escaped-ness, so each
@@ -137,9 +137,9 @@ where
         .append(alloc.text("\"").annotate(string_elem(false)))
 }
 
-fn string_or_ident_doc<'a, D>(value: ValueString, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn string_or_ident_doc<'a, D>(value: ValueString, alloc: &'a D) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
     match Identifier::new(value) {
         Ok(value) => ident_doc(value, alloc),
@@ -147,18 +147,18 @@ where
     }
 }
 
-fn ident_doc<'a, D>(value: Identifier, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn ident_doc<'a, D>(value: Identifier, alloc: &'a D) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
     alloc
         .text(String::from(value))
-        .annotate(Annotation::Ast(Some(AstElement::Ident)))
+        .annotate(Element::Ast(Some(AstElement::Ident)))
 }
 
-fn list_doc<'a, D>(value: ValueList, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Annotation>
+fn list_doc<'a, D>(value: ValueList, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
     D::Doc: Clone,
 {
     let open = delim(alloc, "[", DelimiterKind::List, depth);
@@ -187,9 +187,9 @@ where
     .group()
 }
 
-fn map_doc<'a, D>(value: ValueMap, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Annotation>
+fn map_doc<'a, D>(value: ValueMap, alloc: &'a D, depth: u8) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
     D::Doc: Clone,
 {
     let open = delim(alloc, "<|", DelimiterKind::Map, depth);
@@ -221,86 +221,86 @@ where
     .group()
 }
 
-fn injected_doc<'a, D>(value: ValueInjected, alloc: &'a D) -> DocBuilder<'a, D, Annotation>
+fn injected_doc<'a, D>(value: ValueInjected, alloc: &'a D) -> DocBuilder<'a, D, Element>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
     alloc
         .text(format!("<{}>", value.description()))
-        .annotate(Annotation::Value(Some(ValueElement::Injected)))
+        .annotate(Element::Value(Some(ValueElement::Injected)))
 }
 
-impl<'a, D> Pretty<'a, D, Annotation> for ValueNull
+impl<'a, D> Pretty<'a, D, Element> for ValueNull
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
         null_doc(self, allocator)
     }
 }
 
-impl<'a, D> Pretty<'a, D, Annotation> for ValueBool
+impl<'a, D> Pretty<'a, D, Element> for ValueBool
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
         bool_doc(self, allocator)
     }
 }
 
-impl<'a, D> Pretty<'a, D, Annotation> for ValueInt
+impl<'a, D> Pretty<'a, D, Element> for ValueInt
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
         int_doc(self, allocator)
     }
 }
 
-impl<'a, D> Pretty<'a, D, Annotation> for ValueString
+impl<'a, D> Pretty<'a, D, Element> for ValueString
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
         string_doc(self, allocator)
     }
 }
 
-impl<'a, D> Pretty<'a, D, Annotation> for ValueList
+impl<'a, D> Pretty<'a, D, Element> for ValueList
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
     D::Doc: Clone,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
         list_doc(self, allocator, 0)
     }
 }
 
-impl<'a, D> Pretty<'a, D, Annotation> for ValueMap
+impl<'a, D> Pretty<'a, D, Element> for ValueMap
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
     D::Doc: Clone,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
         map_doc(self, allocator, 0)
     }
 }
 
-impl<'a, D> Pretty<'a, D, Annotation> for ValueInjected
+impl<'a, D> Pretty<'a, D, Element> for ValueInjected
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
         injected_doc(self, allocator)
     }
 }
 
-impl<'a, D> Pretty<'a, D, Annotation> for Value
+impl<'a, D> Pretty<'a, D, Element> for Value
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
     D::Doc: Clone,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
         value_doc(self, allocator, 0)
     }
 }
@@ -336,7 +336,7 @@ mod tests {
 
     /// Render to plain text at the given width.
     fn plain(value: Value, width: usize) -> String {
-        let arena: Arena<Annotation> = Arena::new();
+        let arena: Arena<Element> = Arena::new();
         let mut out = String::new();
         value.pretty(&arena).render_fmt(width, &mut out).unwrap();
         out
@@ -385,7 +385,7 @@ mod tests {
 
     enum Event {
         Text(String),
-        Push(Annotation),
+        Push(Element),
         Pop,
     }
 
@@ -410,8 +410,8 @@ mod tests {
         fn fail_doc(&self) {}
     }
 
-    impl<'a> RenderAnnotated<'a, Annotation> for Collector {
-        fn push_annotation(&mut self, a: &'a Annotation) -> Result<(), ()> {
+    impl<'a> RenderAnnotated<'a, Element> for Collector {
+        fn push_annotation(&mut self, a: &'a Element) -> Result<(), ()> {
             self.events.push(Event::Push(*a));
             Ok(())
         }
@@ -424,7 +424,7 @@ mod tests {
 
     /// Collect `(innermost value element, rendered text)` for every fragment.
     fn fragments(value: Value, width: usize) -> Vec<(Option<ValueElement>, String)> {
-        let arena: Arena<Annotation> = Arena::new();
+        let arena: Arena<Element> = Arena::new();
         let mut collector = Collector::default();
         value
             .pretty(&arena)
@@ -435,7 +435,7 @@ mod tests {
         let mut out = Vec::new();
         for event in &collector.events {
             match event {
-                Event::Push(Annotation::Value(element)) => stack.push(*element),
+                Event::Push(Element::Value(element)) => stack.push(*element),
                 Event::Push(_) => stack.push(None),
                 Event::Pop => {
                     stack.pop();

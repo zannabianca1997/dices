@@ -2,7 +2,7 @@ use std::error::Error;
 
 use pretty::{DocAllocator, DocBuilder, Pretty};
 
-use crate::{Annotation, ErrorElement};
+use crate::{Element, ErrorElement};
 
 pub struct ErrorChain<'a>(pub &'a (dyn Error + 'a));
 
@@ -12,16 +12,16 @@ impl<'a> ErrorChain<'a> {
     }
 }
 
-impl<'a, D> Pretty<'a, D, Annotation> for ErrorChain<'a>
+impl<'a, D> Pretty<'a, D, Element> for ErrorChain<'a>
 where
-    D: DocAllocator<'a, Annotation>,
+    D: DocAllocator<'a, Element>,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Annotation> {
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
         let mut doc = allocator.nil();
 
         let message = allocator
             .text(self.0.to_string())
-            .annotate(Annotation::Error(Some(ErrorElement::Message)));
+            .annotate(Element::Error(Some(ErrorElement::Message)));
         doc = doc.append(message);
         doc = doc.append(allocator.hardline());
 
@@ -37,7 +37,7 @@ where
             doc = doc.append(
                 allocator
                     .text("Caused by:")
-                    .annotate(Annotation::Error(Some(ErrorElement::Message))),
+                    .annotate(Element::Error(Some(ErrorElement::Message))),
             );
 
             for cause in &causes {
@@ -45,7 +45,7 @@ where
                 doc = doc.append(
                     allocator
                         .text(format!("  - {}", cause))
-                        .annotate(Annotation::Error(Some(ErrorElement::Source))),
+                        .annotate(Element::Error(Some(ErrorElement::Source))),
                 );
             }
         }

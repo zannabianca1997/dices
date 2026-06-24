@@ -2,7 +2,7 @@ use figment::{Figment, providers::Serialized, value::Value};
 use serde::{Deserialize, Deserializer, de::DeserializeOwned};
 
 use crate::{
-    Annotation, AstElement, DelimiterKind, ErrorElement, MarkdownElement, PromptElement,
+    Element, AstElement, DelimiterKind, ErrorElement, MarkdownElement, PromptElement,
     ValueElement,
 };
 
@@ -178,8 +178,8 @@ impl<T> Theme<T> {
         }
     }
 
-    pub fn style(&self, annotation: Annotation) -> &T {
-        use Annotation::*;
+    pub fn style(&self, annotation: Element) -> &T {
+        use Element::*;
         use AstElement::*;
         use DelimiterKind::*;
         use ErrorElement::*;
@@ -214,19 +214,19 @@ impl<T> Theme<T> {
             Markdown(Some(InlineCode)) => &self.markdown_inline_code,
             Markdown(Some(Bold)) => &self.markdown_bold,
             Markdown(Some(Italic)) => &self.markdown_italic,
-            Annotation::List { element: None, .. } => &self.markdown_list,
-            Annotation::List {
+            Markdown(Some(MarkdownElement::List { element: None, .. })) => &self.markdown_list,
+            Markdown(Some(MarkdownElement::List {
                 element: Some(crate::List::Item),
                 ..
-            } => &self.markdown_list_item,
-            Annotation::List {
+            })) => &self.markdown_list_item,
+            Markdown(Some(MarkdownElement::List {
                 style: crate::ListStyle::Ordered,
                 element: Some(crate::List::Marker),
-            } => &self.markdown_list_marker_ordered,
-            Annotation::List {
+            })) => &self.markdown_list_marker_ordered,
+            Markdown(Some(MarkdownElement::List {
                 style: crate::ListStyle::Unordered,
                 element: Some(crate::List::Marker),
-            } => &self.markdown_list_marker_unordered,
+            })) => &self.markdown_list_marker_unordered,
             Prompt(None) => &self.prompt,
             Prompt(Some(Indicator)) => &self.prompt_indicator,
             Prompt(Some(Multiline)) => &self.prompt_multiline,

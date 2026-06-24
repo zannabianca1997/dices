@@ -5,7 +5,7 @@ pub mod markdown;
 pub mod theme;
 
 #[derive(Debug, Clone, Copy)]
-pub enum Annotation {
+pub enum Element {
     /// Graphical fluff
     ///
     /// Annotated text is a graphical fluff. Should be skipped on plain output.
@@ -20,16 +20,6 @@ pub enum Annotation {
     ///
     /// General styled contend for the banners and the manual
     Markdown(Option<MarkdownElement>),
-
-    /// List
-    ///
-    /// Annotated text is part of a markdown list
-    List {
-        /// Whether the list is ordered (numbered) or unordered (bulleted)
-        style: ListStyle,
-        /// Which part of the list this is (the list itself, an item, a marker)
-        element: Option<List>,
-    },
 
     /// Value
     ///
@@ -62,6 +52,16 @@ pub enum MarkdownElement {
     InlineCode,
     Bold,
     Italic,
+
+    /// List
+    ///
+    /// Annotated text is part of a markdown list
+    List {
+        /// Whether the list is ordered (numbered) or unordered (bulleted)
+        style: ListStyle,
+        /// Which part of the list this is (the list itself, an item, a marker)
+        element: Option<List>,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]

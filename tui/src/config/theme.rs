@@ -2,7 +2,7 @@ use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::Path;
 
-use dices_print::{Annotation, PromptElement};
+use dices_print::{Element, PromptElement};
 use pretty::termcolor::{Color as TermColor, ColorSpec};
 use rust_embed::Embed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -89,13 +89,13 @@ impl<'de> Deserialize<'de> for Theme {
         // Map the serializable spec onto the real `ColorSpec`, then read the
         // prompt colors back out of the resolved theme.
         let content = content.map(ColorSpec::from);
-        let prompt = reedline_color(content.style(Annotation::Prompt(None)));
+        let prompt = reedline_color(content.style(Element::Prompt(None)));
         let prompt_indicator =
-            reedline_color(content.style(Annotation::Prompt(Some(PromptElement::Indicator))));
+            reedline_color(content.style(Element::Prompt(Some(PromptElement::Indicator))));
         let prompt_multiline =
-            nu_color(content.style(Annotation::Prompt(Some(PromptElement::Multiline))));
+            nu_color(content.style(Element::Prompt(Some(PromptElement::Multiline))));
         let prompt_right =
-            reedline_color(content.style(Annotation::Prompt(Some(PromptElement::Right))));
+            reedline_color(content.style(Element::Prompt(Some(PromptElement::Right))));
 
         Ok(Self {
             name,

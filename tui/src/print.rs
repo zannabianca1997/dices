@@ -3,7 +3,7 @@
 use std::io::{self, stderr, stdout};
 
 use dices_man::ManItem;
-use dices_print::{Annotation, error::ErrorChain, markdown::Markdown};
+use dices_print::{Element, error::ErrorChain, markdown::Markdown};
 use dices_values::{Value, cast::push_down_if_injected};
 use pretty::{
     Arena, Pretty, Render, RenderAnnotated, TermColored,
@@ -42,8 +42,8 @@ pub fn print_error(skin: &Skin, error: &impl std::error::Error) -> Result<(), Er
 
 fn print_inner<'a>(
     skin: &Skin,
-    arena: &'a Arena<'a, Annotation>,
-    printing: impl Pretty<'a, Arena<'a, Annotation>, Annotation>,
+    arena: &'a Arena<'a, Element>,
+    printing: impl Pretty<'a, Arena<'a, Element>, Element>,
     mut out: impl io::Write,
 ) -> Result<(), Error> {
     let width = crossterm::terminal::size()
@@ -72,7 +72,7 @@ impl<'a, W> PrintAnnotated<'a, TermColored<Ansi<W>>> {
     fn new(writer: W, skin: &'a Skin) -> Self
     where
         W: io::Write,
-        Self: for<'b> RenderAnnotated<'b, Annotation>,
+        Self: for<'b> RenderAnnotated<'b, Element>,
     {
         Self(TermColored::new(Ansi::new(writer)), skin)
     }
@@ -97,11 +97,11 @@ where
     }
 }
 
-impl<'a, W> RenderAnnotated<'_, Annotation> for PrintAnnotated<'a, W>
+impl<'a, W> RenderAnnotated<'_, Element> for PrintAnnotated<'a, W>
 where
     W: RenderAnnotated<'a, ColorSpec>,
 {
-    fn push_annotation(&mut self, annotation: &Annotation) -> Result<(), Self::Error> {
+    fn push_annotation(&mut self, annotation: &Element) -> Result<(), Self::Error> {
         self.0
             .push_annotation(self.1.theme.content.style(*annotation))
     }
