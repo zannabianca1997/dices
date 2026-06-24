@@ -1,18 +1,16 @@
-use pretty::{DocAllocator, DocBuilder, Pretty};
-use pulldown_cmark::{Event, Parser, Tag, TagEnd};
+use std::borrow::Cow;
 
-use crate::{Element, List, ListStyle, MarkdownElement};
+use itertools::Itertools;
+use pretty::{DocAllocator, DocBuilder};
+use pulldown_cmark::{Event, Parser, Tag};
 
-pub struct Markdown<T>(pub T);
+use crate::{Element, List, ListStyle, MarkdownElement, Pretty};
+
+pub struct Markdown<'a>(pub Cow<'a, str>);
 
 /// State of a list currently being rendered.
 struct ListCtx {
-    /// `Some(n)` holds the number of the next item for an ordered list;
-    /// `None` marks an unordered (bullet) list.
     ordered: Option<u64>,
-    /// Width of the marker emitted for the current item, used to indent any
-    /// nested list underneath it.
-    marker_width: usize,
 }
 
 impl ListCtx {
@@ -26,7 +24,7 @@ impl ListCtx {
     }
 }
 
-fn tag_annotation(tag: &Tag<'_>) -> Option<Element> {
+fn tag_element(tag: &Tag<'_>, parent_ctx: Option<&mut Ctx>) -> Option<Element> {
     match tag {
         Tag::Paragraph => Some(Element::Markdown(None)),
         Tag::Heading { level, .. } => Some(Element::Markdown(Some(MarkdownElement::Header {
@@ -34,144 +32,120 @@ fn tag_annotation(tag: &Tag<'_>) -> Option<Element> {
         }))),
         Tag::Strong => Some(Element::Markdown(Some(MarkdownElement::Bold))),
         Tag::Emphasis => Some(Element::Markdown(Some(MarkdownElement::Italic))),
+        Tag::List(ordered) => Some(Element::Markdown(Some(MarkdownElement::List {
+            style: if ordered.is_some() {
+                ListStyle::Ordered
+            } else {
+                ListStyle::Unordered
+            },
+            element: None,
+        }))),
+        Tag::Item if let Some(Ctx::List(ListCtx { ordered })) = parent_ctx => {
+            Some(Element::Markdown(Some(MarkdownElement::List {
+                style: if let Some(ordered) = ordered {
+                    *ordered += 1;
+                    ListStyle::Ordered
+                } else {
+                    ListStyle::Unordered
+                },
+                element: Some(List::Item),
+            })))
+        }
+        Tag::Item => unreachable!("Items are always in a list"),
+        Tag::BlockQuote(_)
+        | Tag::CodeBlock(_)
+        | Tag::HtmlBlock
+        | Tag::Link { .. }
+        | Tag::Image { .. } => unimplemented!(),
+        Tag::FootnoteDefinition(_)
+        | Tag::DefinitionList
+        | Tag::DefinitionListTitle
+        | Tag::DefinitionListDefinition
+        | Tag::Table(_)
+        | Tag::TableHead
+        | Tag::TableRow
+        | Tag::TableCell
+        | Tag::Strikethrough
+        | Tag::Superscript
+        | Tag::Subscript
+        | Tag::MetadataBlock(_) => unreachable!(),
+    }
+}
+fn tag_ctx(tag: &Tag<'_>) -> Option<Ctx> {
+    match tag {
+        Tag::List(ordered) => Some(Ctx::List(ListCtx { ordered: *ordered })),
         _ => None,
     }
 }
 
-fn is_supported_end(tag_end: &TagEnd) -> bool {
-    matches!(
-        tag_end,
-        TagEnd::Paragraph | TagEnd::Heading(_) | TagEnd::Strong | TagEnd::Emphasis
-    )
+struct RenderStackFrame<'a, D: DocAllocator<'a, Element> + 'a> {
+    tag: Tag<'a>,
+    doc: DocBuilder<'a, D, Element>,
+    ctx: Option<Ctx>,
+}
+enum Ctx {
+    List(ListCtx),
+}
+impl<'a, D: DocAllocator<'a, Element> + 'a> RenderStackFrame<'a, D> {
+    pub fn finalize(self, parents: &mut [Self]) -> DocBuilder<'a, D, Element> {
+        let parent_ctx = parents.iter_mut().rev().find_map(|p| p.ctx.as_mut());
+        if let Some(element) = tag_element(&self.tag, parent_ctx) {
+            self.doc.annotate(element)
+        } else {
+            self.doc
+        }
+    }
 }
 
-impl<'a, D, T> Pretty<'a, D, Element> for Markdown<T>
+impl<'a, D> Pretty<'a, D> for &'a Markdown<'a>
 where
     D: DocAllocator<'a, Element> + 'a,
     DocBuilder<'a, D, Element>: Clone,
-    T: AsRef<str>,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
-        let mut doc = allocator.nil();
-        let mut annotations: Vec<Element> = Vec::new();
-        let mut lists: Vec<ListCtx> = Vec::new();
-        // Whether any content has been appended yet, so the first list item does
-        // not start with a spurious leading blank line.
-        let mut emitted = false;
+        let mut docs = nunny::vec![RenderStackFrame {
+            tag: Tag::Paragraph,
+            doc: allocator.nil(),
+            ctx: None,
+        }];
 
         for event in Parser::new(self.0.as_ref()) {
             match event {
-                Event::Start(Tag::List(start)) => {
-                    let ctx = ListCtx {
-                        ordered: start,
-                        marker_width: 0,
-                    };
-                    annotations.push(Element::Markdown(Some(MarkdownElement::List {
-                        style: ctx.style(),
-                        element: None,
-                    })));
-                    lists.push(ctx);
-                }
-                Event::Start(Tag::Item) => {
-                    // Indent under the markers of any enclosing list items.
-                    let indent: usize = lists[..lists.len() - 1]
-                        .iter()
-                        .map(|ctx| ctx.marker_width)
-                        .sum();
-
-                    if emitted {
-                        doc = doc.append(allocator.hardline());
-                    }
-
-                    let ctx = lists.last_mut().expect("an item is always inside a list");
-                    let style = ctx.style();
-                    let marker = match ctx.ordered {
-                        Some(n) => {
-                            ctx.ordered = Some(n + 1);
-                            format!("{n}. ")
-                        }
-                        None => "- ".to_string(),
-                    };
-                    ctx.marker_width = marker.len();
-
-                    annotations.push(Element::Markdown(Some(MarkdownElement::List {
-                        style,
-                        element: Some(List::Item),
-                    })));
-
-                    // The marker glyph carries its own annotation (innermost, so
-                    // it wins) wrapped by the active list/item annotations.
-                    let mut marker_doc = allocator.text(marker).annotate(Element::Markdown(Some(
-                        MarkdownElement::List {
-                            style,
-                            element: Some(List::Marker),
-                        },
-                    )));
-                    for ann in annotations.iter().rev() {
-                        marker_doc = marker_doc.annotate(*ann);
-                    }
-                    doc = doc.append(marker_doc.indent(indent));
-                    emitted = true;
-                }
-                Event::Start(tag) => {
-                    if let Some(ann) = tag_annotation(&tag) {
-                        annotations.push(ann);
-                    }
-                }
+                Event::Start(tag) => docs.push(RenderStackFrame {
+                    ctx: tag_ctx(&tag),
+                    tag,
+                    doc: allocator.nil(),
+                }),
                 Event::End(tag_end) => {
-                    if is_supported_end(&tag_end) {
-                        annotations.pop();
-                    }
-                    match tag_end {
-                        TagEnd::List(_) => {
-                            annotations.pop(); // the `List { element: None, .. }`
-                            lists.pop();
-                            // Separate the finished list from following content.
-                            if lists.is_empty() {
-                                doc = doc.append(allocator.hardline());
-                            }
-                        }
-                        TagEnd::Item => {
-                            annotations.pop(); // the `List { element: Some(Item), .. }`
-                        }
-                        // Paragraphs inside list items would otherwise add a
-                        // blank line between tight items; only break outside.
-                        TagEnd::Heading(_) | TagEnd::Paragraph if lists.is_empty() => {
-                            doc = doc.append(allocator.hardline());
-                        }
-                        _ => {}
-                    }
+                    assert!(docs.len() > 1);
+                    let frame = unsafe { docs.as_mut_vec().pop().unwrap() };
+                    debug_assert_eq!(tag_end, frame.tag.to_end());
+                    let doc = frame.finalize(&mut docs);
+                    docs.last_mut().doc += doc;
                 }
-                Event::Text(text) => {
-                    let mut text_doc = allocator.text(text.to_string());
-                    for ann in annotations.iter().rev() {
-                        text_doc = text_doc.annotate(*ann);
-                    }
-                    doc = doc.append(text_doc);
-                    emitted = true;
+                Event::Text(cow_str) | Event::Html(cow_str) => {
+                    docs.last_mut().doc += allocator.text(cow_str)
                 }
-                Event::Code(code) => {
-                    let mut code_doc = allocator
-                        .text(code.to_string())
-                        .annotate(Element::Markdown(Some(MarkdownElement::InlineCode)));
-                    for ann in annotations.iter().rev() {
-                        code_doc = code_doc.annotate(*ann);
-                    }
-                    doc = doc.append(code_doc);
-                    emitted = true;
+                Event::Code(cow_str) => {
+                    docs.last_mut().doc += allocator
+                        .text(cow_str)
+                        .annotate(Element::Markdown(Some(MarkdownElement::InlineCode)))
                 }
-                Event::SoftBreak => {
-                    doc = doc.append(allocator.text(" "));
-                }
+                Event::SoftBreak => docs.last_mut().doc += allocator.space(),
                 Event::HardBreak => {
-                    doc = doc
-                        .append(allocator.hardline())
-                        .append(allocator.hardline());
+                    docs.last_mut().doc += allocator.hardline() + allocator.hardline()
                 }
-                _ => {}
+                Event::InlineHtml(_) | Event::Rule => unimplemented!(),
+                Event::InlineMath(_)
+                | Event::DisplayMath(_)
+                | Event::FootnoteReference(_)
+                | Event::TaskListMarker(_) => unreachable!(),
             }
         }
 
-        doc
+        let Ok(root) = docs.into_iter().exactly_one() else {
+            unreachable!()
+        };
+        root.finalize(&mut [])
     }
 }

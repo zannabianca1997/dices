@@ -1,125 +1,57 @@
 #![doc = include_str!("../README.md")]
 
+pub use element::*;
+
 pub mod error;
 pub mod markdown;
 pub mod theme;
+pub mod value;
 
-#[derive(Debug, Clone, Copy)]
-pub enum Element {
-    /// Graphical fluff
-    ///
-    /// Annotated text is a graphical fluff. Should be skipped on plain output.
-    Fluff,
+pub mod element;
 
-    /// Prompt
-    ///
-    /// Annotated text is part of the interactive prompt
-    Prompt(Option<PromptElement>),
+trait DocAllocator<'a>: pretty::DocAllocator<'a, Element> {}
+impl<'a, T> DocAllocator<'a> for T where T: pretty::DocAllocator<'a, Element> {}
 
-    /// Markdown
-    ///
-    /// General styled contend for the banners and the manual
-    Markdown(Option<MarkdownElement>),
+type DocBuilder<'a, D> = pretty::DocBuilder<'a, D, Element>;
 
-    /// Value
-    ///
-    /// Annotated text is part of a dices value representation
-    Value(Option<ValueElement>),
+pub trait Pretty<'a, D>
+where
+    D: DocAllocator<'a>,
+{
+    type Ctx;
+    fn pretty(self, allocator: &'a D, ctx: &Self::Ctx) -> DocBuilder<'a, D>;
 
-    /// Ast
-    ///
-    /// Annotated text is part of a dices AST representation
-    Ast(Option<AstElement>),
+    fn with_ctx(self, ctx: Self::Ctx) -> WithContext<'a, D, Self>
+    where
+        Self: Sized,
+    {
+        WithContext { doc: self, ctx }
+    }
 
-    /// Annotated text is an error message
-    Error(Option<ErrorElement>),
+    fn with_default_ctx(self) -> WithContext<'a, D, Self>
+    where
+        Self: Sized,
+        Self::Ctx: Default,
+    {
+        Self::with_ctx(self, Default::default())
+    }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum PromptElement {
-    /// Indicator shown before the user input (e.g. the chevron)
-    Indicator,
-    /// Continuation indicator shown on multiline input
-    Multiline,
-    /// Right-aligned prompt (e.g. the clock)
-    Right,
+pub struct WithContext<'a, D, T>
+where
+    T: Pretty<'a, D>,
+    D: DocAllocator<'a>,
+{
+    ctx: T::Ctx,
+    doc: T,
 }
 
-#[derive(Debug, Clone, Copy)]
-#[non_exhaustive]
-pub enum MarkdownElement {
-    Header { level: u8 },
-    InlineCode,
-    Bold,
-    Italic,
-
-    /// List
-    ///
-    /// Annotated text is part of a markdown list
-    List {
-        /// Whether the list is ordered (numbered) or unordered (bulleted)
-        style: ListStyle,
-        /// Which part of the list this is (the list itself, an item, a marker)
-        element: Option<List>,
-    },
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum List {
-    /// A list item
-    Item,
-    /// A list item's marker (the bullet or number)
-    Marker,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ListStyle {
-    /// Numbered list (`1.`, `2.`, …)
-    Ordered,
-    /// Bulleted list (`-`)
-    Unordered,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ValueElement {
-    /// Null literal
-    Null,
-    /// Boolean literal
-    Bool { value: bool },
-    /// Integer literal
-    Integer,
-    /// String literal
-    String {
-        /// Inside an escape code
-        escape: bool,
-    },
-    /// Delimiter (bracket, map angular parentheses, etc)
-    Delimiter {
-        /// Kind of the delimiter
-        kind: DelimiterKind,
-        /// Depth of the delimiter nesting
-        depth: u8,
-    },
-    /// Punctuators
-    Punctuator,
-    /// Injected values
-    Injected,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum AstElement {
-    /// Identifier
-    Ident,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum DelimiterKind {
-    List,
-    Map,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ErrorElement {
-    Message,
-    Source,
+impl<'a, D, T> pretty::Pretty<'a, D, Element> for WithContext<'a, D, T>
+where
+    T: Pretty<'a, D>,
+    D: DocAllocator<'a>,
+{
+    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D> {
+        self.doc.pretty(allocator, &self.ctx)
+    }
 }

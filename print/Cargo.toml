@@ -5,7 +5,12 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+dices-man.workspace = true
+dices-values.workspace = true
+
 figment.workspace = true
+itertools.workspace = true
+nunny = "0.2.2"
 pretty.workspace = true
 pulldown-cmark = "0.13.4"
 serde.workspace = true

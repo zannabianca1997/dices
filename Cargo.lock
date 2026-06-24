@@ -334,7 +334,6 @@ dependencies = [
 name = "dices-man"
 version = "0.4.0"
 dependencies = [
- "dices-print",
  "itertools 0.15.0",
  "pretty",
  "rust-embed",
@@ -357,7 +356,11 @@ dependencies = [
 name = "dices-print"
 version = "0.4.0"
 dependencies = [
+ "dices-man",
+ "dices-values",
  "figment",
+ "itertools 0.15.0",
+ "nunny",
  "pretty",
  "pulldown-cmark",
  "serde",
@@ -409,7 +412,6 @@ version = "0.4.0"
 dependencies = [
  "derive_more",
  "dices-man",
- "dices-print",
  "dices-values-macros",
  "itertools 0.15.0",
  "lazy-regex",
@@ -874,6 +876,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "nunny"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a917062db7bc4aacea810b261939fd1c7e21c1156a641e3d9faa07740e3c4fb2"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

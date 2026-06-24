@@ -2,8 +2,7 @@ use figment::{Figment, providers::Serialized, value::Value};
 use serde::{Deserialize, Deserializer, de::DeserializeOwned};
 
 use crate::{
-    Element, AstElement, DelimiterKind, ErrorElement, MarkdownElement, PromptElement,
-    ValueElement,
+    AstElement, DelimiterKind, Element, ErrorElement, MarkdownElement, PromptElement, ValueElement,
 };
 
 /// Themes for the
@@ -179,9 +178,9 @@ impl<T> Theme<T> {
     }
 
     pub fn style(&self, annotation: Element) -> &T {
-        use Element::*;
         use AstElement::*;
         use DelimiterKind::*;
+        use Element::*;
         use ErrorElement::*;
         use MarkdownElement::*;
         use PromptElement::*;
@@ -207,7 +206,7 @@ impl<T> Theme<T> {
             Value(Some(Injected)) => &self.value_injected,
             Ast(None) => &self.ast,
             Ast(Some(Ident)) => &self.ast_ident,
-            Markdown(None) => &self.markdown,
+            Markdown(None | Some(Paragraph)) => &self.markdown,
             Markdown(Some(Header { level })) => {
                 &self.markdown_header[level as usize % self.markdown_header.len()]
             }

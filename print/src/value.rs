@@ -1,7 +1,7 @@
-use dices_print::{Element, AstElement, DelimiterKind, ValueElement};
 use pretty::{DocAllocator, DocBuilder, Pretty};
 
-use crate::{
+use crate::{AstElement, DelimiterKind, Element, ValueElement};
+use dices_values::{
     Value,
     bool::ValueBool,
     identifier::Identifier,
@@ -13,8 +13,12 @@ use crate::{
     string::{Escape, ValueString},
 };
 
-/// Indentation used when a container is broken over multiple lines.
-const INDENT: isize = 4;
+///
+pub struct Ctx {
+
+    /// Indentation used when a container is broken over multiple lines.
+    indent: usize
+}
 
 /// A bracket / parenthesis token of the given `kind` at the given nesting `depth`.
 fn delim<'a, D>(
@@ -282,7 +286,34 @@ where
     D::Doc: Clone,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
-        map_doc(self, allocator, 0)
+        let depth = 0;
+        let open = delim(allocator, "<|", DelimiterKind::Map, depth);
+        let close = delim(allocator, "|>", DelimiterKind::Map, depth);
+
+        if self.is_empty() {
+            return open.append(close);
+        }
+
+        let entries = allocator.intersperse(
+            self.into_iter().map(|(key, val)| {
+                string_or_ident_doc(key, allocator)
+                    .append(punct(allocator, ":"))
+                    .append(allocator.space())
+                    .append(value_doc(val, allocator, depth.wrapping_add(1)))
+            }),
+            punct(allocator, ",").append(allocator.line()),
+        );
+
+        open.append(
+            allocator
+                .line()
+                .append(entries)
+                .append(trailing_comma(allocator))
+                .nest(INDENT),
+        )
+        .append(allocator.line())
+        .append(close)
+        .group()
     }
 }
 
@@ -291,7 +322,10 @@ where
     D: DocAllocator<'a, Element>,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
-        injected_doc(self, allocator)
+        let value = self;
+        allocator
+            .text(format!("<{}>", value.description()))
+            .annotate(Element::Value(Some(ValueElement::Injected)))
     }
 }
 
@@ -301,7 +335,16 @@ where
     D::Doc: Clone,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
-        value_doc(self, allocator, 0)
+        let depth = 0;
+        match self {
+            Value::Null(v) => v.pretty(allocator),
+            Value::Bool(v) => v.pretty(allocator),
+            Value::Int(v) => v.pretty(allocator),
+            Value::String(v) => v.pretty(allocator),
+            Value::List(v) => v.pretty(allocator),
+            Value::Map(v) => v.pretty(allocator),
+            Value::Injected(v) => v.pretty(allocator),
+        }
     }
 }
 

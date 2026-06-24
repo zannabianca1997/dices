@@ -9,7 +9,6 @@ use crate::{
     null::ValueNull, string::ValueString,
 };
 
-pub mod pretty;
 pub mod serde;
 
 pub mod bool;
