@@ -5,9 +5,10 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-dices-values.workspace = true
+dices-print.workspace = true
 
 itertools.workspace = true
+pretty.workspace = true
 rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
 
 [lints]

@@ -9,6 +9,7 @@ name = "macros"
 required-features = ["macros"]
 
 [dependencies]
+dices-man.workspace = true
 dices-print.workspace = true
 dices-values-macros = { workspace = true, optional = true }
 

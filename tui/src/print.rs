@@ -2,6 +2,7 @@
 
 use std::io::{self, stderr, stdout};
 
+use dices_man::ManItem;
 use dices_print::{Annotation, error::ErrorChain, markdown::Markdown};
 use dices_values::{Value, cast::push_down_if_injected};
 use pretty::{
@@ -13,10 +14,15 @@ use snafu::ResultExt;
 use crate::{Error, PrintingSnafu, config::skin::Skin};
 
 pub fn print_markdown(skin: &Skin, text: &str) -> Result<(), Error> {
-    let text = Markdown::new(text);
+    let text = Markdown(text);
 
     let arena = Arena::new();
     print_inner(skin, &arena, text, stdout())?;
+    Ok(())
+}
+pub fn print_man_item(skin: &Skin, item: &ManItem) -> Result<(), Error> {
+    let arena = Arena::new();
+    print_inner(skin, &arena, item, stdout())?;
     Ok(())
 }
 pub fn print_value(skin: &Skin, value: Value) -> Result<(), Error> {

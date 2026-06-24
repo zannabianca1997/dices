@@ -8,10 +8,11 @@ use std::{collections::BTreeMap, iter::once};
 
 use dices_ast::expr::scope::ScopeInner;
 use dices_ast::identifier::Identifier;
+use dices_man::ManItem;
 use dices_std::Std;
 use dices_values::Value;
 use dices_values::injected::ValueInjected;
-use dices_values::injected::call::{InjectedContext, ManualError};
+use dices_values::injected::call::InjectedContext;
 use dices_values::injected::typed::TypedValueInjected;
 use dices_values::int::ValueInt;
 use dices_values::serde::de::ValueDeserializer;
@@ -217,7 +218,7 @@ impl<U: Ui> Ui for EngineContext<'_, U> {
         self.ui.print_md(value)
     }
 
-    fn manual(&self, page: impl Into<ValueString>) -> Result<(), ManualError> {
+    fn manual(&self, page: &ManItem) -> Result<(), Self::PrintError> {
         self.ui.manual(page)
     }
 }
@@ -285,8 +286,8 @@ impl<U: Ui> InjectedContext for EngineContext<'_, U> {
         Ui::print(self, value).map_err(Into::into)
     }
 
-    fn manual(&self, page: ValueString) -> Result<(), ManualError> {
-        Ui::manual(self, page)
+    fn manual(&self, page: &ManItem) -> Result<(), Box<dyn Error>> {
+        Ui::manual(self, page).map_err(Into::into)
     }
 
     fn abort(&mut self, reason: Value) -> ! {
@@ -401,8 +402,8 @@ impl Ui for dyn InjectedContext + '_ {
         InjectedContext::print(self, value.into())
     }
 
-    fn manual(&self, page: impl Into<ValueString>) -> Result<(), ManualError> {
-        InjectedContext::manual(self, page.into())
+    fn manual(&self, page: &ManItem) -> Result<(), Self::PrintError> {
+        InjectedContext::manual(self, page)
     }
 
     type PrintError = Box<dyn Error>;

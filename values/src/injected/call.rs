@@ -1,6 +1,6 @@
 use std::{any::Any, error::Error};
 
-use snafu::Snafu;
+use dices_man::ManItem;
 
 use crate::{
     Value,
@@ -73,14 +73,8 @@ pub trait InjectedContext {
     /// Display a manual page
     ///
     /// Returns only when the user exit the page
-    fn manual(&self, page: ValueString) -> Result<(), ManualError>;
+    fn manual(&self, item: &ManItem) -> Result<(), Box<dyn Error>>;
 
     /// Stop execution
     fn abort(&mut self, reason: Value) -> !;
-}
-
-#[derive(Debug, Snafu)]
-pub enum ManualError {
-    #[snafu(display("Unknown manual page {page}"))]
-    UnknownPage { page: ValueString },
 }

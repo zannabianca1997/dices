@@ -1,6 +1,7 @@
 use std::error::Error;
 
-use dices_values::{Value, injected::call::ManualError, string::ValueString};
+use dices_man::ManItem;
+use dices_values::{Value, string::ValueString};
 
 /// Handler to the user interface
 pub trait Ui {
@@ -18,8 +19,8 @@ pub trait Ui {
     fn print_md<V: AsRef<str> + Into<ValueString>>(&self, value: V)
     -> Result<(), Self::PrintError>;
 
-    /// Display a manual page
+    /// Display a manual item
     ///
-    /// Returns only when the user exit the page
-    fn manual(&self, page: impl Into<ValueString>) -> Result<(), ManualError>;
+    /// Returns only when the user exit the item
+    fn manual(&self, item: &ManItem) -> Result<(), Self::PrintError>;
 }

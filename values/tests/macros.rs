@@ -1,15 +1,16 @@
 //! End-to-end tests for the `Injectable` derive and `#[injectable]` attribute.
 #![cfg(feature = "macros")]
 
-use std::any::Any;
+use std::{any::Any, error::Error};
 
+use dices_man::ManItem;
 use dices_values::{
     Injectable, Value,
     identifier::Identifier,
     injectable,
     injected::{
         ValueInjected,
-        call::{Callable, InjectedContext, ManualError},
+        call::{Callable, InjectedContext},
     },
     int::ValueInt,
     serde::{de::ValueDeserializer, ser::ValueSerializer},
@@ -64,19 +65,19 @@ impl InjectedContext for DummyCx {
         panic!()
     }
 
-    fn print(&self, _value: Value) -> Result<(), Box<dyn std::error::Error>> {
+    fn print(&self, _value: Value) -> Result<(), Box<dyn Error>> {
         panic!()
     }
 
-    fn manual(&self, _page: ValueString) -> Result<(), ManualError> {
+    fn manual(&self, _page: &ManItem) -> Result<(), Box<dyn Error>> {
         panic!()
     }
 
-    fn print_str(&self, _value: ValueString) -> Result<(), Box<dyn std::error::Error>> {
+    fn print_str(&self, _value: ValueString) -> Result<(), Box<dyn Error>> {
         panic!()
     }
 
-    fn print_md(&self, _value: ValueString) -> Result<(), Box<dyn std::error::Error>> {
+    fn print_md(&self, _value: ValueString) -> Result<(), Box<dyn Error>> {
         panic!()
     }
 }

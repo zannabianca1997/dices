@@ -8,7 +8,6 @@ underline = false
 dimmed = false
 italic = false
 strikethrough = false
-fg_color = "#4c4f69"
 
 # Graphical fluff (emojis): subdued.
 [fluff]
@@ -72,6 +71,10 @@ fg_color = "#dc8a78"  # rosewater
 
 [markdown.italic_text]
 italic = true
+
+[markdown.list.marker]
+bold = true
+fg_color = "#40a02b"  # green
 
 [prompt]
 fg_color = "#1e66f5"  # blue

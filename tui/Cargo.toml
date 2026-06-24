@@ -10,6 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 dices-engine.workspace = true
+dices-man.workspace = true
 dices-parser.workspace = true
 dices-print.workspace = true
 dices-std.workspace = true

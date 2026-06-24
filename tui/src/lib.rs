@@ -7,8 +7,9 @@ use std::{
 };
 
 use dices_engine::{Engine, Evaluator};
+use dices_man::ManItem;
 use dices_std::Std;
-use dices_values::{Value, injected::call::ManualError, null::ValueNull, string::ValueString};
+use dices_values::{Value, null::ValueNull, string::ValueString};
 use itertools::Itertools;
 use rand::{Rng, rngs::OsRng};
 use rand_seeder::Seeder;
@@ -18,7 +19,7 @@ use snafu::{ResultExt, Snafu};
 use crate::{
     cli::Cli,
     config::{Config, skin::Skin},
-    print::{print_error, print_markdown, print_value},
+    print::{print_error, print_man_item, print_markdown, print_value},
 };
 
 mod banners;
@@ -61,8 +62,8 @@ impl dices_engine::ui::Ui for Ui<'_> {
         Ok(())
     }
 
-    fn manual(&self, _page: impl Into<ValueString>) -> Result<(), ManualError> {
-        todo!()
+    fn manual(&self, item: &ManItem) -> Result<(), Self::PrintError> {
+        print_man_item(self.0, &item)
     }
 
     type PrintError = Error;

@@ -1,9 +1,8 @@
-use std::mem;
+use std::{error::Error, mem};
 
+use dices_man::ManItem;
 use dices_values::{
-    Injectable, Value, injectable,
-    injected::call::{InjectedContext, ManualError},
-    string::ValueString,
+    Injectable, Value, injectable, injected::call::InjectedContext, string::ValueString,
 };
 
 /// Bindings to the repl
@@ -33,7 +32,7 @@ impl Repl {
 fn Print(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),
     args: &mut [Value],
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn Error>> {
     for value in args {
         cx.print(mem::take(value))?;
     }
@@ -44,7 +43,7 @@ fn Print(
 fn PrintStr(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),
     value: ValueString,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn Error>> {
     cx.print_str(value)
 }
 
@@ -53,17 +52,14 @@ fn PrintStr(
 fn PrintMarkdown(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),
     value: ValueString,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn Error>> {
     cx.print_md(value)
 }
 
 /// Stop the calculation and return immediately
 #[injectable]
-fn Help(
-    #[cx] cx: &mut (impl InjectedContext + ?Sized),
-    page: ValueString,
-) -> Result<(), ManualError> {
-    cx.manual(page)
+fn Help(#[cx] cx: &mut (impl InjectedContext + ?Sized)) -> Result<(), Box<dyn Error>> {
+    cx.manual(&ManItem::root())
 }
 
 /// Stop the calculation and return immediately

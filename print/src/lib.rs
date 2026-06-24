@@ -21,6 +21,16 @@ pub enum Annotation {
     /// General styled contend for the banners and the manual
     Markdown(Option<MarkdownElement>),
 
+    /// List
+    ///
+    /// Annotated text is part of a markdown list
+    List {
+        /// Whether the list is ordered (numbered) or unordered (bulleted)
+        style: ListStyle,
+        /// Which part of the list this is (the list itself, an item, a marker)
+        element: Option<List>,
+    },
+
     /// Value
     ///
     /// Annotated text is part of a dices value representation
@@ -52,6 +62,22 @@ pub enum MarkdownElement {
     InlineCode,
     Bold,
     Italic,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum List {
+    /// A list item
+    Item,
+    /// A list item's marker (the bullet or number)
+    Marker,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ListStyle {
+    /// Numbered list (`1.`, `2.`, …)
+    Ordered,
+    /// Bulleted list (`-`)
+    Unordered,
 }
 
 #[derive(Debug, Clone, Copy)]

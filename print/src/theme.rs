@@ -28,6 +28,10 @@ pub struct Theme<T> {
     markdown_inline_code: T,
     markdown_bold: T,
     markdown_italic: T,
+    markdown_list: T,
+    markdown_list_item: T,
+    markdown_list_marker_ordered: T,
+    markdown_list_marker_unordered: T,
     prompt: T,
     prompt_indicator: T,
     prompt_multiline: T,
@@ -68,6 +72,16 @@ impl<T> Theme<T> {
             markdown_inline_code: Self::extract(figment.clone(), &["markdown", "inline_code"])?,
             markdown_bold: Self::extract(figment.clone(), &["markdown", "bold_text"])?,
             markdown_italic: Self::extract(figment.clone(), &["markdown", "italic_text"])?,
+            markdown_list: Self::extract(figment.clone(), &["markdown", "list"])?,
+            markdown_list_item: Self::extract(figment.clone(), &["markdown", "list", "item"])?,
+            markdown_list_marker_ordered: Self::extract(
+                figment.clone(),
+                &["markdown", "list", "marker", "ordered"],
+            )?,
+            markdown_list_marker_unordered: Self::extract(
+                figment.clone(),
+                &["markdown", "list", "marker", "unordered"],
+            )?,
             prompt: Self::extract(figment.clone(), &["prompt"])?,
             prompt_indicator: Self::extract(figment.clone(), &["prompt", "indicator"])?,
             prompt_multiline: Self::extract(figment.clone(), &["prompt", "multiline"])?,
@@ -150,6 +164,10 @@ impl<T> Theme<T> {
             markdown_inline_code: f(self.markdown_inline_code),
             markdown_bold: f(self.markdown_bold),
             markdown_italic: f(self.markdown_italic),
+            markdown_list: f(self.markdown_list),
+            markdown_list_item: f(self.markdown_list_item),
+            markdown_list_marker_ordered: f(self.markdown_list_marker_ordered),
+            markdown_list_marker_unordered: f(self.markdown_list_marker_unordered),
             prompt: f(self.prompt),
             prompt_indicator: f(self.prompt_indicator),
             prompt_multiline: f(self.prompt_multiline),
@@ -178,9 +196,10 @@ impl<T> Theme<T> {
             Value(Some(Bool { value: false })) => &self.value_bool_false,
             Value(Some(String { escape: false })) => &self.value_string,
             Value(Some(String { escape: true })) => &self.value_string_escape,
-            Value(Some(Delimiter { kind: List, depth })) => {
-                &self.value_delimiter_list[depth as usize % self.value_delimiter_list.len()]
-            }
+            Value(Some(Delimiter {
+                kind: DelimiterKind::List,
+                depth,
+            })) => &self.value_delimiter_list[depth as usize % self.value_delimiter_list.len()],
             Value(Some(Delimiter { kind: Map, depth })) => {
                 &self.value_delimiter_list[depth as usize % self.value_delimiter_list.len()]
             }
@@ -195,6 +214,19 @@ impl<T> Theme<T> {
             Markdown(Some(InlineCode)) => &self.markdown_inline_code,
             Markdown(Some(Bold)) => &self.markdown_bold,
             Markdown(Some(Italic)) => &self.markdown_italic,
+            Annotation::List { element: None, .. } => &self.markdown_list,
+            Annotation::List {
+                element: Some(crate::List::Item),
+                ..
+            } => &self.markdown_list_item,
+            Annotation::List {
+                style: crate::ListStyle::Ordered,
+                element: Some(crate::List::Marker),
+            } => &self.markdown_list_marker_ordered,
+            Annotation::List {
+                style: crate::ListStyle::Unordered,
+                element: Some(crate::List::Marker),
+            } => &self.markdown_list_marker_unordered,
             Prompt(None) => &self.prompt,
             Prompt(Some(Indicator)) => &self.prompt_indicator,
             Prompt(Some(Multiline)) => &self.prompt_multiline,

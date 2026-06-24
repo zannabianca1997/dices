@@ -13,7 +13,6 @@ underline = false
 dimmed = false
 italic = false
 strikethrough = false
-fg_color = "white"
 
 # Graphical fluff (emojis): subdued (dim white stands in for overlay1).
 [fluff]
@@ -74,6 +73,10 @@ bold = true  # rosewater collapses onto the base white
 
 [markdown.italic_text]
 italic = true
+
+[markdown.list.marker]
+bold = true
+fg_color = "green"
 
 [prompt]
 fg_color = "blue"  # blue
