@@ -5,9 +5,11 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+elsa = "1.11.2"
 itertools.workspace = true
-pretty.workspace = true
+linkme = "0.3.36"
 rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
+snafu.workspace = true
 
 [lints]
 workspace = true
