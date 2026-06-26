@@ -281,26 +281,40 @@ impl Escape {
         }
     }
 
-    /// Escape a single char under this escape method.
-    ///
-    /// Returns [`None`] when the char should be emitted verbatim, or
-    /// [`Some`] with its escaped representation. This is the single source of
-    /// truth shared by [`DisplayEscaped`] and the pretty-printer.
-    pub fn escape_char(&self, ch: char) -> Option<Cow<'static, str>> {
-        if !self.escapes(ch) {
-            return None;
-        }
-        Some(match ch {
-            '\0' => Cow::Borrowed(r"\0"),
-            '\n' => Cow::Borrowed(r"\n"),
-            '\r' => Cow::Borrowed(r"\r"),
-            '\t' => Cow::Borrowed(r"\t"),
-            '"' => Cow::Borrowed(r#"\""#),
-            '\'' => Cow::Borrowed(r"\'"),
-            '\\' => Cow::Borrowed(r"\\"),
-            '\x00'..='\x7F' => Cow::Owned(format!(r"\x{:02x}", ch as u8)),
-            _ => Cow::Owned(format!(r"\u{{{:x}}}", ch as u32)),
-        })
+    /// Escape a string under this escape method
+    pub fn escape_str<'a>(&self, s: &'a str) -> impl Iterator<Item = (bool, Cow<'a, str>)> {
+        s.char_indices()
+            .map(Some)
+            .chain(Some(None))
+            .scan((0,), |(start,), item| {
+                let Some((idx, ch)) = item else {
+                    let trailine_unescaped = Cow::Borrowed(&s[*start..]);
+                    return Some(Some([
+                        (false, trailine_unescaped),
+                        (false, Cow::Borrowed("")),
+                    ]));
+                };
+                if !self.escapes(ch) {
+                    return Some(None);
+                }
+                let unescaped = Cow::Borrowed(&s[*start..idx]);
+                *start = idx + ch.len_utf8();
+                let escaped = match ch {
+                    '\0' => Cow::Borrowed(r"\0"),
+                    '\n' => Cow::Borrowed(r"\n"),
+                    '\r' => Cow::Borrowed(r"\r"),
+                    '\t' => Cow::Borrowed(r"\t"),
+                    '"' => Cow::Borrowed(r#"\""#),
+                    '\'' => Cow::Borrowed(r"\'"),
+                    '\\' => Cow::Borrowed(r"\\"),
+                    '\x00'..='\x7F' => Cow::Owned(format!(r"\x{:02x}", ch as u8)),
+                    _ => Cow::Owned(format!(r"\u{{{:x}}}", ch as u32)),
+                };
+                Some(Some([(false, unescaped), (true, escaped)]))
+            })
+            .flatten()
+            .flatten()
+            .filter(|(_, s)| !s.is_empty())
     }
 }
 
@@ -312,13 +326,9 @@ pub struct DisplayEscaped<'a> {
 
 impl Display for DisplayEscaped<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for ch in self.content.chars() {
-            match self.escape.escape_char(ch) {
-                None => f.write_char(ch)?,
-                Some(escaped) => f.write_str(&escaped)?,
-            }
+        for (_escaped, part) in self.escape.escape_str(self.content) {
+            f.write_str(&part)?;
         }
-
         Ok(())
     }
 }

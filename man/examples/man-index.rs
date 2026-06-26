@@ -3,7 +3,7 @@ use itertools::Itertools;
 
 fn main() {
     let manual = Manual::new();
-    for page in manual.first().descendant().sorted() {
+    for page in manual.first().descendants().sorted() {
         if !page.path().is_empty() {
             print!("{}. ", page.path().iter().format("."))
         }

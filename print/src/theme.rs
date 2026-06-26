@@ -197,11 +197,12 @@ impl<T> Theme<T> {
             Value(Some(String { escape: true })) => &self.value_string_escape,
             Value(Some(Delimiter {
                 kind: DelimiterKind::List,
-                depth,
+                nesting: depth,
             })) => &self.value_delimiter_list[depth as usize % self.value_delimiter_list.len()],
-            Value(Some(Delimiter { kind: Map, depth })) => {
-                &self.value_delimiter_list[depth as usize % self.value_delimiter_list.len()]
-            }
+            Value(Some(Delimiter {
+                kind: Map,
+                nesting: depth,
+            })) => &self.value_delimiter_list[depth as usize % self.value_delimiter_list.len()],
             Value(Some(Punctuator)) => &self.value_punctuator,
             Value(Some(Injected)) => &self.value_injected,
             Ast(None) => &self.ast,

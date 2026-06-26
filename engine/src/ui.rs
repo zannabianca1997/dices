@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use dices_man::ManItem;
+use dices_man::ManPage;
 use dices_values::{Value, string::ValueString};
 
 /// Handler to the user interface
@@ -22,5 +22,5 @@ pub trait Ui {
     /// Display a manual item
     ///
     /// Returns only when the user exit the item
-    fn manual(&self, item: &ManItem) -> Result<(), Self::PrintError>;
+    fn manual(&self, item: &ManPage) -> Result<(), Self::PrintError>;
 }

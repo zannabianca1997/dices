@@ -59,9 +59,45 @@ struct Shared {
 
 impl Shared {
     fn new() -> Self {
-        Self {
+        let this = Self {
             cached: RwLock::new(Vec::new()),
             providers: FrozenVec::new(),
+        };
+
+        // Register pages collected via the linker
+        this.register(&linked::LINKED_PAGES);
+
+        // Register pages from the base manual
+        this.register(embedded::EmbeddedPagesProvider::new(
+            embedded::EmbeddedPages,
+        ));
+
+        this
+    }
+
+    fn register<P: Provider>(&self, p: P) {
+        let pages = match p.as_static() {
+            Ok(pages) => pages,
+            Err(dynamic) => {
+                self.providers.push(dynamic);
+                return;
+            }
+        };
+        let mut cached = self.cached.write().unwrap();
+
+        // Registers all pages, keeping the array sorted
+        for (path, page) in pages {
+            match cached.binary_search_by_key(&&*path, |e| e.path) {
+                Err(pos) => {
+                    cached.insert(pos, Entry::new(path, page));
+                }
+                Ok(pos) => panic!(
+                    "Page collision for {}: `{}` overwrites `{}`",
+                    path.iter().format("."),
+                    page.title(),
+                    cached[pos].title
+                ),
+            }
         }
     }
 }
@@ -139,17 +175,7 @@ impl Manual {
         // Ensure initialization
         LazyLock::force(&REGISTRY);
         // Now the user can copy this all times they want
-        let manual = Self { _priv: PhantomData };
-
-        // Register pages collected via the linker
-        manual.register(&linked::LINKED_PAGES);
-
-        // Register pages from the base manual
-        manual.register(embedded::EmbeddedPagesProvider::new(
-            embedded::EmbeddedPages,
-        ));
-
-        manual
+        Self { _priv: PhantomData }
     }
 
     fn registry(&self) -> &'static Shared {
@@ -231,31 +257,7 @@ impl Manual {
     /// assert_eq!(manual.fetch(&[99,99,3]).unwrap().title(), "Test Registered Page");
     /// ```
     pub fn register<P: Provider>(&self, p: P) {
-        let registry = self.registry();
-
-        let pages = match p.as_static() {
-            Ok(pages) => pages,
-            Err(dynamic) => {
-                registry.providers.push(dynamic);
-                return;
-            }
-        };
-
-        // Registers all pages, keeping the array sorted
-        let mut cached = registry.cached.write().unwrap();
-        for (path, page) in pages {
-            match cached.binary_search_by_key(&&*path, |e| e.path) {
-                Err(pos) => {
-                    cached.insert(pos, Entry::new(path, page));
-                }
-                Ok(pos) => panic!(
-                    "Page collision for {}: `{}` overwrites `{}`",
-                    path.iter().format("."),
-                    page.title(),
-                    cached[pos].title
-                ),
-            }
-        }
+        self.registry().register(p);
     }
 }
 

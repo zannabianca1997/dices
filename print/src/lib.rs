@@ -3,23 +3,24 @@
 pub use element::*;
 
 pub mod error;
+pub mod manual;
 pub mod markdown;
 pub mod theme;
 pub mod value;
 
 pub mod element;
 
-trait DocAllocator<'a>: pretty::DocAllocator<'a, Element> {}
+pub trait DocAllocator<'a>: pretty::DocAllocator<'a, Element> {}
 impl<'a, T> DocAllocator<'a> for T where T: pretty::DocAllocator<'a, Element> {}
 
-type DocBuilder<'a, D> = pretty::DocBuilder<'a, D, Element>;
+pub type DocBuilder<'a, D> = pretty::DocBuilder<'a, D, Element>;
 
 pub trait Pretty<'a, D>
 where
     D: DocAllocator<'a>,
 {
     type Ctx;
-    fn pretty(self, allocator: &'a D, ctx: &Self::Ctx) -> DocBuilder<'a, D>;
+    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D>;
 
     fn with_ctx(self, ctx: Self::Ctx) -> WithContext<'a, D, Self>
     where
@@ -51,7 +52,7 @@ where
     T: Pretty<'a, D>,
     D: DocAllocator<'a>,
 {
-    fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D> {
-        self.doc.pretty(allocator, &self.ctx)
+    fn pretty(mut self, allocator: &'a D) -> DocBuilder<'a, D> {
+        self.doc.pretty(allocator, &mut self.ctx)
     }
 }

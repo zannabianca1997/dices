@@ -7,7 +7,7 @@ use std::{
 };
 
 use dices_engine::{Engine, Evaluator};
-use dices_man::ManItem;
+use dices_man::ManPage;
 use dices_std::Std;
 use dices_values::{Value, null::ValueNull, string::ValueString};
 use itertools::Itertools;
@@ -62,7 +62,7 @@ impl dices_engine::ui::Ui for Ui<'_> {
         Ok(())
     }
 
-    fn manual(&self, item: &ManItem) -> Result<(), Self::PrintError> {
+    fn manual(&self, item: &ManPage) -> Result<(), Self::PrintError> {
         print_man_item(self.0, &item)
     }
 

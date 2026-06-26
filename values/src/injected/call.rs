@@ -1,6 +1,6 @@
 use std::{any::Any, error::Error};
 
-use dices_man::ManItem;
+use dices_man::ManPage;
 
 use crate::{
     Value,
@@ -73,7 +73,7 @@ pub trait InjectedContext {
     /// Display a manual page
     ///
     /// Returns only when the user exit the page
-    fn manual(&self, item: &ManItem) -> Result<(), Box<dyn Error>>;
+    fn print_manual(&self, item: &ManPage) -> Result<(), Box<dyn Error>>;
 
     /// Stop execution
     fn abort(&mut self, reason: Value) -> !;

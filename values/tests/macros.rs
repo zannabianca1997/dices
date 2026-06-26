@@ -3,7 +3,7 @@
 
 use std::{any::Any, error::Error};
 
-use dices_man::ManItem;
+use dices_man::ManPage;
 use dices_values::{
     Injectable, Value,
     identifier::Identifier,
@@ -69,7 +69,7 @@ impl InjectedContext for DummyCx {
         panic!()
     }
 
-    fn manual(&self, _page: &ManItem) -> Result<(), Box<dyn Error>> {
+    fn print_manual(&self, _page: &ManPage) -> Result<(), Box<dyn Error>> {
         panic!()
     }
 

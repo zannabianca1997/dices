@@ -2,8 +2,8 @@
 
 use std::io::{self, stderr, stdout};
 
-use dices_man::ManItem;
-use dices_print::{Element, error::ErrorChain, markdown::Markdown};
+use dices_man::ManPage;
+use dices_print::{Element, Pretty as _, error::ErrorChain, markdown::Markdown};
 use dices_values::{Value, cast::push_down_if_injected};
 use pretty::{
     Arena, Pretty, Render, RenderAnnotated, TermColored,
@@ -17,12 +17,12 @@ pub fn print_markdown(skin: &Skin, text: &str) -> Result<(), Error> {
     let text = Markdown(text);
 
     let arena = Arena::new();
-    print_inner(skin, &arena, text, stdout())?;
+    print_inner(skin, &arena, text.with_default_ctx(), stdout())?;
     Ok(())
 }
-pub fn print_man_item(skin: &Skin, item: &ManItem) -> Result<(), Error> {
+pub fn print_man_item(skin: &Skin, item: &ManPage) -> Result<(), Error> {
     let arena = Arena::new();
-    print_inner(skin, &arena, item, stdout())?;
+    print_inner(skin, &arena, item.with_default_ctx(), stdout())?;
     Ok(())
 }
 pub fn print_value(skin: &Skin, value: Value) -> Result<(), Error> {
@@ -30,7 +30,7 @@ pub fn print_value(skin: &Skin, value: Value) -> Result<(), Error> {
     let value = push_down_if_injected(value.clone()).unwrap_or(value);
 
     let arena = Arena::new();
-    print_inner(skin, &arena, value, stdout())?;
+    print_inner(skin, &arena, value.with_default_ctx(), stdout())?;
     Ok(())
 }
 pub fn print_error(skin: &Skin, error: &impl std::error::Error) -> Result<(), Error> {

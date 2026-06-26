@@ -89,7 +89,7 @@ pub enum ValueElement {
         /// Kind of the delimiter
         kind: DelimiterKind,
         /// Depth of the delimiter nesting
-        depth: u8,
+        nesting: u8,
     },
     /// Punctuators
     Punctuator,

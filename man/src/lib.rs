@@ -31,7 +31,7 @@ impl ManPage {
     /// Iter all pages in the manual that descends from this, inclusive of itself
     ///
     /// The iteration order is unspecified
-    pub fn descendant(&self) -> Descendants<'_> {
+    pub fn descendants(&self) -> Descendants<'_> {
         self.manual.descendants(&self.path)
     }
 
@@ -51,6 +51,12 @@ impl ManPageContent {
 
     pub fn title(&self) -> &str {
         &self.title
+    }
+    pub fn static_title(&self) -> Result<&'static str, &str> {
+        match &self.title {
+            Cow::Borrowed(s) => Ok(s),
+            Cow::Owned(s) => Err(s),
+        }
     }
 
     pub fn content(&self) -> &str {

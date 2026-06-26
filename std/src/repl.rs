@@ -1,9 +1,11 @@
 use std::{error::Error, mem};
 
-use dices_man::ManItem;
+use dices_man::{ManPage, Manual, PathComponent};
 use dices_values::{
-    Injectable, Value, injectable, injected::call::InjectedContext, string::ValueString,
+    Injectable, Value, injectable, injected::call::InjectedContext, int::ValueInt,
+    string::ValueString,
 };
+use itertools::Itertools;
 
 /// Bindings to the repl
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
@@ -58,8 +60,16 @@ fn PrintMarkdown(
 
 /// Stop the calculation and return immediately
 #[injectable]
-fn Help(#[cx] cx: &mut (impl InjectedContext + ?Sized)) -> Result<(), Box<dyn Error>> {
-    cx.manual(&ManItem::root())
+fn Help(
+    #[cx] cx: &mut (impl InjectedContext + ?Sized),
+    path: Vec<PathComponent>,
+) -> Result<(), Box<dyn Error>> {
+    let manual = Manual::new();
+    if let Some(page) = manual.fetch(path.clone()) {
+        cx.print_manual(&page)
+    } else {
+        Err(format!("Page {} not found", path.iter().format(".")).into())
+    }
 }
 
 /// Stop the calculation and return immediately
