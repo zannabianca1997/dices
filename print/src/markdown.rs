@@ -63,7 +63,9 @@ where
     type Ctx = Ctx;
 
     fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
-        Printer::new(&mut Parser::new(self.0.as_ref())).pretty(allocator, &mut PrinterCtx::new(ctx))
+        Printer::new(&mut Parser::new(self.0.as_ref()))
+            .pretty(allocator, &mut PrinterCtx::new(ctx))
+            .annotate(Element::Markdown(None))
     }
 }
 
