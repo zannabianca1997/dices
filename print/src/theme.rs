@@ -24,7 +24,8 @@ pub struct Theme<T> {
     ast_ident: T,
     markdown: T,
     markdown_header: Box<[T]>,
-    markdown_inline_code: T,
+    markdown_code: T,
+    markdown_code_inline: T,
     markdown_bold: T,
     markdown_italic: T,
     markdown_list: T,
@@ -68,7 +69,8 @@ impl<T> Theme<T> {
             ast_ident: Self::extract(figment.clone(), &["ast", "ident"])?,
             markdown: Self::extract(figment.clone(), &["markdown"])?,
             markdown_header: Self::extract_with_depth(figment.clone(), &["markdown", "header"])?,
-            markdown_inline_code: Self::extract(figment.clone(), &["markdown", "inline_code"])?,
+            markdown_code: Self::extract(figment.clone(), &["markdown", "code"])?,
+            markdown_code_inline: Self::extract(figment.clone(), &["markdown", "code", "inline"])?,
             markdown_bold: Self::extract(figment.clone(), &["markdown", "bold_text"])?,
             markdown_italic: Self::extract(figment.clone(), &["markdown", "italic_text"])?,
             markdown_list: Self::extract(figment.clone(), &["markdown", "list"])?,
@@ -160,7 +162,8 @@ impl<T> Theme<T> {
                 .into_iter()
                 .map(&mut f)
                 .collect(),
-            markdown_inline_code: f(self.markdown_inline_code),
+            markdown_code: f(self.markdown_code),
+            markdown_code_inline: f(self.markdown_code_inline),
             markdown_bold: f(self.markdown_bold),
             markdown_italic: f(self.markdown_italic),
             markdown_list: f(self.markdown_list),
@@ -211,7 +214,8 @@ impl<T> Theme<T> {
             Markdown(Some(Header { level })) => {
                 &self.markdown_header[level as usize % self.markdown_header.len()]
             }
-            Markdown(Some(InlineCode)) => &self.markdown_inline_code,
+            Markdown(Some(Code { inline: false })) => &self.markdown_code,
+            Markdown(Some(Code { inline: true })) => &self.markdown_code_inline,
             Markdown(Some(Bold)) => &self.markdown_bold,
             Markdown(Some(Italic)) => &self.markdown_italic,
             Markdown(Some(MarkdownElement::List { element: None, .. })) => &self.markdown_list,

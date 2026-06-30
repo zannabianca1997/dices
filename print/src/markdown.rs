@@ -1,6 +1,11 @@
-use std::{borrow::Cow, mem};
+//! Markdown printer
+//!
+//! Convert a stream of events from `pulldown_cmark` into an annotated document
 
-use pulldown_cmark::{CowStr, Event, HeadingLevel, Parser, Tag, TagEnd};
+use std::{borrow::Cow, iter::once, mem};
+
+use itertools::Itertools;
+use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, Parser, Tag, TagEnd};
 
 use crate::{DocAllocator, DocBuilder, Element, List, ListStyle, MarkdownElement, Pretty};
 
@@ -28,16 +33,16 @@ pub struct Ctx {
 }
 
 impl Ctx {
-    pub fn new(need_flow_separator: bool) -> Self {
+    pub fn new() -> Self {
         Self {
-            need_flow_separator,
+            need_flow_separator: false,
         }
     }
 }
 
 impl Default for Ctx {
     fn default() -> Self {
-        Self::new(false)
+        Self::new()
     }
 }
 
@@ -83,6 +88,9 @@ enum PrinterCtxFrame<'a> {
     ListItem {
         number: Option<u64>,
     },
+    CodeBlock {
+        _kind: CodeBlockKind<'a>,
+    },
 }
 pub struct PrinterCtx<'r, 'a> {
     root: &'r mut Ctx,
@@ -108,17 +116,20 @@ impl<'r, 'a> PrinterCtx<'r, 'a> {
     }
 
     fn push(&mut self, tag: Tag<'a>) -> &mut PrinterCtxFrame<'a> {
-        if let Tag::List(ordered) = tag {
-            self.stack.push_mut(PrinterCtxFrame::List { ordered })
-        } else if let Tag::Item = tag {
-            let Some(PrinterCtxFrame::List { ordered, .. }) = self.current_mut() else {
-                panic!("List item out of list");
-            };
-            let frame = PrinterCtxFrame::ListItem { number: *ordered };
-            *ordered = ordered.map(|v| v + 1);
-            self.stack.push_mut(frame)
-        } else {
-            self.stack.push_mut(PrinterCtxFrame::Generic { tag })
+        match tag {
+            Tag::List(ordered) => self.stack.push_mut(PrinterCtxFrame::List { ordered }),
+            Tag::Item => {
+                let Some(PrinterCtxFrame::List { ordered, .. }) = self.current_mut() else {
+                    panic!("List item out of list");
+                };
+                let frame = PrinterCtxFrame::ListItem { number: *ordered };
+                *ordered = ordered.map(|v| v + 1);
+                self.stack.push_mut(frame)
+            }
+            Tag::CodeBlock(kind) => self
+                .stack
+                .push_mut(PrinterCtxFrame::CodeBlock { _kind: kind }),
+            _ => self.stack.push_mut(PrinterCtxFrame::Generic { tag }),
         }
     }
 
@@ -130,6 +141,7 @@ impl<'r, 'a> PrinterCtx<'r, 'a> {
             PrinterCtxFrame::Generic { tag } => tag.to_end(),
             PrinterCtxFrame::List { ordered, .. } => TagEnd::List(ordered.is_some()),
             PrinterCtxFrame::ListItem { .. } => TagEnd::Item,
+            PrinterCtxFrame::CodeBlock { .. } => TagEnd::CodeBlock,
         };
 
         debug_assert_eq!(tag_end, tag_ended, "Mismatched end tags");
@@ -143,17 +155,25 @@ impl<'r, 'a> PrinterCtx<'r, 'a> {
             .unwrap_or(&mut self.root.need_flow_separator)
     }
 
+    /// Open a inner flow state (like inside a complex list item)
     fn open_flow_state_inner(&mut self) {
         self.flow_state_stack.push(false);
     }
+
+    /// Close a inner flow state
     fn close_flow_state_inner(&mut self) {
         self.flow_state_stack.pop();
     }
 
+    /// Remove the flow separator flag
     fn pop_flow_separator(&mut self) -> bool {
         mem::replace(self.flow_state(), false)
     }
 
+    /// Set the flow separator flag
+    ///
+    /// This flag marks that a flow element has been printed, and a empty line
+    /// need to be emitted before the next flow element
     fn push_need_flow_separator(&mut self) {
         *self.flow_state() = true;
     }
@@ -226,14 +246,14 @@ where
                         popped = line + marker + popped.indent(0);
                     }
 
-                    let is_flow = match tag_end {
-                        TagEnd::Item => false,
+                    let is_flow = matches!(
+                        tag_end,
                         TagEnd::Heading(_)
-                        | TagEnd::List(_)
-                        | TagEnd::Paragraph
-                        | TagEnd::CodeBlock => true,
-                        _ => false,
-                    };
+                            | TagEnd::List(_)
+                            | TagEnd::Paragraph
+                            | TagEnd::CodeBlock
+                    );
+
                     if tag_end == TagEnd::Item {
                         ctx.close_flow_state_inner();
                     }
@@ -276,10 +296,11 @@ where
                         TagEnd::Emphasis => MarkdownElement::Italic,
                         TagEnd::Strong => MarkdownElement::Bold,
 
-                        t @ (TagEnd::Link
-                        | TagEnd::Image
-                        | TagEnd::HtmlBlock
-                        | TagEnd::CodeBlock) => todo!("Tag {t:?} still to implement"),
+                        TagEnd::CodeBlock => MarkdownElement::Code { inline: false },
+
+                        t @ (TagEnd::Link | TagEnd::Image | TagEnd::HtmlBlock) => {
+                            todo!("Tag {t:?} still to implement")
+                        }
 
                         t @ (TagEnd::BlockQuote(_)
                         | TagEnd::FootnoteDefinition
@@ -310,10 +331,17 @@ where
                         ctx.push_need_flow_separator();
                     }
                 }
-                Event::Text(cow_str) => *current += reflow_cowstr(allocator, cow_str),
+                Event::Text(cow_str) => {
+                    *current += reflow_cowstr(
+                        allocator,
+                        cow_str,
+                        matches!(ctx.current(), PrinterCtxFrame::CodeBlock { .. }),
+                    )
+                }
                 Event::Code(cow_str) => {
-                    *current += reflow_cowstr(allocator, cow_str)
-                        .annotate(Element::Markdown(Some(MarkdownElement::InlineCode)))
+                    *current += reflow_cowstr(allocator, cow_str, true).annotate(Element::Markdown(
+                        Some(MarkdownElement::Code { inline: true }),
+                    ))
                 }
                 Event::SoftBreak => *current += allocator.space(),
                 Event::HardBreak => *current += allocator.hardline(),
@@ -334,16 +362,97 @@ where
     }
 }
 
-fn reflow_cowstr<'a, D>(allocator: &'a D, s: CowStr<'a>) -> DocBuilder<'a, D>
+fn reflow_cowstr<'a, D>(allocator: &'a D, s: CowStr<'a>, preserve_spaces: bool) -> DocBuilder<'a, D>
 where
     D: DocAllocator<'a>,
     D::Doc: Clone,
 {
-    match Cow::<'a, str>::from(s) {
-        Cow::Owned(s) => allocator.intersperse(
-            s.split(char::is_whitespace).map(ToOwned::to_owned),
-            allocator.softline(),
-        ),
-        Cow::Borrowed(s) => allocator.reflow(s),
+    if preserve_spaces {
+        match Cow::<'a, str>::from(s) {
+            Cow::Owned(s) => {
+                merge_with_hardlines(allocator, separate_spaces(&s).map(StrOrSpace::into_static))
+            }
+            Cow::Borrowed(s) => merge_with_hardlines(allocator, separate_spaces(&s)),
+        }
+    } else {
+        let s = Cow::<'a, str>::from(s);
+        let before = s
+            .starts_with(char::is_whitespace)
+            .then(|| allocator.softline());
+        let after = s
+            .ends_with(char::is_whitespace)
+            .then(|| allocator.softline());
+        match s {
+            Cow::Owned(s) => allocator.intersperse(
+                s.split_whitespace().map(ToOwned::to_owned),
+                allocator.softline(),
+            ),
+            Cow::Borrowed(s) => allocator.intersperse(s.split_whitespace(), allocator.softline()),
+        }
+        .enclose(before, after)
     }
+}
+
+enum StrOrSpace<'a> {
+    Str(&'a str),
+    String(String),
+    Space(char),
+}
+
+impl StrOrSpace<'_> {
+    fn into_static<'a>(self) -> StrOrSpace<'a> {
+        match self {
+            StrOrSpace::Str(s) => StrOrSpace::String(s.to_owned()),
+            StrOrSpace::String(s) => StrOrSpace::String(s),
+            StrOrSpace::Space(s) => StrOrSpace::Space(s),
+        }
+    }
+}
+
+impl<'a, D, A: 'a> pretty::Pretty<'a, D, A> for StrOrSpace<'a>
+where
+    D: pretty::DocAllocator<'a, A>,
+{
+    fn pretty(self, allocator: &'a D) -> pretty::DocBuilder<'a, D, A> {
+        match self {
+            StrOrSpace::Str(s) => allocator.text(s),
+            StrOrSpace::String(s) => allocator.text(s),
+            StrOrSpace::Space(s) => allocator.as_string(s),
+        }
+    }
+}
+
+fn separate_spaces<'a>(src: &'a str) -> impl Iterator<Item = StrOrSpace<'a>> {
+    src.char_indices()
+        .filter_map(|(pos, ch)| ch.is_whitespace().then_some((pos, Some(ch))))
+        .chain(once((src.len(), None)))
+        .scan(0, |start, (end, space)| {
+            let str = (*start != end).then_some(StrOrSpace::Str(&src[*start..end]));
+            *start = end + space.map(|ch| ch.len_utf8()).unwrap_or_default();
+
+            Some([str, space.map(StrOrSpace::Space)])
+        })
+        .flatten()
+        .flatten()
+}
+
+fn merge_with_hardlines<'a, D>(
+    allocator: &'a D,
+    elements: impl Iterator<Item = StrOrSpace<'a>>,
+) -> DocBuilder<'a, D>
+where
+    D: DocAllocator<'a>,
+    D::Doc: Clone,
+{
+    let batches = elements.peekable().batching(|f| {
+        if f.peek().is_none() {
+            return None;
+        }
+        let elements = f.take_while(|e| !matches!(e, StrOrSpace::Space('\n')));
+        Some(allocator.intersperse(elements, allocator.softline_()))
+    });
+    let with_hardlines = Itertools::intersperse(batches, allocator.hardline());
+    with_hardlines
+        .reduce(|a, b| a.append(b))
+        .unwrap_or(allocator.nil())
 }

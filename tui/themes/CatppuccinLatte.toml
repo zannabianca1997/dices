@@ -62,7 +62,7 @@ depth = [
   { fg_color = "#7287fd" },
 ]
 
-[markdown.inline_code]
+[markdown.code]
 fg_color = "#ea76cb"  # pink
 
 [markdown.bold_text]

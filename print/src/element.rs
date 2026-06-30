@@ -45,7 +45,9 @@ pub enum MarkdownElement {
     Header {
         level: u8,
     },
-    InlineCode,
+    Code {
+        inline: bool,
+    },
     Bold,
     Italic,
     Paragraph,

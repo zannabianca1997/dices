@@ -22,6 +22,10 @@
     "impls",
     "variadics",
     "idents",
-    "rngs"
+    "rngs",
+    "cowstr",
+    "softline",
+    "hardlines",
+    "peekable"
   ]
 }
