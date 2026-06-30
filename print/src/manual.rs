@@ -35,7 +35,7 @@ where
             .sorted()
             .collect_vec();
 
-        let index = if !nested.is_empty() {
+        let index = if nested.len() > 1 {
             Either::Left(
                 [
                     Event::Start(Tag::Heading {
@@ -44,7 +44,7 @@ where
                         classes: vec![],
                         attrs: vec![],
                     }),
-                    Event::Text("Content table".into()),
+                    Event::Text("Index".into()),
                     Event::End(TagEnd::Heading(HeadingLevel::H2)),
                 ]
                 .into_iter()
