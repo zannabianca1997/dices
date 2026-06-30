@@ -5,8 +5,8 @@ use itertools::{Either, Itertools};
 use pulldown_cmark::{Event, HeadingLevel, Parser, Tag, TagEnd};
 
 use crate::{
-    DocAllocator, DocBuilder, Element, MarkdownElement, Pretty,
-    markdown::{Markdown, Printer},
+    DocAllocator, DocBuilder, Pretty,
+    markdown::{Printer, PrinterCtx},
 };
 
 pub type Ctx = super::markdown::Ctx;
@@ -136,9 +136,7 @@ where
             .chain(index.into_iter())
             .chain(Parser::new(self.content()));
 
-        Printer::new(&mut doc)
-            .pretty(allocator, &mut (&*ctx).into())
-            .annotate(Element::Markdown(None))
+        Printer::new(&mut doc).pretty(allocator, &mut PrinterCtx::new(ctx))
     }
 }
 

@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, mem};
+use std::{borrow::Cow, mem};
 
 use pulldown_cmark::{CowStr, Event, HeadingLevel, Parser, Tag, TagEnd};
 
@@ -23,17 +23,21 @@ impl<T: ?Sized> Markdown<T> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Ctx {}
+pub struct Ctx {
+    need_flow_separator: bool,
+}
 
 impl Ctx {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(need_flow_separator: bool) -> Self {
+        Self {
+            need_flow_separator,
+        }
     }
 }
 
 impl Default for Ctx {
     fn default() -> Self {
-        Self::new()
+        Self::new(false)
     }
 }
 
@@ -59,241 +63,285 @@ where
     type Ctx = Ctx;
 
     fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
-        Printer::<_, FlowCtx>(&mut Parser::new(self.0.as_ref()), PhantomData)
-            .pretty(
-                allocator,
-                &mut FlowCtx {
-                    parent: ParentCtx::Root(ctx),
-                },
-            )
-            .annotate(Element::Markdown(None))
+        Printer::new(&mut Parser::new(self.0.as_ref())).pretty(allocator, &mut PrinterCtx::new(ctx))
     }
 }
 
-enum ParentCtx<'p> {
-    Root(&'p Ctx),
-    Flow(&'p FlowCtx<'p>),
-    List(&'p ListCtx<'p>),
+/// Printer context
+#[derive(Debug, Default)]
+enum PrinterCtxFrame<'a> {
+    #[default]
+    Root,
+    Generic {
+        tag: Tag<'a>,
+    },
+    List {
+        ordered: Option<u64>,
+    },
+    ListItem {
+        number: Option<u64>,
+    },
+}
+pub struct PrinterCtx<'r, 'a> {
+    root: &'r mut Ctx,
+    stack: Vec<PrinterCtxFrame<'a>>,
+    flow_state_stack: Vec<bool>,
 }
 
-pub struct FlowCtx<'p> {
-    parent: ParentCtx<'p>,
-}
-
-impl<'p> From<&'p Ctx> for FlowCtx<'p> {
-    fn from(value: &'p Ctx) -> Self {
+impl<'r, 'a> PrinterCtx<'r, 'a> {
+    pub fn new(root: &'r mut Ctx) -> Self {
         Self {
-            parent: ParentCtx::Root(value),
+            root,
+            stack: vec![],
+            flow_state_stack: vec![],
         }
+    }
+
+    fn current(&self) -> &PrinterCtxFrame<'a> {
+        self.stack.last().unwrap_or(&PrinterCtxFrame::Root)
+    }
+
+    fn current_mut(&mut self) -> Option<&mut PrinterCtxFrame<'a>> {
+        self.stack.last_mut()
+    }
+
+    fn push(&mut self, tag: Tag<'a>) -> &mut PrinterCtxFrame<'a> {
+        if let Tag::List(ordered) = tag {
+            self.stack.push_mut(PrinterCtxFrame::List { ordered })
+        } else if let Tag::Item = tag {
+            let Some(PrinterCtxFrame::List { ordered, .. }) = self.current_mut() else {
+                panic!("List item out of list");
+            };
+            let frame = PrinterCtxFrame::ListItem { number: *ordered };
+            *ordered = ordered.map(|v| v + 1);
+            self.stack.push_mut(frame)
+        } else {
+            self.stack.push_mut(PrinterCtxFrame::Generic { tag })
+        }
+    }
+
+    fn pop(&mut self, tag_end: TagEnd) -> PrinterCtxFrame<'a> {
+        let frame = self.stack.pop().expect("Unopened tag end");
+
+        let tag_ended = match &frame {
+            PrinterCtxFrame::Root => unreachable!(),
+            PrinterCtxFrame::Generic { tag } => tag.to_end(),
+            PrinterCtxFrame::List { ordered, .. } => TagEnd::List(ordered.is_some()),
+            PrinterCtxFrame::ListItem { .. } => TagEnd::Item,
+        };
+
+        debug_assert_eq!(tag_end, tag_ended, "Mismatched end tags");
+
+        frame
+    }
+
+    fn flow_state(&mut self) -> &mut bool {
+        self.flow_state_stack
+            .last_mut()
+            .unwrap_or(&mut self.root.need_flow_separator)
+    }
+
+    fn open_flow_state_inner(&mut self) {
+        self.flow_state_stack.push(false);
+    }
+    fn close_flow_state_inner(&mut self) {
+        self.flow_state_stack.pop();
+    }
+
+    fn pop_flow_separator(&mut self) -> bool {
+        mem::replace(self.flow_state(), false)
+    }
+
+    fn push_need_flow_separator(&mut self) {
+        *self.flow_state() = true;
     }
 }
 
-struct ListCtx<'p> {
-    parent: ParentCtx<'p>,
-    ordered: Option<u64>,
-}
+pub struct Printer<'e, Events>(&'e mut Events);
 
-impl<'p> ListCtx<'p> {
-    fn root(&self) -> &'p Ctx {
-        let mut ancestor = &self.parent;
-        loop {
-            match *ancestor {
-                ParentCtx::Root(ctx) => break ctx,
-                ParentCtx::Flow(FlowCtx { parent, .. })
-                | ParentCtx::List(ListCtx { parent, .. }) => ancestor = parent,
-            }
-        }
-    }
-}
-
-pub struct Printer<'p, Events, Ctx>(&'p mut Events, PhantomData<Ctx>);
-
-impl<'p, 'a, Events> Printer<'p, Events, FlowCtx<'a>> {
-    pub fn new(events: &'p mut Events) -> Self
+impl<'e, 'a, Events> Printer<'e, Events> {
+    pub fn new(events: &'e mut Events) -> Self
     where
         Events: Iterator<Item = Event<'a>>,
     {
-        Self(events, PhantomData)
+        Self(events)
     }
 }
 
-impl<'p, 'a, 'c, Events, D> Pretty<'a, D> for Printer<'p, Events, FlowCtx<'c>>
+impl<'e, 'a, D, Events> Pretty<'a, D> for Printer<'e, Events>
 where
     Events: Iterator<Item = Event<'a>>,
     D: DocAllocator<'a>,
     D::Doc: Clone,
 {
-    type Ctx = FlowCtx<'c>;
+    type Ctx = PrinterCtx<'e, 'a>;
 
     fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
-        let mut stack = vec![];
-        let mut doc = allocator.nil();
-        let mut reflow = true;
+        let mut docs = vec![allocator.nil()];
 
-        while let Some(event) = self.0.next() {
+        for event in self.0 {
+            let current = docs.last_mut().unwrap();
             match event {
-                Event::Start(tag) => match tag {
-                    Tag::Heading { .. } => {
-                        reflow = false;
-                        stack.push(mem::replace(&mut doc, allocator.nil()))
+                Event::Start(tag) => match ctx.push(tag) {
+                    PrinterCtxFrame::ListItem { .. } => {
+                        ctx.open_flow_state_inner();
+                        docs.push(allocator.nil());
                     }
-                    Tag::List(ordered) => {
-                        let mut ctx = ListCtx {
-                            parent: ParentCtx::Flow(ctx),
-                            ordered,
-                        };
-                        let parser = &mut *self.0;
-
-                        doc += Printer::<_, ListCtx>(parser, PhantomData).pretty(allocator, &mut ctx)
-                    }
-                    Tag::Item => unreachable!("Emitted only inside a ListCtx"),
-                    Tag::CodeBlock(_code_block_kind) => todo!(),
-                    Tag::HtmlBlock | Tag::BlockQuote(_) | Tag::Link { .. } | Tag::Image { .. } => {
-                        unimplemented!()
-                    }
-                    Tag::FootnoteDefinition(_)
-                    | Tag::DefinitionList
-                    | Tag::DefinitionListTitle
-                    | Tag::DefinitionListDefinition
-                    | Tag::Table(_)
-                    | Tag::TableHead
-                    | Tag::TableRow
-                    | Tag::TableCell
-                    | Tag::Strikethrough
-                    | Tag::Superscript
-                    | Tag::Subscript
-                    | Tag::MetadataBlock(_) => unreachable!(),
-                    Tag::Paragraph | Tag::Emphasis | Tag::Strong => {
-                        stack.push(mem::replace(&mut doc, allocator.nil()))
-                    }
+                    PrinterCtxFrame::Root => unreachable!(),
+                    _ => docs.push(allocator.nil()),
                 },
                 Event::End(tag_end) => {
-                    let Some(popped) = stack.pop() else {
-                        // Popped out of this flow
-                        break;
-                    };
-                    let markdown_element = match tag_end {
-                        TagEnd::Paragraph => MarkdownElement::Paragraph,
-                        TagEnd::Heading(heading_level) => {
-                            reflow = true;
-                            doc += allocator.hardline();
-                            doc += allocator.hardline();
+                    let frame = ctx.pop(tag_end);
+                    let mut popped = docs.pop().unwrap();
 
-                            MarkdownElement::Header {
-                                level: match heading_level {
-                                    HeadingLevel::H1 => 1,
-                                    HeadingLevel::H2 => 2,
-                                    HeadingLevel::H3 => 3,
-                                    HeadingLevel::H4 => 4,
-                                    HeadingLevel::H5 => 4,
-                                    HeadingLevel::H6 => 5,
-                                },
-                            }
+                    if let PrinterCtxFrame::ListItem { number } = frame {
+                        let marker = if let Some(number) = number {
+                            allocator.text(number.to_string()).append(". ")
+                        } else {
+                            allocator.text("- ")
                         }
+                        .annotate(Element::Markdown(Some(
+                            MarkdownElement::List {
+                                style: if number.is_some() {
+                                    ListStyle::Ordered
+                                } else {
+                                    ListStyle::Unordered
+                                },
+                                element: Some(List::Marker),
+                            },
+                        )));
+
+                        let line = allocator.column(|c| {
+                            if c > 0 {
+                                allocator.hardline()
+                            } else {
+                                allocator.nil()
+                            }
+                            .into_doc()
+                        });
+
+                        // Indent the list item content
+                        popped = line + marker + popped.indent(0);
+                    }
+
+                    let is_flow = match tag_end {
+                        TagEnd::Item => false,
+                        TagEnd::Heading(_)
+                        | TagEnd::List(_)
+                        | TagEnd::Paragraph
+                        | TagEnd::CodeBlock => true,
+                        _ => false,
+                    };
+                    if tag_end == TagEnd::Item {
+                        ctx.close_flow_state_inner();
+                    }
+
+                    let annotated = popped.annotate(Element::Markdown(Some(match tag_end {
+                        TagEnd::Paragraph => MarkdownElement::Paragraph,
+                        TagEnd::Heading(heading_level) => MarkdownElement::Header {
+                            level: match heading_level {
+                                HeadingLevel::H1 => 1,
+                                HeadingLevel::H2 => 2,
+                                HeadingLevel::H3 => 3,
+                                HeadingLevel::H4 => 4,
+                                HeadingLevel::H5 => 5,
+                                HeadingLevel::H6 => 6,
+                            },
+                        },
+
+                        TagEnd::List(ordered) => MarkdownElement::List {
+                            style: if ordered {
+                                ListStyle::Ordered
+                            } else {
+                                ListStyle::Unordered
+                            },
+                            element: None,
+                        },
+                        TagEnd::Item => MarkdownElement::List {
+                            style: {
+                                let PrinterCtxFrame::List { ordered, .. } = ctx.current() else {
+                                    unreachable!()
+                                };
+                                if ordered.is_some() {
+                                    ListStyle::Ordered
+                                } else {
+                                    ListStyle::Unordered
+                                }
+                            },
+                            element: Some(List::Item),
+                        },
+
                         TagEnd::Emphasis => MarkdownElement::Italic,
                         TagEnd::Strong => MarkdownElement::Bold,
-                        _ => unreachable!(),
-                    };
-                    doc = popped.append(doc.annotate(Element::Markdown(Some(markdown_element))));
-                }
-                Event::Text(text) => doc += reflow_text(allocator, reflow, text),
-                Event::Code(text) => {
-                    doc += reflow_text(allocator, reflow, text)
-                        .annotate(Element::Markdown(Some(MarkdownElement::InlineCode)))
-                }
-                Event::SoftBreak => {
-                    doc += allocator.space();
-                }
-                Event::HardBreak => {
-                    doc += allocator.hardline();
-                    doc += allocator.hardline();
-                }
-                Event::Html(_) | Event::InlineHtml(_) | Event::Rule => unimplemented!(),
-                Event::FootnoteReference(_)
-                | Event::InlineMath(_)
-                | Event::DisplayMath(_)
-                | Event::TaskListMarker(_) => unreachable!("Options for these events are disabled"),
-            }
-        }
 
-        debug_assert!(stack.is_empty());
-        doc
-    }
-}
+                        t @ (TagEnd::Link
+                        | TagEnd::Image
+                        | TagEnd::HtmlBlock
+                        | TagEnd::CodeBlock) => todo!("Tag {t:?} still to implement"),
 
-fn reflow_text<'a, D>(allocator: &'a D, reflow: bool, text: CowStr<'a>) -> DocBuilder<'a, D>
-where
-    D: DocAllocator<'a>,
-    D::Doc: Clone,
-{
-    if reflow {
-        if let CowStr::Borrowed(text) = text {
-            allocator.intersperse(text.split(char::is_whitespace), allocator.softline())
-        } else {
-            allocator.intersperse(
-                text.split(char::is_whitespace).map(ToOwned::to_owned),
-                allocator.softline(),
-            )
-        }
-    } else {
-        allocator.text(text)
-    }
-}
-impl<'p, 'a, 'c, Events, D> Pretty<'a, D> for Printer<'p, Events, ListCtx<'c>>
-where
-    Events: Iterator<Item = Event<'a>>,
-    D: DocAllocator<'a>,
-    D::Doc: Clone,
-{
-    type Ctx = ListCtx<'c>;
-
-    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
-        let mut doc = allocator.nil();
-        let style = match ctx.ordered.is_some() {
-            true => ListStyle::Ordered,
-            false => ListStyle::Unordered,
-        };
-
-        while let Some(event) = self.0.next() {
-            match event {
-                Event::Start(Tag::Item) => {
-                    let marker = match ctx.ordered.as_mut() {
-                        Some(count) => {
-                            let txt = format!("{count}.");
-                            *count += 1;
-                            allocator.text(txt)
+                        t @ (TagEnd::BlockQuote(_)
+                        | TagEnd::FootnoteDefinition
+                        | TagEnd::DefinitionList
+                        | TagEnd::DefinitionListTitle
+                        | TagEnd::DefinitionListDefinition
+                        | TagEnd::Table
+                        | TagEnd::TableHead
+                        | TagEnd::TableRow
+                        | TagEnd::TableCell
+                        | TagEnd::Strikethrough
+                        | TagEnd::Superscript
+                        | TagEnd::Subscript
+                        | TagEnd::MetadataBlock(_)) => {
+                            unimplemented!("Tag {t:?} not supported (not emitted without options)")
                         }
-                        None => allocator.text("-"),
-                    }
-                    .annotate(Element::Markdown(Some(MarkdownElement::List {
-                        style,
-                        element: Some(List::Marker),
                     })));
 
-                    let mut ctx = FlowCtx {
-                        parent: ParentCtx::List(ctx),
-                    };
-                    let parser = &mut *self.0;
+                    let current = docs.last_mut().unwrap();
 
-                    let content =
-                        Printer::<_, FlowCtx>(parser, PhantomData).pretty(allocator, &mut ctx);
+                    if is_flow && ctx.pop_flow_separator() {
+                        *current += allocator.hardline() + allocator.hardline();
+                    }
 
-                    doc += marker
-                        .append(content.indent(1))
-                        .append(allocator.hardline())
-                        .annotate(Element::Markdown(Some(MarkdownElement::List {
-                            style,
-                            element: Some(List::Item),
-                        })))
+                    *current += annotated;
+
+                    if is_flow {
+                        ctx.push_need_flow_separator();
+                    }
                 }
-                Event::End(TagEnd::List(_)) => break,
-                _ => unreachable!("List context contains only list items"),
+                Event::Text(cow_str) => *current += reflow_cowstr(allocator, cow_str),
+                Event::Code(cow_str) => {
+                    *current += reflow_cowstr(allocator, cow_str)
+                        .annotate(Element::Markdown(Some(MarkdownElement::InlineCode)))
+                }
+                Event::SoftBreak => *current += allocator.space(),
+                Event::HardBreak => *current += allocator.hardline(),
+                e @ (Event::Html(_) | Event::InlineHtml(_) | Event::Rule) => {
+                    todo!("Event {e:?} still to implement")
+                }
+                e @ (Event::InlineMath(_)
+                | Event::DisplayMath(_)
+                | Event::FootnoteReference(_)
+                | Event::TaskListMarker(_)) => {
+                    unimplemented!("Event {e:?} not supported (not emitted without options)")
+                }
             }
         }
 
-        doc.annotate(Element::Markdown(Some(MarkdownElement::List {
-            style,
-            element: None,
-        })))
+        debug_assert_eq!(docs.len(), 1, "Unclosed tags");
+        docs.into_iter().next().unwrap()
+    }
+}
+
+fn reflow_cowstr<'a, D>(allocator: &'a D, s: CowStr<'a>) -> DocBuilder<'a, D>
+where
+    D: DocAllocator<'a>,
+    D::Doc: Clone,
+{
+    match Cow::<'a, str>::from(s) {
+        Cow::Owned(s) => allocator.intersperse(
+            s.split(char::is_whitespace).map(ToOwned::to_owned),
+            allocator.softline(),
+        ),
+        Cow::Borrowed(s) => allocator.reflow(s),
     }
 }

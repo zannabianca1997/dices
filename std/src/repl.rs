@@ -1,9 +1,8 @@
 use std::{error::Error, mem};
 
-use dices_man::{ManPage, Manual, PathComponent};
+use dices_man::{Manual, PathComponent};
 use dices_values::{
-    Injectable, Value, injectable, injected::call::InjectedContext, int::ValueInt,
-    string::ValueString,
+    Injectable, Value, injectable, injected::call::InjectedContext, string::ValueString,
 };
 use itertools::Itertools;
 
