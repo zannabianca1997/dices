@@ -8,12 +8,14 @@ license.workspace = true
 dices-man.workspace = true
 dices-values.workspace = true
 
-figment.workspace = true
 itertools.workspace = true
 nunny = "0.2.2"
+optional_struct = "0.5"
 pretty.workspace = true
 pulldown-cmark = "0.13.4"
-serde.workspace = true
+simplecss = "0.2"
+snafu.workspace = true
+yoke = { workspace = true, features = ["derive"] }
 
 [lints]
 workspace = true

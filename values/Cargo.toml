@@ -23,7 +23,7 @@ rand.workspace = true
 serde.workspace = true
 snafu.workspace = true
 strum = { workspace = true, features = ["derive"] }
-yoke = "0.8.3"
+yoke.workspace = true
 
 [dev-dependencies]
 serde = { workspace = true, features = ["derive"] }

@@ -3,7 +3,7 @@
 use std::io::{self, stderr, stdout};
 
 use dices_man::ManPage;
-use dices_print::{Element, Pretty as _, error::ErrorChain, markdown::Markdown};
+use dices_print::{Element, Pretty as _, error::ErrorReport, markdown::Markdown};
 use dices_values::{Value, cast::push_down_if_injected};
 use pretty::{
     Arena, Pretty, Render, RenderAnnotated, TermColored,
@@ -35,7 +35,7 @@ pub fn print_value(skin: &Skin, value: Value) -> Result<(), Error> {
 }
 pub fn print_error(skin: &Skin, error: &impl std::error::Error) -> Result<(), Error> {
     let arena = Arena::new();
-    let error_chain = ErrorChain::new(error);
+    let error_chain = ErrorReport::new(error);
     print_inner(skin, &arena, error_chain, stderr())?;
     Ok(())
 }
@@ -102,8 +102,7 @@ where
     W: RenderAnnotated<'a, ColorSpec>,
 {
     fn push_annotation(&mut self, annotation: &Element) -> Result<(), Self::Error> {
-        self.0
-            .push_annotation(self.1.theme.content.style(*annotation))
+        self.0.push_annotation(&self.1.theme.style(*annotation))
     }
 
     fn pop_annotation(&mut self) -> Result<(), Self::Error> {

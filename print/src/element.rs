@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Element {
     /// Graphical fluff
     ///
@@ -29,7 +29,7 @@ pub enum Element {
     Error(Option<ErrorElement>),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PromptElement {
     /// Indicator shown before the user input (e.g. the chevron)
     Indicator,
@@ -39,7 +39,7 @@ pub enum PromptElement {
     Right,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum MarkdownElement {
     Header {
@@ -57,7 +57,7 @@ pub enum MarkdownElement {
     },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum List {
     /// A list item
     Item,
@@ -65,7 +65,7 @@ pub enum List {
     Marker,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ListStyle {
     /// Numbered list (`1.`, `2.`, …)
     Ordered,
@@ -73,7 +73,7 @@ pub enum ListStyle {
     Unordered,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ValueElement {
     /// Null literal
     Null,
@@ -99,20 +99,20 @@ pub enum ValueElement {
     Injected,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AstElement {
     /// Identifier
     Ident,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DelimiterKind {
     List,
     Map,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ErrorElement {
     Message,
-    Source,
+    Cause,
 }

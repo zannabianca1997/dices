@@ -1,11 +1,17 @@
-use std::fs::{self, File};
-use std::io::{self, Write};
-use std::path::Path;
+use std::{
+    fs::{self, File},
+    io::{self, Write},
+    path::Path,
+};
 
-use dices_print::{Element, PromptElement};
+use dices_print::theme::{Color as ThemeColor, Style};
+use elsa::sync::FrozenMap;
 use pretty::termcolor::{Color as TermColor, ColorSpec};
 use rust_embed::Embed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use yoke::Yoke;
+
+use dices_print::{Element, PromptElement, theme::Theme as StyleSheet};
 
 /// Themes bundled into the binary, written to disk on first run.
 #[derive(Embed)]
@@ -30,14 +36,56 @@ pub fn write_themes_if_not_exists(themes_dir: &Path) -> io::Result<()> {
     Ok(())
 }
 
-#[derive(Debug)]
 pub struct Theme {
-    pub name: String,
-    pub content: dices_print::theme::Theme<ColorSpec>,
-    pub prompt: reedline::Color,
-    pub prompt_indicator: reedline::Color,
-    pub prompt_multiline: nu_ansi_term::Color,
-    pub prompt_right: reedline::Color,
+    name: String,
+    sheet: Yoke<StyleSheet<'static>, String>,
+    cache: FrozenMap<Element, Box<ColorSpec>>,
+    prompt: reedline::Color,
+    prompt_indicator: reedline::Color,
+    prompt_multiline: nu_ansi_term::Color,
+    prompt_right: reedline::Color,
+}
+
+impl std::fmt::Debug for Theme {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Theme")
+            .field("name", &self.name)
+            .field("sheet", &self.sheet)
+            .field("prompt", &self.prompt)
+            .field("prompt_indicator", &self.prompt_indicator)
+            .field("prompt_multiline", &self.prompt_multiline)
+            .field("prompt_right", &self.prompt_right)
+            .finish()
+    }
+}
+
+impl Theme {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn style(&self, element: Element) -> &ColorSpec {
+        self.cache.get(&element).unwrap_or_else(|| {
+            self.cache
+                .insert(element, Box::new(color_spec(style(&self.sheet, element))))
+        })
+    }
+
+    pub fn prompt(&self) -> reedline::Color {
+        self.prompt
+    }
+
+    pub fn prompt_indicator(&self) -> reedline::Color {
+        self.prompt_indicator
+    }
+
+    pub fn prompt_multiline(&self) -> nu_ansi_term::Color {
+        self.prompt_multiline
+    }
+
+    pub fn prompt_right(&self) -> reedline::Color {
+        self.prompt_right
+    }
 }
 
 impl Default for Theme {
@@ -51,7 +99,8 @@ impl Default for Theme {
             } else {
                 DEFAULT_LOW_COLORS.to_owned()
             },
-            content: dices_print::theme::Theme::default(),
+            sheet: Yoke::attach_to_cart(String::new(), |_| Default::default()),
+            cache: Default::default(),
             prompt: reedline::Color::Reset,
             prompt_indicator: reedline::Color::Reset,
             prompt_multiline: nu_ansi_term::Color::Default,
@@ -71,36 +120,39 @@ impl<'de> Deserialize<'de> for Theme {
         let name =
             Option::<String>::deserialize(deserializer)?.unwrap_or_else(|| "Default".to_owned());
 
-        // `<config>/themes/<name>.toml`.
+        // `<config>/themes/<name>.css`.
         let path = super::themes_dir()
             .ok_or_else(|| D::Error::custom("could not determine the configuration directory"))?
             .join(&name)
-            .with_extension("toml");
+            .with_extension("css");
 
-        let raw = std::fs::read_to_string(&path).map_err(|err| {
+        let css = std::fs::read_to_string(&path).map_err(|err| {
             D::Error::custom(format!(
                 "could not read theme `{name}` at {}: {err}",
                 path.display()
             ))
         })?;
-        let content: dices_print::theme::Theme<SerDeColorSpec> = toml::from_str(&raw)
-            .map_err(|err| D::Error::custom(format!("could not parse theme `{name}`: {err}")))?;
+        let sheet = Yoke::attach_to_cart(css, |raw| StyleSheet::parse(raw));
 
         // Map the serializable spec onto the real `ColorSpec`, then read the
         // prompt colors back out of the resolved theme.
-        let content = content.map(ColorSpec::from);
-        let prompt = reedline_color(content.style(Element::Prompt(None)));
-        let prompt_indicator =
-            reedline_color(content.style(Element::Prompt(Some(PromptElement::Indicator))));
-        let prompt_multiline =
-            nu_color(content.style(Element::Prompt(Some(PromptElement::Multiline))));
+        let prompt = reedline_color(style(&sheet, Element::Prompt(None)));
+        let prompt_indicator = reedline_color(style(
+            &sheet,
+            Element::Prompt(Some(PromptElement::Indicator)),
+        ));
+        let prompt_multiline = nu_color(style(
+            &sheet,
+            Element::Prompt(Some(PromptElement::Multiline)),
+        ));
         let prompt_right =
-            reedline_color(content.style(Element::Prompt(Some(PromptElement::Right))));
+            reedline_color(style(&sheet, Element::Prompt(Some(PromptElement::Right))));
 
         Ok(Self {
             name,
-            content,
+            sheet,
             prompt,
+            cache: Default::default(),
             prompt_indicator,
             prompt_multiline,
             prompt_right,
@@ -118,16 +170,56 @@ impl Serialize for Theme {
     }
 }
 
-/// Foreground of a resolved [`ColorSpec`] as a [`reedline::Color`], defaulting
-/// to the terminal's reset color when unset.
-fn reedline_color(spec: &ColorSpec) -> reedline::Color {
-    spec.fg().map_or(reedline::Color::Reset, term_to_reedline)
+fn style<C>(sheet: &Yoke<StyleSheet<'static>, C>, element: Element) -> Style {
+    sheet.get().style(element)
 }
 
-/// Foreground of a resolved [`ColorSpec`] as a [`nu_ansi_term::Color`],
+fn convert_color(c: ThemeColor) -> TermColor {
+    match c {
+        ThemeColor::Black => TermColor::Black,
+        ThemeColor::Blue => TermColor::Blue,
+        ThemeColor::Green => TermColor::Green,
+        ThemeColor::Red => TermColor::Red,
+        ThemeColor::Cyan => TermColor::Cyan,
+        ThemeColor::Magenta => TermColor::Magenta,
+        ThemeColor::Yellow => TermColor::Yellow,
+        ThemeColor::White => TermColor::White,
+        ThemeColor::Ansi256(n) => TermColor::Ansi256(n),
+        ThemeColor::Rgb(r, g, b) => TermColor::Rgb(r, g, b),
+    }
+}
+
+fn color_spec(spec: Style) -> ColorSpec {
+    let mut cs = ColorSpec::new();
+    if let Some(fg) = spec.fg_color {
+        cs.set_fg(Some(convert_color(fg)));
+    }
+    if let Some(bg) = spec.bg_color {
+        cs.set_bg(Some(convert_color(bg)));
+    }
+    cs.set_bold(spec.bold);
+    cs.set_intense(spec.intense);
+    cs.set_underline(spec.underline);
+    cs.set_dimmed(spec.dimmed);
+    cs.set_italic(spec.italic);
+    cs.set_reset(spec.reset);
+    cs
+}
+
+/// Foreground of a resolved [`Style`] as a [`reedline::Color`], defaulting
+/// to the terminal's reset color when unset.
+fn reedline_color(spec: Style) -> reedline::Color {
+    spec.fg_color
+        .map(|c| term_to_reedline(&convert_color(c)))
+        .unwrap_or(reedline::Color::Reset)
+}
+
+/// Foreground of a resolved [`Style`] as a [`nu_ansi_term::Color`],
 /// defaulting to the terminal's default color when unset.
-fn nu_color(spec: &ColorSpec) -> nu_ansi_term::Color {
-    spec.fg().map_or(nu_ansi_term::Color::Default, term_to_nu)
+fn nu_color(spec: Style) -> nu_ansi_term::Color {
+    spec.fg_color
+        .map(|c| term_to_nu(&convert_color(c)))
+        .unwrap_or(nu_ansi_term::Color::Default)
 }
 
 fn term_to_reedline(color: &TermColor) -> reedline::Color {
@@ -164,107 +256,9 @@ fn term_to_nu(color: &TermColor) -> nu_ansi_term::Color {
     }
 }
 
-#[derive(Debug, Deserialize)]
-struct SerDeColorSpec {
-    fg_color: Option<SerDeColor>,
-    bg_color: Option<SerDeColor>,
-    bold: bool,
-    intense: bool,
-    underline: bool,
-    dimmed: bool,
-    italic: bool,
-    reset: bool,
-    strikethrough: bool,
-}
-
-impl Default for SerDeColorSpec {
-    fn default() -> Self {
-        Self {
-            fg_color: None,
-            bg_color: None,
-            bold: false,
-            intense: false,
-            underline: false,
-            dimmed: false,
-            italic: false,
-            reset: true,
-            strikethrough: false,
-        }
-    }
-}
-
-impl From<SerDeColorSpec> for ColorSpec {
-    fn from(spec: SerDeColorSpec) -> Self {
-        let mut out = ColorSpec::new();
-        out.set_fg(spec.fg_color.map(|c| c.0));
-        out.set_bg(spec.bg_color.map(|c| c.0));
-        out.set_bold(spec.bold);
-        out.set_intense(spec.intense);
-        out.set_underline(spec.underline);
-        out.set_dimmed(spec.dimmed);
-        out.set_italic(spec.italic);
-        out.set_reset(spec.reset);
-        out.set_strikethrough(spec.strikethrough);
-        out
-    }
-}
-
-/// A color as written in a theme file, parsed on deserialization. Accepts a
-/// raw ansi256 integer, a `#RRGGBB` 24-bit hex string, or any color string
-/// understood by `termcolor` (names, ansi256, `r,g,b` triples). A malformed
-/// color is a hard error rather than being silently dropped.
-#[derive(Debug)]
-struct SerDeColor(TermColor);
-
-impl<'de> Deserialize<'de> for SerDeColor {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        #[serde(untagged)]
-        enum Raw {
-            String(String),
-            Int(u8),
-        }
-
-        let color = match Raw::deserialize(deserializer)? {
-            Raw::Int(value) => TermColor::Ansi256(value),
-            Raw::String(s) if s.starts_with('#') => {
-                parse_hex(&s).map_err(serde::de::Error::custom)?
-            }
-            Raw::String(s) => s.parse().map_err(serde::de::Error::custom)?,
-        };
-        Ok(SerDeColor(color))
-    }
-}
-
-/// Parses a `#RRGGBB` 24-bit hex color into [`TermColor::Rgb`].
-fn parse_hex(s: &str) -> Result<TermColor, String> {
-    let hex = &s[1..];
-    if hex.len() != 6 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
-        return Err(format!("`{s}` is not a 24-bit `#RRGGBB` hex color"));
-    }
-    let byte = |range: std::ops::Range<usize>| {
-        u8::from_str_radix(&hex[range], 16).expect("validated as hex above")
-    };
-    Ok(TermColor::Rgb(byte(0..2), byte(2..4), byte(4..6)))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Every bundled theme must parse and resolve against the deserializer's
-    /// path/`SerDeColorSpec` schema, guarding the embedded TOML from drift.
-    #[test]
-    fn bundled_themes_are_valid() {
-        for name in Themes::iter() {
-            let content = Themes::get(&*name).unwrap().data;
-            toml::from_slice::<dices_print::theme::Theme<SerDeColorSpec>>(&content)
-                .unwrap_or_else(|err| panic!("bundled theme `{name}` is invalid: {err}"));
-        }
-    }
 
     #[test]
     fn write_themes_is_idempotent() {

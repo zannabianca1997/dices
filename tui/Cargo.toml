@@ -32,6 +32,8 @@ rust-embed.workspace = true
 serde.workspace = true
 snafu.workspace = true
 toml = "1.1.2"
+yoke.workspace = true
+elsa = "1.11.2"
 
 [lints]
 workspace = true

@@ -4,15 +4,15 @@ use pretty::{DocAllocator, DocBuilder, Pretty};
 
 use crate::{Element, ErrorElement};
 
-pub struct ErrorChain<'a>(pub &'a (dyn Error + 'a));
+pub struct ErrorReport<'a>(pub &'a (dyn Error + 'a));
 
-impl<'a> ErrorChain<'a> {
+impl<'a> ErrorReport<'a> {
     pub fn new(error: &'a (dyn Error + 'a)) -> Self {
         Self(error)
     }
 }
 
-impl<'a, D> Pretty<'a, D, Element> for ErrorChain<'a>
+impl<'a, D> Pretty<'a, D, Element> for ErrorReport<'a>
 where
     D: DocAllocator<'a, Element>,
 {
@@ -25,31 +25,28 @@ where
         doc = doc.append(message);
         doc = doc.append(allocator.hardline());
 
-        let mut causes: Vec<String> = Vec::new();
+        let mut causes = Vec::new();
         let mut current = self.0.source();
         while let Some(cause) = current {
-            causes.push(cause.to_string());
+            causes.push(cause);
             current = cause.source();
         }
 
         if !causes.is_empty() {
             doc = doc.append(allocator.hardline());
-            doc = doc.append(
-                allocator
-                    .text("Caused by:")
-                    .annotate(Element::Error(Some(ErrorElement::Message))),
-            );
+            doc = doc.append(allocator.text("Caused by:"));
 
-            for cause in &causes {
+            for cause in causes {
                 doc = doc.append(allocator.hardline());
                 doc = doc.append(
-                    allocator
-                        .text(format!("  - {}", cause))
-                        .annotate(Element::Error(Some(ErrorElement::Source))),
+                    allocator.text("  - ")
+                        + allocator
+                            .as_string(cause)
+                            .annotate(Element::Error(Some(ErrorElement::Cause))),
                 );
             }
         }
 
-        doc
+        doc.annotate(Element::Error(None))
     }
 }

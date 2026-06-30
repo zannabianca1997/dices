@@ -26,6 +26,10 @@
     "cowstr",
     "softline",
     "hardlines",
-    "peekable"
+    "peekable",
+    "simplecss",
+    "stylesheet",
+    "Yokeable",
+    "truecolor"
   ]
 }
