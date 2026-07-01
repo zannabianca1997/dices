@@ -302,6 +302,12 @@ impl CssElement for Element {
             (Element::Value(Some(ValueElement::Delimiter { nesting, .. })), "depth") => {
                 print_u8(&mut buf, nesting)
             }
+            (Element::Value(Some(ValueElement::Delimiter { nesting, .. })), s)
+                if let Some(modulus) =
+                    s.strip_prefix("depth-").and_then(|m| m.parse::<u8>().ok()) =>
+            {
+                print_u8(&mut buf, &(nesting % modulus))
+            }
 
             (Element::Markdown(Some(MarkdownElement::List { style, .. })), "style") => {
                 match style {

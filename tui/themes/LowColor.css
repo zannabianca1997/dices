@@ -13,10 +13,10 @@ dices-value-integer { color: yellow; }
 dices-value-bool { color: magenta; }
 dices-value-string { color: green; }
 dices-value-string[escape='true'] { color: yellow; }
-dices-value-delimiter { color: yellow; }
-dices-value-delimiter[depth='1'] { color: blue; }
-dices-value-delimiter[depth='2'] { color: magenta; }
-dices-value-delimiter[depth='3'] { color: cyan; }
+dices-value-delimiter[depth-4='0'] { color: yellow; }
+dices-value-delimiter[depth-4='1'] { color: blue; }
+dices-value-delimiter[depth-4='2'] { color: magenta; }
+dices-value-delimiter[depth-4='3'] { color: cyan; }
 dices-value-punctuator { dimmed: true; }
 dices-value-injected { color: yellow; }
 dices-ast-ident { color: cyan; }
