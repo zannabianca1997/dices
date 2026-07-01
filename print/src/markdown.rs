@@ -2,22 +2,31 @@
 //!
 //! Convert a stream of events from `pulldown_cmark` into an annotated document
 
-use std::{borrow::Cow, iter::once, mem};
+use std::{borrow::Cow, iter::once, marker::PhantomData, mem};
 
 use itertools::Itertools;
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, Parser, Tag, TagEnd};
 
 use crate::{DocAllocator, DocBuilder, Element, List, ListStyle, MarkdownElement, Pretty};
+pub use code_rendered::{CodeRender, DefaultCodeRender};
+
+mod code_rendered;
 
 #[repr(transparent)]
-pub struct Markdown<T: ?Sized>(pub T);
+pub struct Markdown<T: ?Sized, R = DefaultCodeRender> {
+    _phantom: PhantomData<R>,
+    pub text: T,
+}
 
-impl<T: ?Sized> Markdown<T> {
+impl<R, T> Markdown<T, R> {
     pub fn new(text: T) -> Self
     where
         T: Sized,
     {
-        Self(text)
+        Self {
+            _phantom: PhantomData,
+            text,
+        }
     }
     pub fn new_ref(text: &T) -> &Self {
         unsafe {
@@ -28,47 +37,50 @@ impl<T: ?Sized> Markdown<T> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Ctx {
+pub struct Ctx<R> {
     need_flow_separator: bool,
+    code_render: R,
 }
 
-impl Ctx {
-    pub fn new() -> Self {
+impl<R> Ctx<R> {
+    pub fn new(code_render: R) -> Self {
         Self {
             need_flow_separator: false,
+            code_render,
         }
     }
 }
 
-impl Default for Ctx {
+impl<R: Default> Default for Ctx<R> {
     fn default() -> Self {
-        Self::new()
+        Self::new(Default::default())
     }
 }
 
-impl<'a, D, T> Pretty<'a, D> for &'a Markdown<T>
-where
-    T: ?Sized,
-    D: DocAllocator<'a>,
-    T: AsRef<str>,
-    D::Doc: Clone,
-{
-    type Ctx = Ctx;
-
-    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
-        <Markdown<&'a T> as Pretty<'a, D>>::pretty(Markdown(&self.0), allocator, ctx)
-    }
-}
-impl<'a, D, T> Pretty<'a, D> for Markdown<&'a T>
+impl<'a, D, R, T> Pretty<'a, D> for &'a Markdown<T, R>
 where
     D: DocAllocator<'a>,
     T: AsRef<str> + ?Sized,
     D::Doc: Clone,
+    R: CodeRender,
 {
-    type Ctx = Ctx;
+    type Ctx = Ctx<R>;
 
     fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
-        Printer::new(&mut Parser::new(self.0.as_ref()))
+        Markdown::new(&self.text).pretty(allocator, ctx)
+    }
+}
+impl<'a, D, T, R> Pretty<'a, D> for Markdown<&'a T, R>
+where
+    D: DocAllocator<'a>,
+    T: AsRef<str> + ?Sized,
+    D::Doc: Clone,
+    R: CodeRender,
+{
+    type Ctx = Ctx<R>;
+
+    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+        Printer::new(&mut Parser::new(self.text.as_ref()))
             .pretty(allocator, &mut PrinterCtx::new(ctx))
             .annotate(Element::Markdown(None))
     }
@@ -89,17 +101,17 @@ enum PrinterCtxFrame<'a> {
         number: Option<u64>,
     },
     CodeBlock {
-        _kind: CodeBlockKind<'a>,
+        kind: CodeBlockKind<'a>,
     },
 }
-pub struct PrinterCtx<'r, 'a> {
-    root: &'r mut Ctx,
+pub struct PrinterCtx<'r, 'a, R> {
+    root: &'r mut Ctx<R>,
     stack: Vec<PrinterCtxFrame<'a>>,
     flow_state_stack: Vec<bool>,
 }
 
-impl<'r, 'a> PrinterCtx<'r, 'a> {
-    pub fn new(root: &'r mut Ctx) -> Self {
+impl<'r, 'a, R> PrinterCtx<'r, 'a, R> {
+    pub fn new(root: &'r mut Ctx<R>) -> Self {
         Self {
             root,
             stack: vec![],
@@ -126,9 +138,7 @@ impl<'r, 'a> PrinterCtx<'r, 'a> {
                 *ordered = ordered.map(|v| v + 1);
                 self.stack.push_mut(frame)
             }
-            Tag::CodeBlock(kind) => self
-                .stack
-                .push_mut(PrinterCtxFrame::CodeBlock { _kind: kind }),
+            Tag::CodeBlock(kind) => self.stack.push_mut(PrinterCtxFrame::CodeBlock { kind }),
             _ => self.stack.push_mut(PrinterCtxFrame::Generic { tag }),
         }
     }
@@ -179,24 +189,26 @@ impl<'r, 'a> PrinterCtx<'r, 'a> {
     }
 }
 
-pub struct Printer<'e, Events>(&'e mut Events);
+pub struct Printer<'e, Events, R = DefaultCodeRender>(&'e mut Events, PhantomData<R>);
 
-impl<'e, 'a, Events> Printer<'e, Events> {
+impl<'e, 'a, Events, R> Printer<'e, Events, R> {
     pub fn new(events: &'e mut Events) -> Self
     where
         Events: Iterator<Item = Event<'a>>,
+        R: CodeRender,
     {
-        Self(events)
+        Self(events, PhantomData)
     }
 }
 
-impl<'e, 'a, D, Events> Pretty<'a, D> for Printer<'e, Events>
+impl<'e, 'a, D, Events, R> Pretty<'a, D> for Printer<'e, Events, R>
 where
     Events: Iterator<Item = Event<'a>>,
     D: DocAllocator<'a>,
     D::Doc: Clone,
+    R: CodeRender + 'e,
 {
-    type Ctx = PrinterCtx<'e, 'a>;
+    type Ctx = PrinterCtx<'e, 'a, R>;
 
     fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
         let mut docs = vec![allocator.nil()];
@@ -332,11 +344,24 @@ where
                     }
                 }
                 Event::Text(cow_str) => {
-                    *current += reflow_cowstr(
-                        allocator,
-                        cow_str,
-                        matches!(ctx.current(), PrinterCtxFrame::CodeBlock { .. }),
-                    )
+                    if let PrinterCtxFrame::CodeBlock { kind } = ctx.current() {
+                        let (language, tags) = match kind {
+                            CodeBlockKind::Fenced(cow_str) => {
+                                match cow_str.trim_start().split_once(char::is_whitespace) {
+                                    Some((a, b)) => (Some(a.trim_end()), Some(b.trim())),
+                                    None => (Some(cow_str.trim()), None),
+                                }
+                            }
+                            CodeBlockKind::Indented => (None, None),
+                        };
+
+                        *current += ctx
+                            .root
+                            .code_render
+                            .render(allocator, language, tags, cow_str)
+                    } else {
+                        *current += reflow_cowstr(allocator, cow_str, false)
+                    }
                 }
                 Event::Code(cow_str) => {
                     *current += reflow_cowstr(allocator, cow_str, true).annotate(Element::Markdown(

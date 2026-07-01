@@ -14,7 +14,7 @@ use snafu::ResultExt;
 use crate::{Error, PrintingSnafu, config::skin::Skin};
 
 pub fn print_markdown(skin: &Skin, text: &str) -> Result<(), Error> {
-    let text = Markdown(text);
+    let text: Markdown<&str> = Markdown::new(text);
 
     let arena = Arena::new();
     print_inner(skin, &arena, text.with_default_ctx(), stdout())?;
