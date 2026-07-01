@@ -35,7 +35,11 @@ impl<'a> Command<'a> {
 
 impl<'a> Example<'a> {
     pub fn new(tags: &'a str, content: &'a str) -> Self {
-        let tags = tags.split(',').map(str::trim).collect();
+        let tags = tags
+            .split(',')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .collect();
 
         let commands = regex_captures_iter!(
             // Parse a command example and the following response
