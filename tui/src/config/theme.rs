@@ -25,7 +25,7 @@ const DEFAULT_LOW_COLORS: &str = "LowColor";
 /// mirroring `write_config_file_if_not_exists`.
 pub fn write_themes_if_not_exists(themes_dir: &Path) -> io::Result<()> {
     fs::create_dir_all(themes_dir)?;
-    for name in Themes::iter() {
+    for name in Themes::iter().filter(|t| t.ends_with(".css")) {
         let path = themes_dir.join(&*name);
         match File::create_new(&path) {
             Ok(mut file) => file.write_all(&Themes::get(&name).unwrap().data)?,
