@@ -5,6 +5,7 @@ use std::{borrow::Cow, ops::Deref};
 pub use registry::Manual;
 pub type Descendants<'p> = registry::Descendant<'p, Cow<'static, [PathComponent]>>;
 
+pub mod examples;
 pub mod registry;
 
 pub type PathComponent = u16;
