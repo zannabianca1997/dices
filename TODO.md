@@ -33,18 +33,20 @@
 
 ## Tui
 
-- [ ] Rendering the manual
-  - [ ] Rendering the examples
+- [x] Rendering the manual
+  - [x] Rendering the examples
   - [ ] `less`-like display
   - [ ] links
 
 ## Documentation
 
-- [ ] Manual
-  - [ ] Embedding pages
+- [x] Manual
+  - [x] Embedding pages
   - [ ] `covers` annotation
-  - [ ] Parsing the examples
+  - [x] Parsing the examples
+  - [ ] Porting of the old manual
   - [ ] Cover the standard library
+  - [ ] Generating pages for injected values
 
 ## Testing
 

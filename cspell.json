@@ -32,6 +32,8 @@
     "Yokeable",
     "truecolor",
     "linkme",
-    "rrggbb"
+    "rrggbb",
+    "Mantests",
+    "codepoint"
   ]
 }
