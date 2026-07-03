@@ -4,7 +4,7 @@ use clap::{Args, Parser};
 use figment::{Figment, Provider};
 use itertools::Itertools;
 
-use crate::config::themes_dir;
+use crate::config::{themes_dir, theme};
 
 /// dices TUI
 ///
@@ -89,21 +89,8 @@ pub struct CliConfig {
 }
 
 fn theme_long_help() -> String {
-    let available = themes_dir()
-        .and_then(|dir| dir.read_dir().ok())
-        .into_iter()
-        .flat_map(|dir| {
-            dir.filter_map(|item| {
-                item.ok().and_then(|item| {
-                    let file_name = item.file_name();
-                    file_name
-                        .to_string_lossy()
-                        .strip_suffix(".toml")
-                        .map(|n| format!("\"{n}\""))
-                })
-            })
-        })
-        .format(", ");
+    let names = theme::available_themes();
+    let available = names.iter().map(|n| format!("\"{n}\"")).format(", ");
 
     let dir = themes_dir()
         .map(|theme_dir| theme_dir.display().to_string())

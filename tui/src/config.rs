@@ -1,6 +1,4 @@
-use std::fs::{self, File};
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use dices_std::StdOptions;
 use directories::ProjectDirs;
@@ -30,11 +28,8 @@ pub fn themes_dir() -> Option<PathBuf> {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Config {
-    /// History file
     pub history: HistoryConfig,
-    /// Graphical skin
     pub skin: Skin,
-    /// Options for the standard library
     pub std: StdOptions,
 }
 
@@ -47,14 +42,9 @@ impl Config {
 
         let mut figment = Figment::new().merge(Serialized::defaults(defaults));
 
-        // Write down the default theme
-        if let Some(theme_dirs) = themes_dir() {
-            let _ = theme::write_themes_if_not_exists(&theme_dirs);
-        }
-
         if !cli.no_default_config {
             if let Some(config) = config_file()
-                && write_config_file_if_not_exists(&config).is_ok()
+                && config.exists()
             {
                 figment = figment.merge(Toml::file_exact(config));
             }
@@ -70,29 +60,4 @@ impl Config {
         let config: Self = figment.extract()?;
         Ok(config)
     }
-}
-
-fn write_config_file_if_not_exists(config: &Path) -> io::Result<()> {
-    fs::create_dir_all(config.parent().unwrap())?;
-    let mut file = match File::create_new(config) {
-        Ok(file) => file,
-        Err(err) if err.kind() == io::ErrorKind::AlreadyExists => return Ok(()),
-        Err(err) => return Err(err),
-    };
-    let config = r#"# Dices config file
-# This can be overridden with a `Dices.toml` in the current
-# or parent directory, or with env variables
-
-[history]
-# file = "alternate/history/file" # Database for the history
-# capacity = 1000                 # History capacity
-
-[skin]
-# theme     = "CatppuccinMocha"  # Default theme (from the `themes` directory)
-# banners   = true               # Show banners
-# graphical = true               # Use unicode characters
-# color     = true               # Colorize output
-"#;
-
-    file.write_all(config.as_bytes())
 }

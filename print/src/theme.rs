@@ -59,10 +59,19 @@ pub struct Theme<'a> {
 }
 
 impl<'a> Theme<'a> {
+    /// Parse a css theme
     pub fn parse(css: &'a str) -> Self {
         Self {
             stylesheet: StyleSheet::parse(css),
         }
+    }
+
+    /// Add more rules to the theme.
+    ///
+    /// The new rules will override the current ones if the specificity is the
+    /// same.
+    pub fn parse_more(&mut self, css: &'a str) {
+        self.stylesheet.parse_more(css);
     }
 
     pub fn style(&self, annotation: Element) -> Style {

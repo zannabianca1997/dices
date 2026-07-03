@@ -1,8 +1,4 @@
-use std::{
-    fs::{self, File},
-    io::{self, Write},
-    path::Path,
-};
+use std::borrow::Cow;
 
 use dices_print::theme::{Color as ThemeColor, Style};
 use elsa::sync::FrozenMap;
@@ -13,32 +9,45 @@ use yoke::Yoke;
 
 use dices_print::{Element, PromptElement, theme::Theme as StyleSheet};
 
-/// Themes bundled into the binary, written to disk on first run.
+/// Themes bundled into the binary
 #[derive(Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/themes"]
 struct Themes;
 
+pub fn available_themes() -> Vec<String> {
+    let mut names: Vec<String> = Themes::iter()
+        .filter_map(|f| {
+            f.ends_with(".css")
+                .then(|| f[..f.len() - ".css".len()].to_owned())
+        })
+        .collect();
+
+    if let Some(dir) = super::themes_dir()
+        && let Ok(entries) = std::fs::read_dir(&dir)
+    {
+        for entry in entries.flatten().filter_map(|e| {
+            let path = e.path();
+            path.extension()
+                .is_some_and(|e| e == "css")
+                .then(|| path.file_stem())
+                .flatten()
+                .map(|s| s.to_string_lossy().into_owned())
+        }) {
+            if !names.contains(&entry) {
+                names.push(entry);
+            }
+        }
+    }
+
+    names
+}
+
 const DEFAULT_TRUE_COLORS: &str = "CatppuccinMocha";
 const DEFAULT_LOW_COLORS: &str = "LowColor";
 
-/// Writes any bundled theme not already present in `themes_dir` (idempotent),
-/// mirroring `write_config_file_if_not_exists`.
-pub fn write_themes_if_not_exists(themes_dir: &Path) -> io::Result<()> {
-    fs::create_dir_all(themes_dir)?;
-    for name in Themes::iter().filter(|t| t.ends_with(".css")) {
-        let path = themes_dir.join(&*name);
-        match File::create_new(&path) {
-            Ok(mut file) => file.write_all(&Themes::get(&name).unwrap().data)?,
-            Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {}
-            Err(err) => return Err(err),
-        }
-    }
-    Ok(())
-}
-
 pub struct Theme {
     name: String,
-    sheet: Yoke<StyleSheet<'static>, String>,
+    sheet: Yoke<StyleSheet<'static>, Vec<Cow<'static, str>>>,
     cache: FrozenMap<Element, Box<ColorSpec>>,
     prompt: reedline::Color,
     prompt_indicator: reedline::Color,
@@ -91,15 +100,13 @@ impl Theme {
 impl Default for Theme {
     fn default() -> Self {
         let colors = crossterm::style::available_color_count();
-        // Only `name` is persisted (see `Serialize`), so the resolved colours
-        // are placeholders; the named theme is loaded on the next deserialize.
         Self {
             name: if colors > 256 {
                 DEFAULT_TRUE_COLORS.to_owned()
             } else {
                 DEFAULT_LOW_COLORS.to_owned()
             },
-            sheet: Yoke::attach_to_cart(String::new(), |_| Default::default()),
+            sheet: Yoke::attach_to_cart(Vec::new(), |_| Default::default()),
             cache: Default::default(),
             prompt: reedline::Color::Reset,
             prompt_indicator: reedline::Color::Reset,
@@ -116,26 +123,50 @@ impl<'de> Deserialize<'de> for Theme {
     {
         use serde::de::Error;
 
-        // The skin only stores the theme *name*; the data lives in a file.
         let name =
             Option::<String>::deserialize(deserializer)?.unwrap_or_else(|| "Default".to_owned());
 
-        // `<config>/themes/<name>.css`.
-        let path = super::themes_dir()
-            .ok_or_else(|| D::Error::custom("could not determine the configuration directory"))?
-            .join(&name)
-            .with_extension("css");
+        let mut cart: Vec<Cow<'static, str>> = Vec::with_capacity(2);
 
-        let css = std::fs::read_to_string(&path).map_err(|err| {
-            D::Error::custom(format!(
-                "could not read theme `{name}` at {}: {err}",
-                path.display()
-            ))
+        let has_embedded = if let Some(embedded) = Themes::get(&format!("{name}.css")) {
+            let embedded_css = String::from_utf8(embedded.data.into_owned()).map_err(|err| {
+                D::Error::custom(format!("could not read embedded theme `{name}`: {err}"))
+            })?;
+            cart.push(Cow::Owned(embedded_css));
+            true
+        } else {
+            false
+        };
+
+        let has_custom = if let Some(path) = super::themes_dir() {
+            if let Ok(custom_css) = std::fs::read_to_string(path.join(&name).with_extension("css"))
+            {
+                cart.push(Cow::Owned(custom_css));
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        if !has_embedded && !has_custom {
+            return Err(D::Error::custom(format!("theme `{name}` not found")));
+        }
+
+        let sheet = Yoke::try_attach_to_cart(cart, |css_vec| {
+            let sheet = if has_embedded {
+                let mut s = StyleSheet::parse(&css_vec[0]);
+                if css_vec.len() > 1 {
+                    s.parse_more(&css_vec[1]);
+                }
+                s
+            } else {
+                StyleSheet::parse(&css_vec[0])
+            };
+            Ok::<_, D::Error>(sheet)
         })?;
-        let sheet = Yoke::attach_to_cart(css, |raw| StyleSheet::parse(raw));
 
-        // Map the serializable spec onto the real `ColorSpec`, then read the
-        // prompt colors back out of the resolved theme.
         let prompt = reedline_color(style(&sheet, Element::Prompt(None)));
         let prompt_indicator = reedline_color(style(
             &sheet,
@@ -165,7 +196,6 @@ impl Serialize for Theme {
     where
         S: Serializer,
     {
-        // The skin only persists the theme name (round-tripping `Deserialize`).
         Some(&self.name).serialize(serializer)
     }
 }
@@ -206,16 +236,12 @@ fn color_spec(spec: Style) -> ColorSpec {
     cs
 }
 
-/// Foreground of a resolved [`Style`] as a [`reedline::Color`], defaulting
-/// to the terminal's reset color when unset.
 fn reedline_color(spec: Style) -> reedline::Color {
     spec.fg_color
         .map(|c| term_to_reedline(&convert_color(c)))
         .unwrap_or(reedline::Color::Reset)
 }
 
-/// Foreground of a resolved [`Style`] as a [`nu_ansi_term::Color`],
-/// defaulting to the terminal's default color when unset.
 fn nu_color(spec: Style) -> nu_ansi_term::Color {
     spec.fg_color
         .map(|c| term_to_nu(&convert_color(c)))
@@ -253,24 +279,5 @@ fn term_to_nu(color: &TermColor) -> nu_ansi_term::Color {
         TermColor::Ansi256(n) => C::Fixed(n),
         TermColor::Rgb(r, g, b) => C::Rgb(r, g, b),
         _ => C::Default,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn write_themes_is_idempotent() {
-        let dir = std::env::temp_dir().join(format!("dices-themes-test-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&dir);
-
-        write_themes_if_not_exists(&dir).expect("first write");
-        write_themes_if_not_exists(&dir).expect("second write is a no-op");
-
-        for name in Themes::iter() {
-            assert!(dir.join(&*name).is_file(), "{name} written");
-        }
-        let _ = fs::remove_dir_all(&dir);
     }
 }
