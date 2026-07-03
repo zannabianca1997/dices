@@ -6,19 +6,18 @@ use pulldown_cmark::{Event, HeadingLevel, Parser, Tag, TagEnd};
 
 use crate::{
     DocAllocator, DocBuilder, Element, Pretty,
-    markdown::{DefaultCodeRender, Printer, PrinterCtx},
+    markdown::{CodeRender, Printer, PrinterCtx},
 };
 
 pub type Ctx<R> = super::markdown::Ctx<R>;
 
-impl<'a, D> Pretty<'a, D> for &'a ManPage
+impl<'a, D, R> Pretty<'a, D, Ctx<R>> for &'a ManPage
 where
     D: DocAllocator<'a>,
     D::Doc: Clone,
+    R: CodeRender,
 {
-    type Ctx = Ctx<DefaultCodeRender>;
-
-    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx<R>) -> DocBuilder<'a, D> {
         let title = once(Event::Start(Tag::Heading {
             level: HeadingLevel::H1,
             id: None,

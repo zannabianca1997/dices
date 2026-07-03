@@ -404,6 +404,7 @@ dependencies = [
  "itertools 0.15.0",
  "nu-ansi-term",
  "pretty",
+ "pulldown-cmark",
  "rand",
  "rand_seeder",
  "reedline",

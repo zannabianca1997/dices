@@ -2,7 +2,7 @@
 //!
 //! Convert a stream of events from `pulldown_cmark` into an annotated document
 
-use std::{borrow::Cow, iter::once, marker::PhantomData, mem};
+use std::{borrow::Cow, iter::once, mem};
 
 use itertools::Itertools;
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, Parser, Tag, TagEnd};
@@ -13,20 +13,16 @@ pub use code_rendered::{CodeRender, DefaultCodeRender};
 mod code_rendered;
 
 #[repr(transparent)]
-pub struct Markdown<T: ?Sized, R = DefaultCodeRender> {
-    _phantom: PhantomData<R>,
+pub struct Markdown<T: ?Sized> {
     pub text: T,
 }
 
-impl<R, T> Markdown<T, R> {
+impl<T> Markdown<T> {
     pub fn new(text: T) -> Self
     where
         T: Sized,
     {
-        Self {
-            _phantom: PhantomData,
-            text,
-        }
+        Self { text }
     }
     pub fn new_ref(text: &T) -> &Self {
         unsafe {
@@ -57,29 +53,25 @@ impl<R: Default> Default for Ctx<R> {
     }
 }
 
-impl<'a, D, R, T> Pretty<'a, D> for &'a Markdown<T, R>
+impl<'a, D, R, T> Pretty<'a, D, Ctx<R>> for &'a Markdown<T>
 where
     D: DocAllocator<'a>,
     T: AsRef<str> + ?Sized,
     D::Doc: Clone,
     R: CodeRender,
 {
-    type Ctx = Ctx<R>;
-
-    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx<R>) -> DocBuilder<'a, D> {
         Markdown::new(&self.text).pretty(allocator, ctx)
     }
 }
-impl<'a, D, T, R> Pretty<'a, D> for Markdown<&'a T, R>
+impl<'a, D, T, R> Pretty<'a, D, Ctx<R>> for Markdown<&'a T>
 where
     D: DocAllocator<'a>,
     T: AsRef<str> + ?Sized,
     D::Doc: Clone,
     R: CodeRender,
 {
-    type Ctx = Ctx<R>;
-
-    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx<R>) -> DocBuilder<'a, D> {
         Printer::new(&mut Parser::new(self.text.as_ref()))
             .pretty(allocator, &mut PrinterCtx::new(ctx))
             .annotate(Element::Markdown(None))
@@ -189,28 +181,25 @@ impl<'r, 'a, R> PrinterCtx<'r, 'a, R> {
     }
 }
 
-pub struct Printer<'e, Events, R = DefaultCodeRender>(&'e mut Events, PhantomData<R>);
+pub struct Printer<'e, Events>(&'e mut Events);
 
-impl<'e, 'a, Events, R> Printer<'e, Events, R> {
+impl<'e, 'a, Events> Printer<'e, Events> {
     pub fn new(events: &'e mut Events) -> Self
     where
         Events: Iterator<Item = Event<'a>>,
-        R: CodeRender,
     {
-        Self(events, PhantomData)
+        Self(events)
     }
 }
 
-impl<'e, 'a, D, Events, R> Pretty<'a, D> for Printer<'e, Events, R>
+impl<'e, 'a, D, Events, R> Pretty<'a, D, PrinterCtx<'e, 'a, R>> for Printer<'e, Events>
 where
     Events: Iterator<Item = Event<'a>>,
     D: DocAllocator<'a>,
     D::Doc: Clone,
     R: CodeRender + 'e,
 {
-    type Ctx = PrinterCtx<'e, 'a, R>;
-
-    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, ctx: &mut PrinterCtx<'e, 'a, R>) -> DocBuilder<'a, D> {
         let mut docs = vec![allocator.nil()];
 
         for event in self.0 {
@@ -270,7 +259,7 @@ where
                         ctx.close_flow_state_inner();
                     }
 
-                    let annotated = popped.annotate(Element::Markdown(Some(match tag_end {
+                    let mut annotated = popped.annotate(Element::Markdown(Some(match tag_end {
                         TagEnd::Paragraph => MarkdownElement::Paragraph,
                         TagEnd::Heading(heading_level) => MarkdownElement::Header {
                             level: match heading_level {
@@ -331,6 +320,10 @@ where
                         }
                     })));
 
+                    if tag_end == TagEnd::CodeBlock {
+                        annotated = annotated.indent(2);
+                    }
+
                     let current = docs.last_mut().unwrap();
 
                     if is_flow && ctx.pop_flow_separator() {
@@ -349,7 +342,7 @@ where
                             CodeBlockKind::Fenced(cow_str) => {
                                 match cow_str.trim_start().split_once(char::is_whitespace) {
                                     Some((a, b)) => (Some(a.trim_end()), Some(b.trim())),
-                                    None => (Some(cow_str.trim()), None),
+                                    None => (Some(cow_str.trim()).filter(|s| !s.is_empty()), None),
                                 }
                             }
                             CodeBlockKind::Indented => (None, None),

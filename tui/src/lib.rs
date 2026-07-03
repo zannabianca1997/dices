@@ -28,6 +28,7 @@ mod config;
 mod history;
 pub mod print;
 mod prompt;
+mod rendered_examples;
 
 #[derive(Debug, Snafu)]
 pub enum Error {

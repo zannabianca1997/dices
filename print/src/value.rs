@@ -98,24 +98,22 @@ where
         .annotate(Element::Ast(Some(AstElement::Ident)))
 }
 
-impl<'a, D> Pretty<'a, D> for &'a ValueNull
+impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueNull
 where
     D: DocAllocator<'a>,
 {
-    type Ctx = Ctx;
-    fn pretty(self, allocator: &'a D, _ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, _ctx: &mut Ctx) -> DocBuilder<'a, D> {
         allocator
             .text("null")
             .annotate(Element::Value(Some(ValueElement::Null)))
     }
 }
 
-impl<'a, D> Pretty<'a, D> for &'a ValueBool
+impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueBool
 where
     D: DocAllocator<'a>,
 {
-    type Ctx = Ctx;
-    fn pretty(self, allocator: &'a D, _ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, _ctx: &mut Ctx) -> DocBuilder<'a, D> {
         allocator
             .text(if self.get() { "true" } else { "false" })
             .annotate(Element::Value(Some(ValueElement::Bool {
@@ -124,24 +122,22 @@ where
     }
 }
 
-impl<'a, D> Pretty<'a, D> for &'a ValueInt
+impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueInt
 where
     D: DocAllocator<'a>,
 {
-    type Ctx = Ctx;
-    fn pretty(self, allocator: &'a D, _ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, _ctx: &mut Ctx) -> DocBuilder<'a, D> {
         allocator
             .text(self.to_string())
             .annotate(Element::Value(Some(ValueElement::Integer)))
     }
 }
 
-impl<'a, D> Pretty<'a, D> for &'a ValueString
+impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueString
 where
     D: DocAllocator<'a>,
 {
-    type Ctx = Ctx;
-    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
         let string_elem = |escape| Element::Value(Some(ValueElement::String { escape }));
 
         let runs = ctx.escape.escape_str(self);
@@ -159,13 +155,12 @@ where
     }
 }
 
-impl<'a, D> Pretty<'a, D> for &'a ValueList
+impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueList
 where
     D: DocAllocator<'a>,
     D::Doc: Clone,
 {
-    type Ctx = Ctx;
-    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
         let open = delim(allocator, "[", DelimiterKind::List, ctx.nesting);
         let close = delim(allocator, "]", DelimiterKind::List, ctx.nesting);
         let mut ctx = ctx.nested();
@@ -183,13 +178,12 @@ where
     }
 }
 
-impl<'a, D> Pretty<'a, D> for &'a ValueMap
+impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueMap
 where
     D: DocAllocator<'a>,
     D::Doc: Clone,
 {
-    type Ctx = Ctx;
-    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
         let open = delim(allocator, "<|", DelimiterKind::Map, ctx.nesting);
         let close = delim(allocator, "|>", DelimiterKind::Map, ctx.nesting);
         let mut ctx = ctx.nested();
@@ -212,25 +206,23 @@ where
     }
 }
 
-impl<'a, D> Pretty<'a, D> for &'a ValueInjected
+impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueInjected
 where
     D: DocAllocator<'a>,
 {
-    type Ctx = Ctx;
-    fn pretty(self, allocator: &'a D, _ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, _ctx: &mut Ctx) -> DocBuilder<'a, D> {
         allocator
             .text(format!("<{}>", self.description()))
             .annotate(Element::Value(Some(ValueElement::Injected)))
     }
 }
 
-impl<'a, D> Pretty<'a, D> for &'a Value
+impl<'a, D> Pretty<'a, D, Ctx> for &'a Value
 where
     D: DocAllocator<'a>,
     D::Doc: Clone,
 {
-    type Ctx = Ctx;
-    fn pretty(self, allocator: &'a D, ctx: &mut Self::Ctx) -> DocBuilder<'a, D> {
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
         match self {
             Value::Null(v) => v.pretty(allocator, ctx),
             Value::Bool(v) => v.pretty(allocator, ctx),
