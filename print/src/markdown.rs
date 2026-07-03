@@ -259,7 +259,11 @@ where
                         ctx.close_flow_state_inner();
                     }
 
-                    let mut annotated = popped.annotate(Element::Markdown(Some(match tag_end {
+                    if tag_end == TagEnd::CodeBlock {
+                        popped = popped.indent(2);
+                    }
+
+                    let annotated = popped.annotate(Element::Markdown(Some(match tag_end {
                         TagEnd::Paragraph => MarkdownElement::Paragraph,
                         TagEnd::Heading(heading_level) => MarkdownElement::Header {
                             level: match heading_level {
@@ -319,10 +323,6 @@ where
                             unimplemented!("Tag {t:?} not supported (not emitted without options)")
                         }
                     })));
-
-                    if tag_end == TagEnd::CodeBlock {
-                        annotated = annotated.indent(2);
-                    }
 
                     let current = docs.last_mut().unwrap();
 

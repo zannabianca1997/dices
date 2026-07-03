@@ -77,6 +77,8 @@ impl CodeRender for RenderedExamples<'_> {
         let indicator_char = if skin.graphical { "〉" } else { "> " };
         let multiline_char = "... ";
 
+        let mut first = true;
+
         for cmd in &example.commands {
             let command_text = cmd.command();
             let parsed = match parse_scope_inner(&command_text.clone().into()) {
@@ -85,12 +87,15 @@ impl CodeRender for RenderedExamples<'_> {
                     if cmd.hidden {
                         panic!("Error parsing hidden command: {e}");
                     }
+                    if !first {
+                        doc = doc.append(allocator.hardline());
+                    }
+                    first = false;
                     doc = doc.append(
                         allocator
                             .text(e.to_string())
                             .annotate(Element::Error(Some(ErrorElement::Message))),
                     );
-                    doc = doc.append(allocator.hardline());
                     continue;
                 }
             };
@@ -103,6 +108,11 @@ impl CodeRender for RenderedExamples<'_> {
                 continue;
             }
 
+            if !first {
+                doc = doc.append(allocator.hardline());
+            }
+            first = false;
+
             doc = doc.append(allocator.text(prompt_char).annotate(Element::Prompt(None)));
             doc = doc.append(
                 allocator
@@ -113,17 +123,18 @@ impl CodeRender for RenderedExamples<'_> {
             let mut lines = command_text.lines();
             if let Some(first_line) = lines.next() {
                 doc = doc.append(allocator.text(first_line.to_owned()));
-                doc = doc.append(allocator.hardline());
             }
             for line in lines {
+                doc = doc.append(allocator.hardline());
                 doc = doc.append(
                     allocator
                         .text(multiline_char)
                         .annotate(Element::Prompt(Some(PromptElement::Multiline))),
                 );
                 doc = doc.append(allocator.text(line.to_owned()));
-                doc = doc.append(allocator.hardline());
             }
+
+            doc = doc.append(allocator.hardline());
 
             match engine.eval(&parsed, ExampleRenderUi) {
                 Ok(Value::Null(ValueNull)) => {}
@@ -135,7 +146,6 @@ impl CodeRender for RenderedExamples<'_> {
                     let value_ref: &'a Value = unsafe { &*(&value as *const Value) };
                     let mut value_ctx = value::Ctx::default();
                     doc = doc.append(value_ref.pretty(allocator, &mut value_ctx));
-                    doc = doc.append(allocator.hardline());
                 }
                 Err(error) => {
                     doc = doc.append(
@@ -143,17 +153,16 @@ impl CodeRender for RenderedExamples<'_> {
                             .text(error.to_string())
                             .annotate(Element::Error(Some(ErrorElement::Message))),
                     );
-                    doc = doc.append(allocator.hardline());
 
                     let mut source = error.source();
                     while let Some(cause) = source {
+                        doc = doc.append(allocator.hardline());
                         let cause_text = format!("Caused by: {}", cause);
                         doc = doc.append(
                             allocator
                                 .text(cause_text)
                                 .annotate(Element::Error(Some(ErrorElement::Cause))),
                         );
-                        doc = doc.append(allocator.hardline());
                         source = cause.source();
                     }
                 }
