@@ -314,7 +314,7 @@ where
 #[linked::distributed_slice(linked::LINKED_PAGES)]
 static ROOT_PAGE: linked::LinkedPage = linked::LinkedPage {
     path: &[],
-    title: "`dices` Manual",
+    title: "Manual for `dices`",
     content: "",
 };
 
