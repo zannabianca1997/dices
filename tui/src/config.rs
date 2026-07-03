@@ -26,6 +26,10 @@ pub fn themes_dir() -> Option<PathBuf> {
     Some(directories()?.config_dir().join("themes"))
 }
 
+pub fn banners_dir() -> Option<PathBuf> {
+    Some(directories()?.config_dir().join("banners"))
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Config {
     pub history: HistoryConfig,

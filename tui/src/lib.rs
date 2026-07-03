@@ -109,7 +109,7 @@ fn main_inner(
     );
 
     if skin.banners {
-        print_markdown(skin, banners::OPENING)?;
+        print_markdown(skin, &banners::opening())?;
     }
 
     // Execute command
@@ -172,7 +172,7 @@ fn main_inner(
     }
 
     if skin.banners {
-        print_markdown(skin, banners::CLOSING)?;
+        print_markdown(skin, &banners::closing())?;
     }
 
     Ok(())

@@ -18,11 +18,11 @@ dices-values.workspace = true
 
 chrono = "0.4.45"
 clap = { version = "4.6.1", features = ["derive", "env", "string", "wrap_help"] }
-const_format = { version = "0.2.36", features = ["fmt"] }
 crossterm = { version = "0.29.0", features = ["serde"] }
 directories = "6.0.0"
 figment = { workspace = true, features = ["env", "toml"] }
 itertools.workspace = true
+lazy-regex = "3.6.0"
 nu-ansi-term = { version = "0.50.3", features = ["derive_serde_style", "serde"] }
 pretty = { workspace = true, features = ["termcolor"] }
 pulldown-cmark = "0.13.4"
