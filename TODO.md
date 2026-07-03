@@ -25,10 +25,13 @@
 - [x] Sys
   - [x] `now`
   - [x] `read` and `write` (if supported)
-- [ ] Repl
-  - [ ] `help`
+- [x] Repl
+  - [x] `help`
   - [x] `quit`
   - [x] `print`
+- [ ] Import
+  - [ ] `search`
+  - [ ] `import`
 - [ ] Prelude
 
 ## Tui
@@ -44,7 +47,7 @@
   - [x] Embedding pages
   - [ ] `covers` annotation
   - [x] Parsing the examples
-  - [ ] Porting of the old manual
+  - [x] Porting of the old manual
   - [ ] Cover the standard library
   - [ ] Generating pages for injected values
 
