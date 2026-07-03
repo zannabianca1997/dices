@@ -140,12 +140,8 @@ impl CodeRender for RenderedExamples<'_> {
                 Ok(Value::Null(ValueNull)) => {}
                 Ok(value) => {
                     let value = push_down_if_injected(value.clone()).unwrap_or(value);
-                    // TODO: This is wrong or at minimum difficult to prove. Rewrite.
-                    // SAFETY: Value contains no non-'static references; the
-                    // rendered doc stores all strings in the allocator.
-                    let value_ref: &'a Value = unsafe { &*(&value as *const Value) };
                     let mut value_ctx = value::Ctx::default();
-                    doc = doc.append(value_ref.pretty(allocator, &mut value_ctx));
+                    doc = doc.append(value.pretty(allocator, &mut value_ctx));
                 }
                 Err(error) => {
                     doc = doc.append(

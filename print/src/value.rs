@@ -98,7 +98,7 @@ where
         .annotate(Element::Ast(Some(AstElement::Ident)))
 }
 
-impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueNull
+impl<'a, D> Pretty<'a, D, Ctx> for &ValueNull
 where
     D: DocAllocator<'a>,
 {
@@ -109,7 +109,16 @@ where
     }
 }
 
-impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueBool
+impl<'a, D> Pretty<'a, D, Ctx> for ValueNull
+where
+    D: DocAllocator<'a>,
+{
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
+        <&Self as Pretty<'a, D, Ctx>>::pretty(&self, allocator, ctx)
+    }
+}
+
+impl<'a, D> Pretty<'a, D, Ctx> for &ValueBool
 where
     D: DocAllocator<'a>,
 {
@@ -122,7 +131,16 @@ where
     }
 }
 
-impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueInt
+impl<'a, D> Pretty<'a, D, Ctx> for ValueBool
+where
+    D: DocAllocator<'a>,
+{
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
+        <&Self as Pretty<'a, D, Ctx>>::pretty(&self, allocator, ctx)
+    }
+}
+
+impl<'a, D> Pretty<'a, D, Ctx> for &ValueInt
 where
     D: DocAllocator<'a>,
 {
@@ -130,6 +148,15 @@ where
         allocator
             .text(self.to_string())
             .annotate(Element::Value(Some(ValueElement::Integer)))
+    }
+}
+
+impl<'a, D> Pretty<'a, D, Ctx> for ValueInt
+where
+    D: DocAllocator<'a>,
+{
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
+        <&Self as Pretty<'a, D, Ctx>>::pretty(&self, allocator, ctx)
     }
 }
 
@@ -155,6 +182,29 @@ where
     }
 }
 
+impl<'a, D> Pretty<'a, D, Ctx> for ValueString
+where
+    D: DocAllocator<'a>,
+{
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
+        let string_elem = |escape| Element::Value(Some(ValueElement::String { escape }));
+
+        let runs = ctx.escape.escape_str(&self);
+
+        let content = allocator.concat(runs.into_iter().map(|(escaped, text)| {
+            allocator
+                .text(text.into_owned())
+                .annotate(string_elem(escaped))
+        }));
+
+        allocator
+            .text("\"")
+            .annotate(string_elem(false))
+            .append(content)
+            .append(allocator.text("\"").annotate(string_elem(false)))
+    }
+}
+
 impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueList
 where
     D: DocAllocator<'a>,
@@ -168,6 +218,29 @@ where
         allocator
             .intersperse(
                 self.iter().map(|el| el.pretty(allocator, &mut ctx)),
+                punct(allocator, ",").append(allocator.line()),
+            )
+            .append(trailing_comma(allocator))
+            .enclose(allocator.line_(), allocator.line_())
+            .nest(ctx.indent)
+            .enclose(open, close)
+            .group()
+    }
+}
+
+impl<'a, D> Pretty<'a, D, Ctx> for ValueList
+where
+    D: DocAllocator<'a>,
+    D::Doc: Clone,
+{
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
+        let open = delim(allocator, "[", DelimiterKind::List, ctx.nesting);
+        let close = delim(allocator, "]", DelimiterKind::List, ctx.nesting);
+        let mut ctx = ctx.nested();
+
+        allocator
+            .intersperse(
+                self.into_iter().map(|el| el.pretty(allocator, &mut ctx)),
                 punct(allocator, ",").append(allocator.line()),
             )
             .append(trailing_comma(allocator))
@@ -206,18 +279,80 @@ where
     }
 }
 
-impl<'a, D> Pretty<'a, D, Ctx> for &'a ValueInjected
+impl<'a, D> Pretty<'a, D, Ctx> for ValueMap
+where
+    D: DocAllocator<'a>,
+    D::Doc: Clone,
+{
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
+        let open = delim(allocator, "<|", DelimiterKind::Map, ctx.nesting);
+        let close = delim(allocator, "|>", DelimiterKind::Map, ctx.nesting);
+        let mut ctx = ctx.nested();
+
+        allocator
+            .intersperse(
+                self.into_iter().map(|(key, val)| {
+                    let key_doc = match Identifier::new_ref(&key) {
+                        Some(ident) => allocator
+                            .text(ident.as_ref().as_str().to_owned())
+                            .annotate(Element::Ast(Some(AstElement::Ident))),
+                        None => key.pretty(allocator, &mut ctx),
+                    };
+                    key_doc
+                        .append(punct(allocator, ":"))
+                        .append(allocator.space())
+                        .append(val.pretty(allocator, &mut ctx))
+                }),
+                punct(allocator, ",").append(allocator.line()),
+            )
+            .append(trailing_comma(allocator))
+            .enclose(allocator.line_(), allocator.line_())
+            .nest(ctx.indent)
+            .enclose(open, close)
+            .group()
+    }
+}
+
+impl<'a, D> Pretty<'a, D, Ctx> for &ValueInjected
 where
     D: DocAllocator<'a>,
 {
     fn pretty(self, allocator: &'a D, _ctx: &mut Ctx) -> DocBuilder<'a, D> {
         allocator
-            .text(format!("<{}>", self.description()))
+            .text(self.description().to_string())
+            .angles()
             .annotate(Element::Value(Some(ValueElement::Injected)))
     }
 }
 
+impl<'a, D> Pretty<'a, D, Ctx> for ValueInjected
+where
+    D: DocAllocator<'a>,
+{
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
+        <&Self as Pretty<'a, D, Ctx>>::pretty(&self, allocator, ctx)
+    }
+}
+
 impl<'a, D> Pretty<'a, D, Ctx> for &'a Value
+where
+    D: DocAllocator<'a>,
+    D::Doc: Clone,
+{
+    fn pretty(self, allocator: &'a D, ctx: &mut Ctx) -> DocBuilder<'a, D> {
+        match self {
+            Value::Null(v) => v.pretty(allocator, ctx),
+            Value::Bool(v) => v.pretty(allocator, ctx),
+            Value::Int(v) => v.pretty(allocator, ctx),
+            Value::String(v) => v.pretty(allocator, ctx),
+            Value::List(v) => v.pretty(allocator, ctx),
+            Value::Map(v) => v.pretty(allocator, ctx),
+            Value::Injected(v) => v.pretty(allocator, ctx),
+        }
+    }
+}
+
+impl<'a, D> Pretty<'a, D, Ctx> for Value
 where
     D: DocAllocator<'a>,
     D::Doc: Clone,
@@ -307,14 +442,13 @@ mod tests {
         );
 
         assert_eq!(plain(map(vec![]), 80), "<||>");
-        // Maps keep inner padding when flat: `<| k: v |>`.
-        assert_eq!(plain(map(vec![("a", int("1"))]), 80), "<| a: 1 |>");
+        assert_eq!(plain(map(vec![("a", int("1"))]), 80), "<|a: 1|>");
     }
 
     #[test]
     fn containers_wrap_and_indent_when_wide() {
         let value = list(vec![int("1"), int("2"), int("3")]);
-        assert_eq!(plain(value, 4), "[\n    1,\n    2,\n    3,\n]");
+        assert_eq!(plain(value, 4), "[\n  1,\n  2,\n  3,\n]");
     }
 
     enum Event {
@@ -418,5 +552,49 @@ mod tests {
             })
             .collect();
         assert_eq!(escapes, vec![r"\n"]);
+    }
+
+    #[test]
+    fn owned_and_reference_produce_same_output() {
+        let values = [
+            Value::default(),
+            Value::Bool(true.into()),
+            Value::Bool(false.into()),
+            int("42"),
+            int("-99999999999999999999"),
+            string("hello"),
+            string("a\nb\tc"),
+            string("a\"b\\c"),
+            list(vec![]),
+            list(vec![int("1"), int("2"), int("3")]),
+            map(vec![]),
+            map(vec![("a", int("1"))]),
+            map(vec![("a", int("1")), ("b", int("2"))]),
+            list(vec![list(vec![int("1")])]),
+        ];
+
+        for value in values {
+            for width in [80, 30, 10, 4] {
+                let arena = Arena::<Element>::new();
+
+                let mut out_ref = String::new();
+                (&value)
+                    .pretty(&arena, &mut Ctx::default())
+                    .render_fmt(width, &mut out_ref)
+                    .unwrap();
+
+                let mut out_owned = String::new();
+                value
+                    .clone()
+                    .pretty(&arena, &mut Ctx::default())
+                    .render_fmt(width, &mut out_owned)
+                    .unwrap();
+
+                assert_eq!(
+                    out_ref, out_owned,
+                    "Mismatch at width {width}"
+                );
+            }
+        }
     }
 }
