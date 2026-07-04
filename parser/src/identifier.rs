@@ -2,7 +2,7 @@ use dices_ast::identifier::Identifier;
 use dices_values::string::ValueString;
 use pest::iterators::Pair;
 
-use crate::{ParseError, Rule};
+use crate::{ParseCommandError, Rule};
 
 /// Parse an identifier out of a [`Rule::identifier`] pair.
 ///
@@ -11,12 +11,12 @@ use crate::{ParseError, Rule};
 pub(crate) fn parse_identifier(
     pair: Pair<Rule>,
     input: &ValueString,
-) -> Result<Identifier, ParseError> {
+) -> Result<Identifier, ParseCommandError> {
     let span = pair.as_span();
     // `identifier` is an atomic rule, so the whole span is the identifier: no
     // trimming needed. Identifiers are ASCII, so the range is always valid.
     let text = input.slice(span.start()..span.end()).unwrap();
-    Identifier::new(text).map_err(|text| ParseError::InvalidIdentifier { text })
+    Identifier::new(text).map_err(|text| ParseCommandError::InvalidIdentifier { text })
 }
 
 #[cfg(test)]

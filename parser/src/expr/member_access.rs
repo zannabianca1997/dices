@@ -13,7 +13,7 @@ pub(crate) fn build_member_access(
     container: Expr,
     pair: Pair<'_, Rule>,
     input: &ValueString,
-) -> Result<Expr, crate::ParseError> {
+) -> Result<Expr, crate::ParseCommandError> {
     let pair = pair.into_inner().next().unwrap();
     let index = match pair.as_rule() {
         Rule::expr => build_expr(pair, input)?,

@@ -59,6 +59,12 @@ pub struct StdOptions {
     pub filesystem: bool,
 }
 
+impl StdOptions {
+    pub const fn sandboxed() -> Self {
+        Self { filesystem: false }
+    }
+}
+
 impl Default for StdOptions {
     fn default() -> Self {
         Self { filesystem: true }

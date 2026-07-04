@@ -4,13 +4,13 @@ use dices_ast::expr::{Expr, closure::ClosureExpr};
 use dices_values::string::ValueString;
 use pest::iterators::Pair;
 
-use crate::{ParseError, Rule, identifier::parse_identifier};
+use crate::{ParseCommandError, Rule, identifier::parse_identifier};
 
 pub(super) fn build_closure_expr(
     pair: Pair<Rule>,
     body: Expr,
     input: &ValueString,
-) -> Result<Expr, ParseError> {
+) -> Result<Expr, ParseCommandError> {
     let args: Result<Vec<_>, _> = pair
         .into_inner()
         .map(|p| parse_identifier(p, input))

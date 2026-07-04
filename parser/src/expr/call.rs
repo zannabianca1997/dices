@@ -2,13 +2,13 @@ use dices_ast::expr::{Expr, call::CallExpr};
 use dices_values::string::ValueString;
 use pest::iterators::Pair;
 
-use crate::{ParseError, Rule, expr::build_expr};
+use crate::{ParseCommandError, Rule, expr::build_expr};
 
 pub(super) fn build_call_expr(
     called: Expr,
     pair: Pair<Rule>,
     input: &ValueString,
-) -> Result<Expr, ParseError> {
+) -> Result<Expr, ParseCommandError> {
     let args: Result<Vec<_>, _> = pair.into_inner().map(|p| build_expr(p, input)).collect();
     Ok(Expr::Call(Box::new(CallExpr {
         called,

@@ -4,10 +4,17 @@
       "settings": {
         "css": {
           "lint": {
-            "unknownProperties": "ignore"
-          }
-        }
-      }
-    }
-  }
+            "unknownProperties": "ignore",
+          },
+        },
+      },
+    },
+    "rust-analyzer": {
+      "initialization_options": {
+        "cargo": {
+          "features": "all",
+        },
+      },
+    },
+  },
 }

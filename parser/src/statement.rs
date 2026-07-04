@@ -5,12 +5,12 @@ use dices_ast::statement::{
 use dices_values::string::ValueString;
 use pest::iterators::Pair;
 
-use crate::{ParseError, Rule, expr::build_expr, identifier::parse_identifier};
+use crate::{ParseCommandError, Rule, expr::build_expr, identifier::parse_identifier};
 
 pub(crate) fn build_statement(
     pair: Pair<Rule>,
     input: &ValueString,
-) -> Result<Statement, ParseError> {
+) -> Result<Statement, ParseCommandError> {
     match pair.as_rule() {
         Rule::statement => {
             let mut inner = pair.into_inner();
@@ -43,7 +43,7 @@ pub(crate) fn build_statement(
     }
 }
 
-fn build_let(pair: Pair<Rule>, input: &ValueString) -> Result<Statement, ParseError> {
+fn build_let(pair: Pair<Rule>, input: &ValueString) -> Result<Statement, ParseCommandError> {
     let mut inner = pair.into_inner();
     let ident = parse_identifier(inner.next().unwrap(), input)?;
     let _equals = inner.next().unwrap(); // Rule::equals
@@ -52,7 +52,7 @@ fn build_let(pair: Pair<Rule>, input: &ValueString) -> Result<Statement, ParseEr
     Ok(Statement::Assign(AssignStatement::Let { lhs: ident, rhs }))
 }
 
-fn build_set(pair: Pair<Rule>, input: &ValueString) -> Result<Statement, ParseError> {
+fn build_set(pair: Pair<Rule>, input: &ValueString) -> Result<Statement, ParseCommandError> {
     let mut inner = pair.into_inner();
     let ident = parse_identifier(inner.next().unwrap(), input)?;
     let _equals = inner.next().unwrap(); // Rule::equals

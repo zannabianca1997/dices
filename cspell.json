@@ -34,6 +34,9 @@
     "linkme",
     "rrggbb",
     "Mantests",
-    "codepoint"
+    "codepoint",
+    "sandboxed",
+    "unparse",
+    "prettyplease"
   ]
 }

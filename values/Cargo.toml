@@ -14,7 +14,7 @@ dices-values-macros = { workspace = true, optional = true }
 
 derive_more = { workspace = true, features = ["full"] }
 itertools.workspace = true
-lazy-regex = "3.6.0"
+lazy-regex.workspace = true
 num = { workspace = true, features = ["num-bigint", "rand", "serde"] }
 paste = "1.0.15"
 phf = { version = "0.14.0", features = ["macros"] }

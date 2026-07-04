@@ -67,7 +67,7 @@ impl CodeRender for RenderedExamples<'_> {
         D::Doc: Clone,
     {
         let skin = self.0;
-        let mut engine = Engine::new([0u8; 16], Std::new(StdOptions { filesystem: false }));
+        let mut engine = Engine::new([0u8; _], Std::new(StdOptions::sandboxed()));
 
         let example = Example::new(tags.unwrap_or(""), &code);
 

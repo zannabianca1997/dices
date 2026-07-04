@@ -17,6 +17,8 @@ pub(crate) mod literal;
 pub(crate) mod expr;
 pub(crate) mod statement;
 
+#[cfg(feature = "matcher")]
+pub mod matcher;
 pub mod value;
 
 #[derive(Parser)]
@@ -25,7 +27,7 @@ struct Grammar;
 
 #[derive(Debug, Snafu)]
 #[cfg_attr(test, derive(derive_more::IsVariant))]
-pub enum ParseError {
+pub enum ParseCommandError {
     #[snafu(display("Pest parse error"))]
     Pest { source: pest::error::Error<Rule> },
     #[snafu(display("Failed to parse integer"))]
@@ -36,7 +38,7 @@ pub enum ParseError {
     InvalidIdentifier { text: ValueString },
 }
 
-pub fn parse_scope_inner(input: &ValueString) -> Result<ScopeInner, ParseError> {
+pub fn parse_scope_inner(input: &ValueString) -> Result<ScopeInner, ParseCommandError> {
     let raw = input.as_str();
     let mut pairs = Grammar::parse(Rule::main, raw).context(PestSnafu)?;
     let scope_inner_pair = pairs.next().unwrap();
@@ -59,7 +61,7 @@ pub(crate) mod tests {
             .expect("parse_scope_inner should succeed for a valid input")
     }
 
-    pub fn parse_err(input: &'static str) -> crate::ParseError {
+    pub fn parse_err(input: &'static str) -> crate::ParseCommandError {
         parse_scope_inner(&ValueString::new_static(input)).unwrap_err()
     }
 

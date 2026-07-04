@@ -12,6 +12,5 @@ linkme.workspace = true
 rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
 snafu.workspace = true
 
-
 [lints]
 workspace = true

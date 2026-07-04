@@ -5,9 +5,9 @@ use dices_ast::{
 use dices_values::string::ValueString;
 use pest::iterators::Pair;
 
-use crate::{ParseError, Rule, expr::build_expr, literal};
+use crate::{ParseCommandError, Rule, expr::build_expr, literal};
 
-pub(super) fn build_map_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseError> {
+pub(super) fn build_map_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseCommandError> {
     let mut pairs = pair.into_inner();
     let mut items = Vec::new();
     while let Some(key_pair) = pairs.next() {
@@ -22,7 +22,7 @@ pub(super) fn build_map_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Ex
 pub(super) fn build_map_key(
     input: &ValueString,
     key_pair: Pair<'_, Rule>,
-) -> Result<LiteralString, ParseError> {
+) -> Result<LiteralString, ParseCommandError> {
     Ok(match key_pair.as_rule() {
         Rule::string => literal::build_string_value(key_pair, input)?,
         Rule::identifier => {

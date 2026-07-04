@@ -11,7 +11,7 @@ use dices_ast::{
 use dices_values::{bool::ValueBool, null::ValueNull, string::ValueString};
 use pest::pratt_parser::{Assoc, Op, PrattParser};
 
-use crate::{ParseError, Rule, literal};
+use crate::{ParseCommandError, Rule, literal};
 
 pub(crate) mod binary;
 pub(crate) mod call;
@@ -51,7 +51,7 @@ static PRATT: LazyLock<PrattParser<Rule>> = LazyLock::new(|| {
 pub(crate) fn build_expr(
     pair: pest::iterators::Pair<Rule>,
     input: &ValueString,
-) -> Result<Expr, ParseError> {
+) -> Result<Expr, ParseCommandError> {
     match pair.as_rule() {
         Rule::main => {
             let inner = pair.into_inner().next().unwrap();

@@ -8,7 +8,7 @@ use dices_ast::{
 use dices_values::string::ValueString;
 use pest::iterators::Pair;
 
-use crate::{ParseError, Rule, statement::build_statement};
+use crate::{ParseCommandError, Rule, statement::build_statement};
 
 /// Build a `ScopeInner` from a `scope_inner` or `main` pair.
 ///
@@ -16,7 +16,7 @@ use crate::{ParseError, Rule, statement::build_statement};
 pub(crate) fn build_scope_inner(
     pair: Pair<Rule>,
     input: &ValueString,
-) -> Result<ScopeInner, ParseError> {
+) -> Result<ScopeInner, ParseCommandError> {
     let mut statements = Vec::new();
     let mut expr = None;
 
@@ -43,7 +43,7 @@ pub(crate) fn build_scope_inner(
 }
 
 /// Build a scope expression from a `scope` rule pair.
-pub(crate) fn build_scope_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseError> {
+pub(crate) fn build_scope_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseCommandError> {
     let inner = pair.into_inner().next().unwrap();
     let scope_inner = build_scope_inner(inner, input)?;
     Ok(Expr::Scope(Box::new(ScopeExpr(scope_inner))))

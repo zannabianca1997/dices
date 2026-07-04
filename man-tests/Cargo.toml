@@ -1,0 +1,31 @@
+[package]
+name = "dices-man-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+dices-ast.workspace = true
+dices-engine.workspace = true
+dices-man.workspace = true
+dices-parser = { workspace = true, features = ["matcher"] }
+dices-std.workspace = true
+dices-values.workspace = true
+
+itertools.workspace = true
+snafu.workspace = true
+
+[build-dependencies]
+dices-man.workspace = true
+dices-std.workspace = true
+
+cargo-build = { version = "1.0.0", features = ["macros"] }
+itertools.workspace = true
+prettyplease = "0.2.37"
+proc-macro2 = { version = "1.0.106", default-features = false }
+pulldown-cmark.workspace = true
+quote = { version = "1.0.46", default-features = false }
+syn = { version = "2.0.118", default-features = false, features = ["parsing"] }
+
+[lints]
+workspace = true

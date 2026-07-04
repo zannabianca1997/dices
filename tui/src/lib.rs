@@ -49,7 +49,9 @@ pub enum Error {
 #[derive(Debug, Snafu)]
 pub enum CommandError {
     #[snafu(transparent)]
-    Parse { source: dices_parser::ParseError },
+    Parse {
+        source: dices_parser::ParseCommandError,
+    },
     #[snafu(transparent)]
     Eval { source: dices_engine::EvalError },
 }

@@ -195,7 +195,12 @@ impl Manual {
             .filter(|p| !p.path().is_empty())
             .sorted()
             .next()
-            .expect("Static pages should guarantee a non empty manual")
+            .unwrap_or_else(|| self.root())
+    }
+
+    /// Get the root page, from where all other descends
+    pub fn root(&self) -> ManPage {
+        self.fetch(&[]).expect("The root index is always present")
     }
 
     /// Find a manual page

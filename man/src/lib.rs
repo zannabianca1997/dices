@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-use std::{borrow::Cow, ops::Deref};
+use std::{borrow::Cow, iter::Filter, ops::Deref};
 
 pub use registry::Manual;
 
@@ -36,6 +36,14 @@ impl ManPage {
     /// The iteration order is unspecified
     pub fn descendants(&self) -> Descendants<'_> {
         self.manual.descendants(&self.path)
+    }
+
+    /// Iter all pages in the manual that directly descends from this
+    ///
+    /// The iteration order is unspecified
+    pub fn children(&self) -> Filter<Descendants<'_>, impl Fn(&ManPage) -> bool> {
+        let is_child = |p: &ManPage| p.path().len() == self.path().len() + 1;
+        self.manual.descendants(&self.path).filter(is_child)
     }
 
     /// Get the handler to the manual

@@ -5,12 +5,12 @@ use dices_values::{int::ValueInt, string::ValueString};
 use pest::iterators::Pair;
 use snafu::ResultExt;
 
-use crate::{ParseError, Rule};
+use crate::{ParseCommandError, Rule};
 
 pub(crate) fn build_string_value(
     pair: Pair<Rule>,
     input: &ValueString,
-) -> Result<LiteralString, ParseError> {
+) -> Result<LiteralString, ParseCommandError> {
     let span = pair.as_span();
     let range = (span.start() + 1)..(span.end() - 1);
     let s = input
@@ -21,7 +21,7 @@ pub(crate) fn build_string_value(
     Ok(LiteralString(s))
 }
 
-pub(crate) fn build_int_literal(primary: Pair<'_, Rule>) -> Result<LiteralInt, ParseError> {
+pub(crate) fn build_int_literal(primary: Pair<'_, Rule>) -> Result<LiteralInt, ParseCommandError> {
     let s = primary.as_str();
     let i = ValueInt::from_str(s).context(crate::IntParseSnafu)?;
     Ok(LiteralInt(i))

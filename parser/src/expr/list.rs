@@ -2,9 +2,9 @@ use dices_ast::expr::{Expr, list::ListExpr};
 use dices_values::string::ValueString;
 use pest::iterators::Pair;
 
-use crate::{ParseError, Rule, expr::build_expr};
+use crate::{ParseCommandError, Rule, expr::build_expr};
 
-pub(super) fn build_list_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseError> {
+pub(super) fn build_list_expr(pair: Pair<Rule>, input: &ValueString) -> Result<Expr, ParseCommandError> {
     let items: Result<Vec<_>, _> = pair.into_inner().map(|p| build_expr(p, input)).collect();
     Ok(Expr::List(Box::new(ListExpr { items: items? })))
 }
