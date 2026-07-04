@@ -4,8 +4,8 @@ use dices_values::{Injectable, Value, injectable, string::ValueString};
 /// JSON conversion bindings
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Dices {
-    serialize: Serialize,
-    deserialize: Deserialize,
+    pub serialize: Serialize,
+    pub deserialize: Deserialize,
 }
 
 impl Dices {
@@ -19,7 +19,7 @@ impl Dices {
 
 /// Serialize a value to a string with a dices literal
 #[injectable]
-fn Serialize(value: Value) -> Result<String, PrintError> {
+pub fn Serialize(value: Value) -> Result<String, PrintError> {
     let mut s = String::new();
     dices_parser::value::print(&value, &mut s)?;
     Ok(s)
@@ -27,6 +27,6 @@ fn Serialize(value: Value) -> Result<String, PrintError> {
 
 /// Deserialize a value to a string containing a dices
 #[injectable]
-fn Deserialize(text: ValueString) -> Result<Value, ParseError> {
+pub fn Deserialize(text: ValueString) -> Result<Value, ParseError> {
     dices_parser::value::parse_value(&text)
 }

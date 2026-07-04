@@ -12,9 +12,9 @@ use dices_values::{
 /// Rng bindings
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Ops {
-    join: Join,
-    sum: Sum,
-    call: Call,
+    pub join: Join,
+    pub sum: Sum,
+    pub call: Call,
 }
 
 impl Ops {
@@ -29,19 +29,19 @@ impl Ops {
 
 /// Join multiple collections
 #[injectable]
-fn Join(args: &mut [Value]) -> Result<Value, CastInjectedError> {
+pub fn Join(args: &mut [Value]) -> Result<Value, CastInjectedError> {
     join_all(args)
 }
 
 /// Sum multiple arguments
 #[injectable]
-fn Sum(args: &mut [Value]) -> Result<Value, CastIntoIntError> {
+pub fn Sum(args: &mut [Value]) -> Result<Value, CastIntoIntError> {
     deep_sum(args.iter_mut().map(mem::take)).map(Into::into)
 }
 
 /// Call a function from a list of args
 #[injectable]
-fn Call(
+pub fn Call(
     #[cx] cx: &mut dyn InjectedContext,
     fun: ValueInjected,
     args: ValueList,

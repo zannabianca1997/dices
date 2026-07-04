@@ -6,14 +6,14 @@ use std::{
 use dices_values::{Injectable, injectable, string::ValueString};
 use time::Time;
 
-mod time;
+pub mod time;
 
 /// System bindings
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Sys {
-    time: Time,
-    read: Option<Read>,
-    write: Option<Write>,
+    pub time: Time,
+    pub read: Option<Read>,
+    pub write: Option<Write>,
 }
 
 impl Sys {

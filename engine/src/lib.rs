@@ -35,18 +35,23 @@ pub struct Engine {
 impl Engine {
     /// Create a new engine
     pub fn new(seed: [u8; 16], std: Std) -> Self {
+        let std = TypedValueInjected::new(std);
+        let globals = context::Scope::new_global(std.clone());
         Self {
             rng: SeedableRng::from_seed(seed),
-            globals: context::Scope::new(),
-            std: TypedValueInjected::new(std),
+            globals,
+            std,
         }
     }
+
     /// Create a new engine with a static standard library
     pub fn new_static_std(seed: [u8; 16], std: &'static Std) -> Self {
+        let std = TypedValueInjected::new_static(std);
+        let globals = context::Scope::new_global(std.clone());
         Self {
             rng: SeedableRng::from_seed(seed),
-            globals: context::Scope::new(),
-            std: TypedValueInjected::new_static(std),
+            globals,
+            std,
         }
     }
 }

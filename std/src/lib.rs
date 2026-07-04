@@ -6,22 +6,24 @@ use convert::Convert;
 use serde::{Deserialize, Serialize};
 use sys::Sys;
 
-use {ops::Ops, repl::Repl, rng::Rng};
+use {ops::Ops, prelude::Prelude, repl::Repl, rng::Rng};
 
-mod convert;
-mod ops;
-mod repl;
-mod rng;
-mod sys;
+pub mod convert;
+pub mod ops;
+pub mod prelude;
+pub mod repl;
+pub mod rng;
+pub mod sys;
 
 /// Standard library
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Std {
-    sys: Sys,
-    rng: Rng,
-    ops: Ops,
-    repl: Repl,
-    convert: Convert,
+    pub sys: Sys,
+    pub rng: Rng,
+    pub ops: Ops,
+    pub repl: Repl,
+    pub convert: Convert,
+    pub prelude: Prelude,
 }
 
 impl Std {
@@ -32,6 +34,7 @@ impl Std {
             ops: Ops::new(),
             repl: Repl::new(),
             convert: Convert::new(),
+            prelude: Prelude::new(),
         }
     }
 }

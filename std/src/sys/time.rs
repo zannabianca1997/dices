@@ -4,8 +4,8 @@ use dices_values::{Injectable, injectable};
 /// Time tools
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Time {
-    now: Now,
-    timestamp: Timestamp,
+    pub now: Now,
+    pub timestamp: Timestamp,
 }
 
 impl Time {

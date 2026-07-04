@@ -19,6 +19,28 @@ impl<T> TypedValueInjected<T> {
         }
     }
 
+    pub fn project<U>(self, fun: impl for<'a> FnOnce(&'a T) -> &'a U) -> TypedValueInjected<U>
+    where
+        U: Injectable,
+        T: 'static,
+    {
+        let projected = self.value.0.map_project(|content, _| {
+            let content = unsafe {
+                // Safety: nobody has mutable access until the type is unwrapped, so
+                // the type cannot have changed
+                &*(content as *const dyn Injectable as *const T)
+            };
+            let project = fun(content);
+
+            project as &dyn Injectable
+        });
+
+        TypedValueInjected {
+            value: ValueInjected(projected),
+            _phantom: PhantomData,
+        }
+    }
+
     /// Create a new typed value injected from a static value
     pub fn new_static(value: &'static T) -> Self
     where

@@ -9,20 +9,20 @@ use dices_values::{
 };
 use json::Json;
 
-use crate::convert::dices::Dices;
+use dices::Dices;
 
-mod dices;
-mod json;
+pub mod dices;
+pub mod json;
 
 /// Conversion bindings
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Convert {
-    json: Json,
-    dices: Dices,
-    list: ToList,
-    number: ToNumber,
-    bool: ToBool,
-    string: ToString,
+    pub json: Json,
+    pub dices: Dices,
+    pub list: ToList,
+    pub number: ToNumber,
+    pub bool: ToBool,
+    pub string: ToString,
 }
 
 impl Convert {
@@ -40,24 +40,24 @@ impl Convert {
 
 /// Convert the argument to a list
 #[injectable]
-fn ToList(value: Value) -> Result<ValueList, CastInjectedError> {
+pub fn ToList(value: Value) -> Result<ValueList, CastInjectedError> {
     ValueList::try_from(value)
 }
 
 /// Convert the argument to an integer
 #[injectable]
-fn ToNumber(value: Value) -> Result<ValueInt, CastIntoIntError> {
+pub fn ToNumber(value: Value) -> Result<ValueInt, CastIntoIntError> {
     ValueInt::try_from(value)
 }
 
 /// Convert the argument to a bool
 #[injectable]
-fn ToBool(value: Value) -> Result<ValueBool, CastInjectedError> {
+pub fn ToBool(value: Value) -> Result<ValueBool, CastInjectedError> {
     ValueBool::try_from(value)
 }
 
 /// Convert the argument to a string
 #[injectable]
-fn ToString(value: Value) -> Result<ValueString, CastInjectedError> {
+pub fn ToString(value: Value) -> Result<ValueString, CastInjectedError> {
     ValueString::try_from(value)
 }

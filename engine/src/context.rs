@@ -9,11 +9,12 @@ use std::{collections::BTreeMap, iter::once};
 use dices_ast::expr::scope::ScopeInner;
 use dices_ast::identifier::Identifier;
 use dices_man::ManPage;
-use dices_std::Std;
+use dices_std::{Std, prelude};
 use dices_values::Value;
-use dices_values::injected::ValueInjected;
 use dices_values::injected::call::InjectedContext;
+use dices_values::injected::read::{ReadValue, Readable};
 use dices_values::injected::typed::TypedValueInjected;
+use dices_values::injected::{Inject, Injectable, ValueInjected};
 use dices_values::int::ValueInt;
 use dices_values::serde::de::ValueDeserializer;
 use dices_values::serde::ser::ValueSerializer;
@@ -433,6 +434,29 @@ impl Scope {
         Self {
             vars: BTreeMap::new(),
         }
+    }
+
+    /// Creates a new global scope
+    ///
+    /// Filles in the global variable from the prelude
+    pub fn new_global(std: TypedValueInjected<Std>) -> Self {
+        let prelude = std
+            .project(|s| &s.prelude)
+            .as_type_erased()
+            .read()
+            .unwrap()
+            .unwrap_map()
+            .into_iter()
+            .map(|(k, v)| {
+                (
+                    Identifier::new(k)
+                        .expect("All values in prelude should have a valid identifier as a key"),
+                    v,
+                )
+            })
+            .collect();
+
+        Self { vars: prelude }
     }
 }
 

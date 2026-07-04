@@ -9,7 +9,7 @@ use itertools::Itertools;
 /// Bindings to the repl
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Repl {
-    quit: Quit,
+    abort: Abort,
     print: Print,
     print_str: PrintStr,
     print_markdown: PrintMarkdown,
@@ -19,7 +19,7 @@ pub struct Repl {
 impl Repl {
     pub const fn new() -> Self {
         Self {
-            quit: Quit,
+            abort: Abort,
             print: Print,
             print_str: PrintStr,
             print_markdown: PrintMarkdown,
@@ -30,7 +30,7 @@ impl Repl {
 
 /// Print the given values
 #[injectable]
-fn Print(
+pub fn Print(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),
     args: &mut [Value],
 ) -> Result<(), Box<dyn Error>> {
@@ -41,7 +41,7 @@ fn Print(
 }
 /// Print the given string as text
 #[injectable]
-fn PrintStr(
+pub fn PrintStr(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),
     value: ValueString,
 ) -> Result<(), Box<dyn Error>> {
@@ -50,7 +50,7 @@ fn PrintStr(
 
 /// Print the given string as markdown
 #[injectable]
-fn PrintMarkdown(
+pub fn PrintMarkdown(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),
     value: ValueString,
 ) -> Result<(), Box<dyn Error>> {
@@ -59,7 +59,7 @@ fn PrintMarkdown(
 
 /// Stop the calculation and return immediately
 #[injectable]
-fn Help(
+pub fn Help(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),
     path: Vec<PathComponent>,
 ) -> Result<(), Box<dyn Error>> {
@@ -72,8 +72,7 @@ fn Help(
 }
 
 /// Stop the calculation and return immediately
-// TODO: change return to ! when stable
 #[injectable]
-fn Quit(#[cx] cx: &mut (impl InjectedContext + ?Sized), reason: Value) -> ! {
+pub fn Abort(#[cx] cx: &mut (impl InjectedContext + ?Sized), reason: Value) -> ! {
     cx.abort(reason)
 }

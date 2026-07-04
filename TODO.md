@@ -21,7 +21,7 @@
   - [x] `join`
   - [x] `call`
   - [x] `sum`
-  - [ ] `mult` (deferred, need to think of the behaviour)
+  - [ ] `mult` (deferred, need to think of the behavior)
 - [x] Sys
   - [x] `now`
   - [x] `read` and `write` (if supported)
@@ -32,7 +32,7 @@
 - [ ] Import
   - [ ] `search`
   - [ ] `import`
-- [ ] Prelude
+- [x] Prelude
 
 ## Tui
 

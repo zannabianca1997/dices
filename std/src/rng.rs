@@ -7,9 +7,9 @@ use dices_values::{
 /// Rng bindings
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Rng {
-    seed: Seed,
-    save: Save,
-    restore: Restore,
+    pub seed: Seed,
+    pub save: Save,
+    pub restore: Restore,
 }
 
 impl Rng {
@@ -24,19 +24,19 @@ impl Rng {
 
 /// Seed the rng
 #[injectable]
-fn Seed(#[cx] cx: &mut (impl InjectedContext + ?Sized), args: &[Value]) {
+pub fn Seed(#[cx] cx: &mut (impl InjectedContext + ?Sized), args: &[Value]) {
     cx.rng_seed(args);
 }
 
 /// Save the rng state
 #[injectable]
-fn Save(#[cx] cx: &mut (impl InjectedContext + ?Sized)) -> Result<Value, SerializationError> {
+pub fn Save(#[cx] cx: &mut (impl InjectedContext + ?Sized)) -> Result<Value, SerializationError> {
     cx.rng_save(ValueSerializer)
 }
 
 /// Restore the rng state
 #[injectable]
-fn Restore(
+pub fn Restore(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),
     state: Value,
 ) -> Result<(), SerializationError> {
