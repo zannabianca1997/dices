@@ -59,20 +59,25 @@ pub fn PrintMarkdown(
 
 /// Stop the calculation and return immediately
 #[injectable]
+pub fn Abort(#[cx] cx: &mut (impl InjectedContext + ?Sized), reason: Value) -> ! {
+    cx.abort(reason)
+}
+
+/// Search a page of the manual
+#[injectable]
 pub fn Help(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),
-    path: Vec<PathComponent>,
+    path: Option<Vec<PathComponent>>,
 ) -> Result<(), Box<dyn Error>> {
     let manual = Manual::new();
+
+    let Some(path) = path else {
+        return cx.print_manual(&manual.first());
+    };
+
     if let Some(page) = manual.fetch(path.clone()) {
         cx.print_manual(&page)
     } else {
         Err(format!("Page {} not found", path.iter().format(".")).into())
     }
-}
-
-/// Stop the calculation and return immediately
-#[injectable]
-pub fn Abort(#[cx] cx: &mut (impl InjectedContext + ?Sized), reason: Value) -> ! {
-    cx.abort(reason)
 }

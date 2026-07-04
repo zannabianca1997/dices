@@ -102,10 +102,14 @@ fn callable_with_tryfrom() {
 }
 
 #[test]
-fn callable_wrong_arg_count() {
+fn callable_null_padding_and_discard() {
     let mut cx = DummyCx;
-    let err = Add.call(&mut cx, &[int(3)]).unwrap_err();
-    assert!(err.to_string().contains("expected 2"), "{err}");
+    // Too few args: missing `b` is padded with null
+    let result = Add.call(&mut cx, &[int(3)]).unwrap();
+    assert_eq!(result, int(3));
+    // Too many args: extra arguments are discarded
+    let result = Add.call(&mut cx, &[int(3), int(4), int(99)]).unwrap();
+    assert_eq!(result, int(7));
 }
 
 // --- Attribute macro: serde-fallback args and return -------------------------

@@ -64,10 +64,10 @@ pub trait InjectedContext {
     /// Print a value exactly like an expression result
     fn print(&self, value: Value) -> Result<(), Box<dyn Error>>;
 
-    /// Print a value exactly like an expression result
+    /// Print a string without quoting
     fn print_str(&self, value: ValueString) -> Result<(), Box<dyn Error>>;
 
-    /// Print a value exactly like an expression result
+    /// Print a markdown document
     fn print_md(&self, value: ValueString) -> Result<(), Box<dyn Error>>;
 
     /// Display a manual page

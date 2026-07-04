@@ -173,6 +173,7 @@ fn main_inner(
 
     if skin.banners {
         print_markdown(skin, &banners::closing())?;
+        println!();
     }
 
     Ok(())

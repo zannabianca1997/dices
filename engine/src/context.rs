@@ -1,32 +1,31 @@
 //! Evaluation context
 
-use std::error::Error;
-use std::hash::{Hash, Hasher};
-use std::mem;
-use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
-use std::{collections::BTreeMap, iter::once};
+use std::{
+    collections::BTreeMap,
+    error::Error,
+    hash::{Hash, Hasher},
+    iter::once,
+    mem,
+    panic::{AssertUnwindSafe, catch_unwind, resume_unwind},
+};
 
-use dices_ast::expr::scope::ScopeInner;
-use dices_ast::identifier::Identifier;
-use dices_man::ManPage;
-use dices_std::{Std, prelude};
-use dices_values::Value;
-use dices_values::injected::call::InjectedContext;
-use dices_values::injected::read::{ReadValue, Readable};
-use dices_values::injected::typed::TypedValueInjected;
-use dices_values::injected::{Inject, Injectable, ValueInjected};
-use dices_values::int::ValueInt;
-use dices_values::serde::de::ValueDeserializer;
-use dices_values::serde::ser::ValueSerializer;
-use dices_values::string::ValueString;
-use num::FromPrimitive;
-use num::traits::ConstOne;
+use num::{FromPrimitive, traits::ConstOne};
 use rand::Rng;
 use rand_seeder::Seeder;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::ui::Ui;
-use crate::{Engine, EvalError};
+use dices_ast::{expr::scope::ScopeInner, identifier::Identifier};
+use dices_man::ManPage;
+use dices_std::Std;
+use dices_values::{
+    Value,
+    injected::{ValueInjected, call::InjectedContext, typed::TypedValueInjected},
+    int::ValueInt,
+    serde::{de::ValueDeserializer, ser::ValueSerializer},
+    string::ValueString,
+};
+
+use crate::{Engine, EvalError, ui::Ui};
 
 pub(crate) trait Context: Ui {
     /// Seed the random number generator

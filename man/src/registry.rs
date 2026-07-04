@@ -191,6 +191,8 @@ impl Manual {
     /// Get the first page of the manual
     pub fn first(&self) -> ManPage {
         self.descendants(&[])
+            // Skip root index
+            .filter(|p| !p.path().is_empty())
             .sorted()
             .next()
             .expect("Static pages should guarantee a non empty manual")
@@ -309,14 +311,6 @@ where
         None
     }
 }
-
-/// Root manual page
-#[linked::distributed_slice(linked::LINKED_PAGES)]
-static ROOT_PAGE: linked::LinkedPage = linked::LinkedPage {
-    path: &[],
-    title: "Manual for `dices`",
-    content: "",
-};
 
 // ==  Provider helpers
 impl<P> Provider for (P, ManPageContent)

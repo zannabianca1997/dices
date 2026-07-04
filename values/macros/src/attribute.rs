@@ -32,7 +32,7 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
     // For each parameter, in declaration order: `None` means it is the context,
     // `Some(i)` means it is the `i`-th value parameter.
     let mut order: Vec<Option<usize>> = Vec::new();
-    // Variadic parameter position
+    // Variadic parameter position and mutability
     let mut variadic: Option<(&Option<Token![mut]>, &Type)> = None;
 
     for (position, input) in func.sig.inputs.iter().with_position() {
@@ -79,26 +79,34 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
     // stripped from its parameters, re-homed as an inherent associated function.
     let inner = inner_fn(&func);
 
-    // Destructure the argument slice into exactly `n_args` bindings.
-    let arg_slots: Vec<_> = (0..n_args)
-        .map(|i| {
-            let ident = format_ident!("__arg{i}");
-            quote! { #ident }
-        })
-        .chain(variadic.map(|_| quote! { __args @ .. }))
+    // Fetch each required argument, padding missing ones with null.
+    let arg_idents: Vec<_> = (0..n_args)
+        .map(|i| format_ident!("__arg{i}"))
         .collect();
-    let arg_pattern = quote! { [ #(#arg_slots),* ] };
+
+    let arg_fetches = arg_idents.iter().enumerate().map(|(i, ident)| {
+        quote! {
+            let #ident = ::core::option::Option::unwrap_or(
+                args.get(#i).cloned(),
+                ::dices_values::Value::Null(::dices_values::null::ValueNull),
+            );
+        }
+    });
+
+    let variadic_fetch = variadic.map(|_| {
+        quote! { let __args = &args[#n_args..]; }
+    });
 
     // Convert each argument, preferring `TryFrom<Value>` then `Deserialize`.
     let conversions = value_tys
         .iter()
-        .zip(&arg_slots)
+        .zip(&arg_idents)
         .enumerate()
-        .map(|(i, (ty, slot))| {
+        .map(|(i, (ty, ident))| {
             let bind = format_ident!("__val{i}");
             quote! {
                 let #bind: #ty = (&&::dices_values::injected::convert::ArgTag::<#ty>::new())
-                    .convert(::core::clone::Clone::clone(#slot))?;
+                    .convert(#ident)?;
             }
         })
         .chain(variadic.map(|(mutability, ty)| {
@@ -187,16 +195,8 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
                     ReturnViaTryInto as _, ReturnViaSerialize as _,
                     ReturnFallibleViaTryInto as _, ReturnFallibleViaSerialize as _,
                 };
-                let #arg_pattern = args else {
-                    return ::core::result::Result::Err(
-                        ::core::convert::Into::into(
-                            ::dices_values::injected::convert::WrongArgCount {
-                                expected: #n_args,
-                                got: args.len(),
-                            }
-                        )
-                    );
-                };
+                #(#arg_fetches)*
+                #variadic_fetch
                 #(#conversions)*
 
                 #call_and_return

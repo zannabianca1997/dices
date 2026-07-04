@@ -3,6 +3,8 @@
 use std::{borrow::Cow, ops::Deref};
 
 pub use registry::Manual;
+
+use crate::registry::linked;
 pub type Descendants<'p> = registry::Descendant<'p, Cow<'static, [PathComponent]>>;
 
 pub mod examples;
@@ -89,3 +91,11 @@ impl Ord for ManPage {
         self.path().cmp(other.path())
     }
 }
+
+/// Root manual page
+#[linked::distributed_slice(linked::LINKED_PAGES)]
+static ROOT_PAGE: linked::LinkedPage = linked::LinkedPage {
+    path: &[],
+    title: "Manual for `dices`",
+    content: "Use `help([1])`, `help([2,1])`, etc. to see specific pages.",
+};
