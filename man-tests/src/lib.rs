@@ -9,11 +9,11 @@ use dices_engine::{Engine, EvalError, Evaluator, ui::Ui};
 use dices_man::examples::{Command, Example};
 use dices_parser::{
     ParseCommandError,
-    matcher::{ParseMatcherError, parse_matcher},
+    matcher::{Matcher, ParseMatcherError, parse_matcher},
     parse_scope_inner,
 };
 use dices_std::{Std, StdOptions};
-use dices_values::{Value, string::ValueString};
+use dices_values::{Value, null::ValueNull, string::ValueString};
 
 #[cfg(test)]
 mod tests {
@@ -66,7 +66,11 @@ pub fn check_example(Example { tags, commands }: &Example) -> Result<(), Error> 
                  response,
              }| {
                 let command = parse_scope_inner(&command.join("\n").into())?;
-                let matcher = parse_matcher(&(*response).to_owned().into())?;
+                let matcher = if response.trim().is_empty() {
+                    Matcher::exactly(ValueNull.into())
+                } else {
+                    parse_matcher(&(*response).to_owned().into())?
+                };
 
                 Ok::<_, Error>((command, *response, matcher))
             },
