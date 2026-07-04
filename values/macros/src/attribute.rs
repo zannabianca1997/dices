@@ -10,7 +10,7 @@ use syn::{
     spanned::Spanned,
 };
 
-use crate::derive::describable_impl;
+use crate::derive::{describable_impl, manual_page_impl, parse_doc_for_manual_page};
 
 pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream> {
     if !attr.is_empty() {
@@ -159,6 +159,11 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
 
     let describable = describable_impl("function", name, quote! { impl }, quote! { for #name });
 
+    let manual_page =
+        parse_doc_for_manual_page(&func.attrs).map(|(path, title, content)| {
+            manual_page_impl(name, &path, &title, &content)
+        });
+
     Ok(quote! {
         #[derive(
             ::core::fmt::Debug,
@@ -177,6 +182,7 @@ pub fn injectable(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStre
             #inner
         }
 
+        #manual_page
         #describable
 
         impl ::dices_values::injected::call::Callable for #name {

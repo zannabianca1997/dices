@@ -4,7 +4,26 @@ use crate::convert::{ToBool, ToList, ToNumber, ToString};
 use crate::ops::{Join, Sum};
 use crate::repl::{Abort, Help, Print};
 
-/// Prelude: commonly-used functions from the standard library
+/// 5.6. Prelude
+///
+/// Common used functions from the standard library. Function present here will
+/// be automatically imported in all new sessions.
+///
+/// ```dices
+/// >>> std.prelude
+/// <| .. |>
+/// ```
+///
+/// Differently from `std`, is it possible to override the values imported in
+/// this way:
+///
+/// ```dices
+/// >>> string(42)
+/// "42"
+/// >>> string = std.convert.bool;
+/// >>> string(42)
+/// true
+/// ```
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Prelude {
     pub abort: Abort,

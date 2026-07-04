@@ -8,6 +8,7 @@ license.workspace = true
 dices-man.workspace = true
 dices-parser.workspace = true
 dices-values = { workspace = true, features = ["macros"] }
+linkme.workspace = true
 
 chrono = { version = "0.4.45", features = ["serde"] }
 itertools.workspace = true

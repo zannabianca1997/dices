@@ -5,9 +5,9 @@
 use heck::ToSnakeCase as _;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{
-    Data, DeriveInput, Fields, Ident, Token, WhereClause, parse_quote, parse2,
+    Attribute, Data, DeriveInput, Fields, Ident, Meta, Token, WhereClause, parse_quote, parse2,
     punctuated::Punctuated, spanned::Spanned,
 };
 
@@ -75,7 +75,11 @@ pub fn derive_injectable(input: TokenStream) -> syn::Result<TokenStream> {
         quote! { for #name #ty_generics #where_clause },
     );
 
+    let manual_page = parse_doc_for_manual_page(&input.attrs)
+        .map(|(path, title, content)| manual_page_impl(name, &path, &title, &content));
+
     Ok(quote! {
+        #manual_page
         #describable
 
         impl #impl_generics ::dices_values::injected::read::Readable for #name #ty_generics #injectable_where_clause {
@@ -136,5 +140,127 @@ pub fn describable_impl(
                 #desc
             }
         }
+    }
+}
+
+/// Parse doc attributes (`/// ...`) on a function or struct to extract a
+/// manual page section.
+///
+/// Expected format:
+///
+/// ```
+/// /// 2.3. Title of the page
+/// ///
+/// /// Content of the page
+/// ```
+///
+/// The section numbers form the path (`[2, 3]`), the rest of the first line
+/// after the version is the title, and subsequent lines form the content.
+/// Returns `None` if there are no doc comments or the first line doesn't
+/// match the expected pattern.
+pub fn parse_doc_for_manual_page(attrs: &[Attribute]) -> Option<(Vec<u16>, String, String)> {
+    let docs: Vec<String> = attrs
+        .iter()
+        .filter_map(|attr| {
+            if !attr.path().is_ident("doc") {
+                return None;
+            }
+            match &attr.meta {
+                Meta::NameValue(nv) => match &nv.value {
+                    syn::Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Str(s),
+                        ..
+                    }) => Some(s.value()),
+                    _ => None,
+                },
+                _ => None,
+            }
+        })
+        .collect();
+
+    if docs.is_empty() {
+        return None;
+    }
+
+    let doc_text = docs
+        .iter()
+        .map(|d| d.strip_prefix(' ').unwrap_or(d))
+        .join("\n");
+
+    let mut lines = doc_text.lines();
+    let first_line = lines.next()?.trim();
+
+    // Find the ". " that separates the version path from the title.
+    //
+    // Valid examples: "5.", "2.3.", "1.2.3." all followed by "<title>"
+    // Invalid:        "5.Standard" (no space), "foo. bar" (non-digit version)
+    let separator = find_title_separator(first_line)?;
+
+    let version_str = &first_line[..separator];
+    let components: Vec<u16> = version_str
+        .split('.')
+        .map(|s| s.parse::<u16>().ok())
+        .collect::<Option<Vec<_>>>()?;
+
+    if components.is_empty() {
+        return None;
+    }
+
+    let title = first_line[separator + 2..].to_string();
+
+    let content = lines.collect::<Vec<_>>().join("\n").trim().to_string();
+
+    Some((components, title, content))
+}
+
+/// Find the offset of the `. ` separator between the numeric version path and
+/// the page title.  Returns `None` if the first line does not contain a valid
+/// version followed by `". "`.
+fn find_title_separator(s: &str) -> Option<usize> {
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        // Consume a digit sequence
+        if !bytes[i].is_ascii_digit() {
+            return None;
+        }
+        while i < bytes.len() && bytes[i].is_ascii_digit() {
+            i += 1;
+        }
+        // After digits, we expect either ". " (title separator) or "." (more numbers)
+        if i >= bytes.len() || bytes[i] != b'.' {
+            return None;
+        }
+        if i + 1 < bytes.len() && bytes[i + 1] == b' ' {
+            return Some(i);
+        }
+        // Skip the '.' and continue to next version component
+        i += 1;
+    }
+    None
+}
+
+/// Generate a [`LinkedPage`] registration in the manual system.
+///
+/// Produces a `#[distributed_slice(LINKED_PAGES)]` static that inserts a
+/// manual page derived from doc comments.
+pub fn manual_page_impl(name: &Ident, path: &[u16], title: &str, content: &str) -> TokenStream {
+    let static_ident = format_ident!("__MANUAL_PAGE_{}", name);
+    let path_elems = path.iter().map(|&c| {
+        let lit = proc_macro2::Literal::u16_suffixed(c);
+        quote! { #lit }
+    });
+
+    quote! {
+        #[::dices_man::registry::linked::distributed_slice(
+            ::dices_man::registry::linked::LINKED_PAGES
+        )]
+        #[allow(non_upper_case_globals)]
+        static #static_ident: ::dices_man::registry::linked::LinkedPage =
+            ::dices_man::registry::linked::LinkedPage {
+                path: &[#(#path_elems),*],
+                title: #title,
+                content: #content,
+            };
     }
 }

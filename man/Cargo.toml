@@ -8,7 +8,7 @@ license.workspace = true
 elsa = "1.11.2"
 itertools.workspace = true
 lazy-regex = "3.6.0"
-linkme = "0.3.36"
+linkme.workspace = true
 rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
 snafu.workspace = true
 

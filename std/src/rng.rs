@@ -4,7 +4,12 @@ use dices_values::{
     serde::{de::ValueDeserializer, error::Error as SerializationError, ser::ValueSerializer},
 };
 
-/// Rng bindings
+/// 5.2. Rng
+///
+/// Controls of the random number generator.
+///
+/// `dices` works with a global RNG, seeded at the start of the session. Here
+/// are functions to control it, reseed it and save and store the result.
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Rng {
     pub seed: Seed,
@@ -22,19 +27,57 @@ impl Rng {
     }
 }
 
-/// Seed the rng
+/// 5.2.1. Seed
+///
+/// Seed the rng with the hash of the arguments. After seeding the rng behavior
+/// is fully predictable from the seed value.
+///
+/// ```dices
+/// #>> let seed = std.rng.seed;
+/// >>> seed(42)
+/// >>> 2d6
+/// [3, 5]
+/// >>> seed(42)
+/// >>> 2d6
+/// [3, 5]
+/// ```
 #[injectable]
 pub fn Seed(#[cx] cx: &mut (impl InjectedContext + ?Sized), args: &[Value]) {
     cx.rng_seed(args);
 }
 
-/// Save the rng state
+/// 5.2.2. Save
+///
+/// Save the rng state, to be restored later with `restore`
+///
+/// ```dices
+/// #>> let seed = std.rng.seed;
+/// #>> let save = std.rng.save;
+/// >>> seed(42)
+/// >>> save()
+/// _
+/// ```
 #[injectable]
 pub fn Save(#[cx] cx: &mut (impl InjectedContext + ?Sized)) -> Result<Value, SerializationError> {
     cx.rng_save(ValueSerializer)
 }
 
-/// Restore the rng state
+/// 5.2.3. Restore
+///
+/// Restore the rng state obtained from a previous call to `save`
+///
+/// ```dices
+/// #>> let seed = std.rng.seed;
+/// #>> let save = std.rng.save;
+/// #>> let restore = std.rng.restore;
+/// >>> seed(42)
+/// >>> let state = save()
+/// >>> let first = 1d6
+/// >>> restore(state)
+/// >>> let second = 1d6
+/// >>> [first, second]
+/// [[3], [3]]
+/// ```
 #[injectable]
 pub fn Restore(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),

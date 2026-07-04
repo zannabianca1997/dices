@@ -359,6 +359,7 @@ dependencies = [
  "dices-parser",
  "dices-values",
  "itertools 0.15.0",
+ "linkme",
  "serde",
  "serde_json",
 ]

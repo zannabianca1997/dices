@@ -8,7 +8,13 @@ use time::Time;
 
 pub mod time;
 
-/// System bindings
+/// 5.3. Sys
+///
+/// Methods to access the system the session is running on.
+///
+/// The content of this module is the one that can most vary with the sandbox
+/// setup: both `read` and `write` presence depends if access to the filesystem
+/// is turned on or not.
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Sys {
     pub time: Time,
@@ -26,13 +32,28 @@ impl Sys {
     }
 }
 
-/// Read a file content
+/// 5.3.2. Read
+///
+/// Read a file content to a string. The file must be valid utf8.
+///
+/// ```dices no_run
+/// >>> std.sys.read("hello.txt")
+/// "hello"
+/// ```
 #[injectable]
 pub fn Read(path: ValueString) -> io::Result<String> {
     fs::read_to_string(&*path)
 }
 
-/// Write a file content
+/// 5.3.3. Write
+///
+/// Write a string to a file.
+///
+/// ```dices no_run
+/// >>> std.sys.write("hello.txt", "hello")
+/// >>> std.sys.read("hello.txt")
+/// "hello"
+/// ```
 #[injectable]
 pub fn Write(path: ValueString, content: ValueString) -> io::Result<()> {
     fs::write(&*path, &*content)

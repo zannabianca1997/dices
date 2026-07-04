@@ -18,7 +18,7 @@ pub struct Command<'a> {
     pub hidden: bool,
     /// The command lines
     ///
-    /// ```ignore
+    /// ```dices
     /// >>> {line 1}
     /// ... {line 2}
     /// ```

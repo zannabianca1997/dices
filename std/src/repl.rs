@@ -6,6 +6,8 @@ use dices_values::{
 };
 use itertools::Itertools;
 
+/// 5.4. Repl
+///
 /// Bindings to the repl
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Repl {
@@ -28,6 +30,8 @@ impl Repl {
     }
 }
 
+/// 5.4.1. Print
+///
 /// Print the given values
 #[injectable]
 pub fn Print(
@@ -39,6 +43,8 @@ pub fn Print(
     }
     Ok(())
 }
+/// 5.4.2. PrintStr
+///
 /// Print the given string as text
 #[injectable]
 pub fn PrintStr(
@@ -48,6 +54,8 @@ pub fn PrintStr(
     cx.print_str(value)
 }
 
+/// 5.4.3. PrintMarkdown
+///
 /// Print the given string as markdown
 #[injectable]
 pub fn PrintMarkdown(
@@ -57,13 +65,26 @@ pub fn PrintMarkdown(
     cx.print_md(value)
 }
 
-/// Stop the calculation and return immediately
+/// 5.4.4. Abort
+///
+/// Stop the calculation and return immediately with the given value.
+///
+/// ```dices
+/// #>> let abort = std.repl.abort;
+/// >>> abort("calculation stopped")
+/// "calculation stopped"
+/// ```
 #[injectable]
 pub fn Abort(#[cx] cx: &mut (impl InjectedContext + ?Sized), reason: Value) -> ! {
     cx.abort(reason)
 }
 
-/// Search a page of the manual
+/// 5.4.5. Help
+///
+/// Search a page of the manual.
+///
+/// Without parameters it will print the introduction. Use a list with the
+/// section to fetch an exact page.
 #[injectable]
 pub fn Help(
     #[cx] cx: &mut (impl InjectedContext + ?Sized),

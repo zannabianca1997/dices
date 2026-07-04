@@ -15,12 +15,25 @@ pub mod repl;
 pub mod rng;
 pub mod sys;
 
-/// Standard library
+/// 5. Standard library
+///
+/// This is the `dices` std library, providing access to additional
+/// functionality to the environment.
+///
+/// It is always obtainable through the `std` keyword:
+///
+/// ```dices
+/// >>> std
+/// <| .. |>
+/// ```
+///
+/// Some parts of it can be missing if not injected, for example `std.sys` will
+/// miss filesystem functionality if deactivated.
 #[derive(Debug, Injectable, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 pub struct Std {
-    pub sys: Sys,
-    pub rng: Rng,
     pub ops: Ops,
+    pub rng: Rng,
+    pub sys: Sys,
     pub repl: Repl,
     pub convert: Convert,
     pub prelude: Prelude,
