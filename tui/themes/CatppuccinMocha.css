@@ -15,6 +15,7 @@ dices-value-delimiter[depth-6='4'] { color: #89dceb; }
 dices-value-delimiter[depth-6='5'] { color: #b4befe; }
 dices-value-punctuator { color: #a6adc8; }
 dices-value-injected { color: #f9e2af; }
+dices-ast { color: white; }
 dices-ast-ident { color: #89dceb; }
 h1 { font-weight: bold; color: #f9e2af; }
 h2 { font-weight: bold; color: #89b4fa; }

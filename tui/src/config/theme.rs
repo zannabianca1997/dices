@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use dices_print::theme::{Color as ThemeColor, Style};
+use dices_print::theme::{Color as ThemeColor, FullStyle, Style};
 use elsa::sync::FrozenMap;
 use rust_embed::Embed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -48,7 +48,7 @@ const DEFAULT_LOW_COLORS: &str = "LowColor";
 pub struct Theme {
     name: String,
     sheet: Yoke<StyleSheet<'static>, Vec<Cow<'static, str>>>,
-    cache: FrozenMap<Element, Box<ColorSpec>>,
+    cache: FrozenMap<Element, Box<Style>>,
     prompt: reedline::Color,
     prompt_indicator: reedline::Color,
     prompt_multiline: nu_ansi_term::Color,
@@ -73,12 +73,10 @@ impl Theme {
         &self.name
     }
 
-    pub fn style(&self, element: &Element) -> &ColorSpec {
+    pub fn style(&self, element: &Element) -> &Style {
         self.cache.get(&element).unwrap_or_else(|| {
-            self.cache.insert(
-                element.clone(),
-                Box::new(color_spec(style(&self.sheet, element))),
-            )
+            self.cache
+                .insert(element.clone(), Box::new(style(&self.sheet, element)))
         })
     }
 
@@ -221,14 +219,10 @@ fn convert_color(c: ThemeColor) -> TermColor {
     }
 }
 
-fn color_spec(spec: Style) -> ColorSpec {
+pub fn color_spec(spec: &FullStyle) -> ColorSpec {
     let mut cs = ColorSpec::new();
-    if let Some(fg) = spec.fg_color {
-        cs.set_fg(Some(convert_color(fg)));
-    }
-    if let Some(bg) = spec.bg_color {
-        cs.set_bg(Some(convert_color(bg)));
-    }
+    cs.set_fg(spec.fg_color.map(convert_color));
+    cs.set_bg(spec.bg_color.map(convert_color));
     cs.set_bold(spec.bold);
     cs.set_intense(spec.intense);
     cs.set_underline(spec.underline);

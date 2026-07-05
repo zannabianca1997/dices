@@ -4,18 +4,23 @@ use std::io::{self, stderr, stdout};
 
 use pretty::{Arena, Pretty, Render, RenderAnnotated};
 use snafu::ResultExt;
-use termcolor::{Ansi, ColorSpec, HyperlinkSpec, WriteColor};
+use termcolor::{Ansi, HyperlinkSpec, WriteColor};
 
 use dices_man::ManPage;
 use dices_print::{
     Element, Pretty as _,
     error::ErrorReport,
     markdown::{DefaultCodeRender, Markdown},
+    theme::{FullStyle, MergeStyle},
 };
 use dices_values::{Value, cast::push_down_if_injected};
 use url::Url;
 
-use crate::{Error, PrintingSnafu, config::skin::Skin, rendered_examples::RenderedExamples};
+use crate::{
+    Error, PrintingSnafu,
+    config::{skin::Skin, theme::color_spec},
+    rendered_examples::RenderedExamples,
+};
 
 pub fn print_markdown(skin: &Skin, text: &str) -> Result<(), Error> {
     let text: Markdown<&str> = Markdown::new(text);
@@ -83,9 +88,15 @@ struct PrintAnnotated<'a, W> {
     style_stack: Vec<Style>,
 }
 
+impl<'a, W> PrintAnnotated<'a, W> {
+    fn current_style(&self) -> &FullStyle {
+        &self.style_stack.last().unwrap().full_style
+    }
+}
+
 #[derive(Debug)]
 struct Style {
-    color: ColorSpec,
+    full_style: FullStyle,
     link: Option<Url>,
 }
 
@@ -98,7 +109,10 @@ impl<'a, W> PrintAnnotated<'a, Ansi<W>> {
         Self {
             upstream: Ansi::new(writer),
             skin,
-            style_stack: vec![],
+            style_stack: vec![Style {
+                full_style: FullStyle::default(),
+                link: None,
+            }],
         }
     }
 }
@@ -127,8 +141,10 @@ where
     W: WriteColor,
 {
     fn push_annotation(&mut self, element: &Element) -> Result<(), Self::Error> {
-        let color = self.skin.theme.style(element);
-        self.upstream.set_color(color)?;
+        let mut full_style = self.current_style().clone();
+        self.skin.theme.style(element).apply_to(&mut full_style);
+
+        self.upstream.set_color(&color_spec(&full_style))?;
 
         let url = element.url();
         if let Some(url) = url {
@@ -137,7 +153,7 @@ where
         }
 
         self.style_stack.push(Style {
-            color: color.clone(),
+            full_style,
             link: url.cloned(),
         });
 
@@ -150,7 +166,8 @@ where
 
         match (old_style, removed_style) {
             (Some(old_style), Some(removed_style)) => {
-                self.upstream.set_color(&old_style.color)?;
+                self.upstream
+                    .set_color(&color_spec(&old_style.full_style))?;
                 if removed_style.link.is_some() {
                     self.upstream.set_hyperlink(&HyperlinkSpec::close())?;
                 }

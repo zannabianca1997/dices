@@ -19,6 +19,7 @@ dices-value-delimiter[depth-4='2'] { color: magenta; }
 dices-value-delimiter[depth-4='3'] { color: cyan; }
 dices-value-punctuator { dimmed: true; }
 dices-value-injected { color: yellow; }
+dices-ast { color: white; }
 dices-ast-ident { color: cyan; }
 h1 { font-weight: bold; color: yellow; }
 h2 { font-weight: bold; color: blue; }

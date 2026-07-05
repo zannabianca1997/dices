@@ -1,6 +1,7 @@
 use std::io::Write;
 
-use optional_struct::{Applicable, optional_struct};
+pub use optional_struct::Applicable as MergeStyle;
+use optional_struct::optional_struct;
 use simplecss::{AttributeOperator, Element as CssElement, PseudoClass, StyleSheet};
 use yoke::Yokeable;
 
@@ -23,9 +24,9 @@ pub enum Color {
     Rgb(u8, u8, u8),
 }
 
-#[derive(Debug, Clone)]
-#[optional_struct]
-pub struct Style {
+#[derive(Debug, Clone, Copy)]
+#[optional_struct(Style)]
+pub struct FullStyle {
     pub fg_color: Option<Color>,
     pub bg_color: Option<Color>,
     pub bold: bool,
@@ -37,7 +38,9 @@ pub struct Style {
     pub strikethrough: bool,
 }
 
-impl Default for Style {
+impl Copy for Style {}
+
+impl Default for FullStyle {
     fn default() -> Self {
         Self {
             fg_color: None,
@@ -83,7 +86,7 @@ impl<'a> Theme<'a> {
         for rule in &self.stylesheet.rules {
             if rule.selector.matches(annotation) {
                 for decl in &rule.declarations {
-                    OptionalStyle::from_declaration(decl.name, decl.value).apply_to(&mut style);
+                    Style::from_declaration(decl.name, decl.value).apply_to_opt(&mut style);
                 }
             }
         }
@@ -100,7 +103,7 @@ impl Default for Theme<'_> {
     }
 }
 
-impl OptionalStyle {
+impl Style {
     fn from_declaration(name: &str, value: &str) -> Self {
         let value = value.trim();
         match name {
