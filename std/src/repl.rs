@@ -74,6 +74,13 @@ pub fn PrintMarkdown(
 /// >>> abort("calculation stopped")
 /// "calculation stopped"
 /// ```
+///
+/// This can also be done from inside scopes:
+/// ```dices
+/// #>> let abort = std.repl.abort;
+/// >>> { let x = 2; abort("calculation stopped"); x }
+/// "calculation stopped"
+/// ```
 #[injectable]
 pub fn Abort(#[cx] cx: &mut (impl InjectedContext + ?Sized), reason: Value) -> ! {
     cx.abort(reason)

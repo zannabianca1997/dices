@@ -81,6 +81,7 @@ pub struct EngineContext<'engine, Ui> {
     ui: Ui,
 }
 
+/// Payload of the unwind created by `abort`
 struct Abort {
     reason: Value,
 }
@@ -114,7 +115,15 @@ impl<'engine, Ui> EngineContext<'engine, Ui> {
         })) {
             Ok(r) => r,
             Err(err) => match err.downcast::<Abort>() {
-                Ok(abort) => Ok(abort.reason),
+                Ok(abort) => {
+                    // Check if we unwind cleanly
+                    debug_assert!(
+                        self.scopes.is_empty(),
+                        "scopes leaked across abort: {}",
+                        self.scopes.len()
+                    );
+                    Ok(abort.reason)
+                }
                 Err(panic) => resume_unwind(panic),
             },
         }
@@ -162,9 +171,12 @@ where
 
     fn scope<R>(&mut self, fun: impl FnOnce(&mut Self::Scoped) -> R) -> R {
         self.scopes.push(Scope::new());
-        let res = fun(self);
+        let res = catch_unwind(AssertUnwindSafe(|| fun(self)));
         self.scopes.pop().unwrap();
-        res
+        match res {
+            Ok(r) => r,
+            Err(panic) => resume_unwind(panic),
+        }
     }
 
     type Jailed = Self;
@@ -173,12 +185,15 @@ where
         let globals = mem::take(&mut self.engine.globals);
         let scopes = mem::take(&mut self.scopes);
 
-        let res = fun(self);
+        let res = catch_unwind(AssertUnwindSafe(|| fun(self)));
 
         self.engine.globals = globals;
         self.scopes = scopes;
 
-        res
+        match res {
+            Ok(r) => r,
+            Err(panic) => resume_unwind(panic),
+        }
     }
 
     fn as_injected(&mut self) -> &mut dyn InjectedContext {
@@ -356,18 +371,24 @@ impl Context for dyn InjectedContext + '_ {
 
     fn scope<R>(&mut self, fun: impl FnOnce(&mut Self::Scoped) -> R) -> R {
         let data = self.enter_scope();
-        let res = fun(self);
+        let res = catch_unwind(AssertUnwindSafe(|| fun(self)));
         self.exit_scope(data);
-        res
+        match res {
+            Ok(r) => r,
+            Err(panic) => resume_unwind(panic),
+        }
     }
 
     type Jailed = Self;
 
     fn jail<R>(&mut self, fun: impl FnOnce(&mut Self::Jailed) -> R) -> R {
         let data = self.enter_jail();
-        let res = fun(self);
+        let res = catch_unwind(AssertUnwindSafe(|| fun(self)));
         self.exit_jail(data);
-        res
+        match res {
+            Ok(r) => r,
+            Err(panic) => resume_unwind(panic),
+        }
     }
 
     fn let_var(&mut self, name: Identifier, value: Value) {
