@@ -22,21 +22,21 @@ use crate::{
     rendered_examples::RenderedExamples,
 };
 
-pub fn print_markdown(skin: &Skin, text: &str) -> Result<(), Error> {
+pub fn print_markdown(skin: &Skin, text: &str, man_pages_base_url: Url) -> Result<(), Error> {
     let text: Markdown<&str> = Markdown::new(text);
 
     let renderer = (RenderedExamples::new(skin), DefaultCodeRender);
-    let ctx = dices_print::manual::Ctx::new(renderer);
+    let ctx = dices_print::manual::Ctx::new(renderer, man_pages_base_url);
 
     let arena = Arena::new();
     print_inner(skin, &arena, text.with_ctx(ctx), stdout())?;
     Ok(())
 }
-pub fn print_man_item(skin: &Skin, item: &ManPage) -> Result<(), Error> {
+pub fn print_man_item(skin: &Skin, item: &ManPage, man_pages_base_url: Url) -> Result<(), Error> {
     let arena = Arena::new();
 
     let renderer = (RenderedExamples::new(skin), DefaultCodeRender);
-    let ctx = dices_print::manual::Ctx::new(renderer);
+    let ctx = dices_print::manual::Ctx::new(renderer, man_pages_base_url);
 
     print_inner(skin, &arena, item.with_ctx(ctx), stdout())?;
     Ok(())

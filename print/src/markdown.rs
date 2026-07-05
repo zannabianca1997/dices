@@ -41,16 +41,19 @@ impl<'a, T> Markdown<&'a T>
 where
     T: AsRef<str> + ?Sized,
 {
-    pub fn parser(text: &'a T) -> Parser<'a, impl BrokenLinkCallback<'a>> {
+    pub fn parser(text: &'a T, man_pages_base_url: Url) -> Parser<'a, impl BrokenLinkCallback<'a>> {
         Parser::new_with_broken_link_callback(
             text.as_ref(),
             Options::empty(),
-            Some(broken_link_callback),
+            Some(move |link| broken_link_callback(link, &man_pages_base_url)),
         )
     }
 }
 
-fn broken_link_callback<'a>(link: BrokenLink<'a>) -> Option<(CowStr<'a>, CowStr<'a>)> {
+fn broken_link_callback<'a>(
+    link: BrokenLink<'a>,
+    man_pages_base_url: &Url,
+) -> Option<(CowStr<'a>, CowStr<'a>)> {
     if let Some((path, title)) = link.reference.split_once(". ")
         && let Ok(path) = path
             .split('.')
@@ -66,7 +69,7 @@ fn broken_link_callback<'a>(link: BrokenLink<'a>) -> Option<(CowStr<'a>, CowStr<
         }
 
         return Some((
-            page.url().to_string().into(),
+            page.url(man_pages_base_url.clone()).to_string().into(),
             match page.static_title() {
                 Ok(t) => t.into(),
                 Err(t) => t.to_owned().into(),
@@ -84,20 +87,21 @@ fn broken_link_callback<'a>(link: BrokenLink<'a>) -> Option<(CowStr<'a>, CowStr<
 pub struct Ctx<R> {
     need_flow_separator: bool,
     code_render: R,
+    man_pages_base_url: Url,
 }
 
 impl<R> Ctx<R> {
-    pub fn new(code_render: R) -> Self {
+    pub fn new(code_render: R, man_pages_base_url: Url) -> Self {
+        debug_assert!(!man_pages_base_url.cannot_be_a_base());
         Self {
             need_flow_separator: false,
             code_render,
+            man_pages_base_url,
         }
     }
-}
 
-impl<R: Default> Default for Ctx<R> {
-    fn default() -> Self {
-        Self::new(Default::default())
+    pub fn man_pages_base_url(&self) -> &Url {
+        &self.man_pages_base_url
     }
 }
 
@@ -120,9 +124,12 @@ where
     R: CodeRender,
 {
     fn pretty(self, allocator: &'a D, ctx: &mut Ctx<R>) -> DocBuilder<'a, D> {
-        Printer::new(&mut Self::parser(self.text))
-            .pretty(allocator, &mut PrinterCtx::new(ctx))
-            .annotate(Element::Markdown(None))
+        Printer::new(&mut Self::parser(
+            self.text,
+            ctx.man_pages_base_url().clone(),
+        ))
+        .pretty(allocator, &mut PrinterCtx::new(ctx))
+        .annotate(Element::Markdown(None))
     }
 }
 

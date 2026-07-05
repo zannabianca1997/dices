@@ -7,10 +7,12 @@ use figment::providers::{Env, Format, Serialized, Toml};
 use serde::{Deserialize, Serialize};
 
 use crate::cli::CliConfig;
+use crate::config::man::ManConfig;
 use crate::config::skin::Skin;
 use history::HistoryConfig;
 
 pub mod history;
+pub mod man;
 pub mod skin;
 pub mod theme;
 
@@ -35,6 +37,7 @@ pub struct Config {
     pub history: HistoryConfig,
     pub skin: Skin,
     pub std: StdOptions,
+    pub man: ManConfig,
 }
 
 impl Config {

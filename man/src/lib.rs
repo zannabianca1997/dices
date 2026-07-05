@@ -53,8 +53,11 @@ impl ManPage {
         self.manual
     }
 
-    pub fn url(&self) -> Url {
-        let mut url = Url::parse("https://dices.zannabianca1997.site/man").unwrap();
+    /// Get the url of this page relative to the given url
+    ///
+    /// Panics if `base` cannot be a base
+    pub fn url(&self, base: Url) -> Url {
+        let mut url = base;
 
         url.path_segments_mut()
             .unwrap()

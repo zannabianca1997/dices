@@ -15,6 +15,7 @@ use rand::{Rng, rngs::OsRng};
 use rand_seeder::Seeder;
 use reedline::{Reedline, Signal};
 use snafu::{ResultExt, Snafu};
+use url::Url;
 
 use crate::{
     cli::Cli,
@@ -56,17 +57,20 @@ pub enum CommandError {
     Eval { source: dices_engine::EvalError },
 }
 
-struct Ui<'a>(&'a Skin);
+struct Ui<'a> {
+    skin: &'a Skin,
+    man_pages_base_url: Url,
+}
 
 impl dices_engine::ui::Ui for Ui<'_> {
     fn print(&self, value: impl Into<Value>) -> Result<(), Self::PrintError> {
-        print_value(self.0, value.into()).unwrap();
+        print_value(self.skin, value.into()).unwrap();
         println!();
         Ok(())
     }
 
     fn manual(&self, item: &ManPage) -> Result<(), Self::PrintError> {
-        print_man_item(self.0, &item)
+        print_man_item(self.skin, &item, self.man_pages_base_url.clone())
     }
 
     type PrintError = Error;
@@ -86,7 +90,7 @@ impl dices_engine::ui::Ui for Ui<'_> {
         &self,
         value: V,
     ) -> Result<(), Self::PrintError> {
-        print_markdown(self.0, value.as_ref())
+        print_markdown(self.skin, value.as_ref(), self.man_pages_base_url.clone())
     }
 }
 
@@ -96,6 +100,7 @@ fn main_inner(
         history,
         skin,
         std: std_opts,
+        man,
     }: &Config,
     interactive: bool,
     command: Option<Vec<String>>,
@@ -111,7 +116,7 @@ fn main_inner(
     );
 
     if skin.banners {
-        print_markdown(skin, &banners::opening())?;
+        print_markdown(skin, &banners::opening(), man.links.base.clone())?;
     }
 
     // Execute command
@@ -124,7 +129,13 @@ fn main_inner(
             .map_err(CommandError::from)
             .and_then(|scope_inner| {
                 engine
-                    .eval(&scope_inner, Ui(skin))
+                    .eval(
+                        &scope_inner,
+                        Ui {
+                            skin,
+                            man_pages_base_url: man.links.base.clone(),
+                        },
+                    )
                     .map_err(CommandError::from)
             });
 
@@ -160,7 +171,13 @@ fn main_inner(
                 .map_err(CommandError::from)
                 .and_then(|scope_inner| {
                     engine
-                        .eval(&scope_inner, Ui(skin))
+                        .eval(
+                            &scope_inner,
+                            Ui {
+                                skin,
+                                man_pages_base_url: man.links.base.clone(),
+                            },
+                        )
                         .map_err(CommandError::from)
                 });
 
@@ -174,7 +191,7 @@ fn main_inner(
     }
 
     if skin.banners {
-        print_markdown(skin, &banners::closing())?;
+        print_markdown(skin, &banners::closing(), man.links.base.clone())?;
         println!();
     }
 
