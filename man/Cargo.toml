@@ -10,7 +10,9 @@ itertools.workspace = true
 lazy-regex = "3.6.0"
 linkme.workspace = true
 rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
+slugify.workspace = true
 snafu.workspace = true
+url.workspace = true
 
 [build-dependencies]
 cargo-build.workspace = true

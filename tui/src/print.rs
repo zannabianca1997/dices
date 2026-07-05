@@ -92,6 +92,9 @@ impl<'a, W> PrintAnnotated<'a, W> {
     fn current_style(&self) -> &FullStyle {
         &self.style_stack.last().unwrap().full_style
     }
+    fn current_link(&self) -> Option<&Url> {
+        self.style_stack.last().unwrap().link.as_ref()
+    }
 }
 
 #[derive(Debug)]
@@ -146,16 +149,19 @@ where
 
         self.upstream.set_color(&color_spec(&full_style))?;
 
-        let url = element.url();
-        if let Some(url) = url {
-            self.upstream
-                .set_hyperlink(&HyperlinkSpec::open(url.as_str().as_bytes()))?;
+        let link = element.url().or(self.current_link()).cloned();
+
+        if link.as_ref() != self.current_link() {
+            if self.current_link().is_some() {
+                self.upstream.set_hyperlink(&HyperlinkSpec::close())?;
+            }
+            if let Some(link) = &link {
+                self.upstream
+                    .set_hyperlink(&HyperlinkSpec::open(link.as_str().as_bytes()))?;
+            }
         }
 
-        self.style_stack.push(Style {
-            full_style,
-            link: url.cloned(),
-        });
+        self.style_stack.push(Style { full_style, link });
 
         Ok(())
     }
@@ -168,13 +174,17 @@ where
             (Some(old_style), Some(removed_style)) => {
                 self.upstream
                     .set_color(&color_spec(&old_style.full_style))?;
-                if removed_style.link.is_some() {
-                    self.upstream.set_hyperlink(&HyperlinkSpec::close())?;
+
+                if &removed_style.link != &old_style.link {
+                    if removed_style.link.is_some() {
+                        self.upstream.set_hyperlink(&HyperlinkSpec::close())?;
+                    }
+                    if let Some(link) = old_style.link.as_ref() {
+                        self.upstream
+                            .set_hyperlink(&HyperlinkSpec::open(link.as_str().as_bytes()))?;
+                    }
                 }
-                if let Some(url) = old_style.link.as_ref() {
-                    self.upstream
-                        .set_hyperlink(&HyperlinkSpec::open(url.as_str().as_bytes()))?;
-                }
+
                 Ok(())
             }
             (None, Some(removed_style)) => {

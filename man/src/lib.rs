@@ -3,6 +3,8 @@
 use std::{borrow::Cow, iter::Filter, ops::Deref};
 
 pub use registry::Manual;
+use slugify::slugify;
+use url::Url;
 
 use crate::registry::linked;
 pub type Descendants<'p> = registry::Descendant<'p, Cow<'static, [PathComponent]>>;
@@ -49,6 +51,17 @@ impl ManPage {
     /// Get the handler to the manual
     pub fn manual(&self) -> Manual {
         self.manual
+    }
+
+    pub fn url(&self) -> Url {
+        let mut url = Url::parse("https://dices.zannabianca1997.site/man").unwrap();
+
+        url.path_segments_mut()
+            .unwrap()
+            .extend(self.path().iter().map(|s| s.to_string()))
+            .push(&format!("{}.html", slugify!(self.title())));
+
+        url
     }
 }
 

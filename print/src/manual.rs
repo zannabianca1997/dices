@@ -2,11 +2,11 @@ use std::iter::{self, empty, once};
 
 use dices_man::{ManPage, PathComponent};
 use itertools::{Either, Itertools};
-use pulldown_cmark::{Event, HeadingLevel, Parser, Tag, TagEnd};
+use pulldown_cmark::{Event, HeadingLevel, Tag, TagEnd};
 
 use crate::{
     DocAllocator, DocBuilder, Element, Pretty,
-    markdown::{CodeRender, Printer, PrinterCtx},
+    markdown::{CodeRender, Markdown, Printer, PrinterCtx},
 };
 
 pub type Ctx<R> = super::markdown::Ctx<R>;
@@ -32,7 +32,7 @@ where
 
         let mut doc = title
             .chain(index.into_iter())
-            .chain(Parser::new(self.content()));
+            .chain(Markdown::parser(self.content()));
 
         Printer::new(&mut doc)
             .pretty(allocator, &mut PrinterCtx::new(ctx))
@@ -99,7 +99,18 @@ fn children_list<'a>(
             opening
                 .into_iter()
                 .flatten()
-                .chain(once(Event::Start(Tag::Item)))
+                .chain([
+                    Event::Start(Tag::Item),
+                    Event::Start(Tag::Link {
+                        link_type: pulldown_cmark::LinkType::ReferenceUnknown,
+                        dest_url: page.url().to_string().into(),
+                        title: match page.static_title() {
+                            Ok(t) => t.into(),
+                            Err(t) => t.to_string().into(),
+                        },
+                        id: "".into(),
+                    }),
+                ])
                 .chain(match page.static_title() {
                     Ok(t) => itertools::Either::Left(inline_md(t).into_iter()),
                     Err(t) => itertools::Either::Right(
@@ -110,6 +121,7 @@ fn children_list<'a>(
                             .into_iter(),
                     ),
                 })
+                .chain(once(Event::End(TagEnd::Link)))
                 .chain(children.collect_vec())
                 .chain(once(Event::End(TagEnd::Item)))
         }))
@@ -117,7 +129,7 @@ fn children_list<'a>(
 }
 
 fn inline_md<'a>(s: &'a str) -> impl IntoIterator<Item = Event<'a>> {
-    Parser::new(s)
+    Markdown::parser(s)
         .filter(|evt| evt != &Event::Start(Tag::Paragraph) && evt != &Event::End(TagEnd::Paragraph))
 }
 

@@ -4,8 +4,12 @@
 
 use std::{borrow::Cow, iter::once, mem};
 
+use dices_man::{Manual, PathComponent};
 use itertools::Itertools;
-use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, LinkType, Parser, Tag, TagEnd};
+use pulldown_cmark::{
+    BrokenLink, BrokenLinkCallback, CodeBlockKind, CowStr, Event, HeadingLevel, LinkType, Options,
+    Parser, Tag, TagEnd,
+};
 use url::Url;
 
 use crate::{DocAllocator, DocBuilder, Element, List, ListStyle, MarkdownElement, Pretty};
@@ -31,6 +35,49 @@ impl<T> Markdown<T> {
             &*(text as *const T as *const Self)
         }
     }
+}
+
+impl<'a, T> Markdown<&'a T>
+where
+    T: AsRef<str> + ?Sized,
+{
+    pub fn parser(text: &'a T) -> Parser<'a, impl BrokenLinkCallback<'a>> {
+        Parser::new_with_broken_link_callback(
+            text.as_ref(),
+            Options::empty(),
+            Some(broken_link_callback),
+        )
+    }
+}
+
+fn broken_link_callback<'a>(link: BrokenLink<'a>) -> Option<(CowStr<'a>, CowStr<'a>)> {
+    if let Some((path, title)) = link.reference.split_once(". ")
+        && let Ok(path) = path
+            .split('.')
+            .map(|s| PathComponent::from_str_radix(s, 10))
+            .try_collect::<_, Vec<_>, _>()
+        && let Some(page) = Manual::new().fetch(path)
+    {
+        if cfg!(debug_assertions) && page.title() != title.trim() {
+            eprintln!(
+                "Wrong page title in {link:?}: got {title}, expected {}",
+                page.title()
+            )
+        }
+
+        return Some((
+            page.url().to_string().into(),
+            match page.static_title() {
+                Ok(t) => t.into(),
+                Err(t) => t.to_owned().into(),
+            },
+        ));
+    }
+
+    if cfg!(debug_assertions) {
+        eprintln!("Broken link: {link:?}")
+    }
+    None
 }
 
 #[derive(Debug, Clone)]
@@ -73,7 +120,7 @@ where
     R: CodeRender,
 {
     fn pretty(self, allocator: &'a D, ctx: &mut Ctx<R>) -> DocBuilder<'a, D> {
-        Printer::new(&mut Parser::new(self.text.as_ref()))
+        Printer::new(&mut Self::parser(self.text))
             .pretty(allocator, &mut PrinterCtx::new(ctx))
             .annotate(Element::Markdown(None))
     }

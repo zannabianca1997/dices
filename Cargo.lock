@@ -325,7 +325,9 @@ dependencies = [
  "lazy-regex",
  "linkme",
  "rust-embed",
+ "slugify",
  "snafu",
+ "url",
 ]
 
 [[package]]
