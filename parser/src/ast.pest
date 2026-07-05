@@ -9,7 +9,8 @@ statement      =  { assign | expr | "" }
 assign         =  { let_stmt | set_stmt }
 scope          =  { "{" ~ scope_inner ~ "}" }
 let_stmt       =  { "let" ~ identifier ~ equals ~ expr }
-set_stmt       =  { identifier ~ equals ~ expr }
+set_stmt       =  { lhs ~ equals ~ expr }
+lhs            =  { identifier ~ member_access* }
 equals         =  { "=" }
 identifier     = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 

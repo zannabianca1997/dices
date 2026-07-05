@@ -8,7 +8,7 @@ mod call;
 mod closure;
 mod list;
 mod map;
-mod member_access;
+pub(crate) mod member_access;
 pub mod scope;
 mod std;
 mod unary;

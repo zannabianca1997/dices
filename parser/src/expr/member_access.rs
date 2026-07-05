@@ -14,17 +14,29 @@ pub(crate) fn build_member_access(
     pair: Pair<'_, Rule>,
     input: &ValueString,
 ) -> Result<Expr, crate::ParseCommandError> {
-    let pair = pair.into_inner().next().unwrap();
-    let index = match pair.as_rule() {
-        Rule::expr => build_expr(pair, input)?,
-        Rule::int => Expr::Literal(Box::new(build_int_literal(pair)?.into())),
-        Rule::identifier | Rule::string => {
-            Expr::Literal(Box::new(build_map_key(input, pair)?.into()))
-        }
-        r => crate::unexpected_rule(r),
-    };
+    let index = build_member_index(pair, input)?;
     Ok(Expr::MemberAccess(Box::new(MemberAccessExpr {
         container,
         index,
     })))
+}
+
+/// Build only the index expression of a [`Rule::member_access`] pair.
+///
+/// This is shared between the postfix member-access builder (which wraps the
+/// result in a [`MemberAccessExpr`]) and the LHS assign builder (which wraps
+/// it in a [`MemberAccessLhs`]).
+pub(crate) fn build_member_index(
+    pair: Pair<'_, Rule>,
+    input: &ValueString,
+) -> Result<Expr, crate::ParseCommandError> {
+    let pair = pair.into_inner().next().unwrap();
+    match pair.as_rule() {
+        Rule::expr => build_expr(pair, input),
+        Rule::int => Ok(Expr::Literal(Box::new(build_int_literal(pair)?.into()))),
+        Rule::identifier | Rule::string => Ok(Expr::Literal(Box::new(
+            build_map_key(input, pair)?.into(),
+        ))),
+        r => crate::unexpected_rule(r),
+    }
 }

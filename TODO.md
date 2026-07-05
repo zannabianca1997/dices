@@ -2,7 +2,7 @@
 
 - [ ] Member access
   - [x] Expression
-  - [ ] Assign (lhs)
+  - [x] Assign (lhs)
 - [x] `std` keyword
 
 ## Standard library
@@ -39,7 +39,7 @@
 - [x] Rendering the manual
   - [x] Rendering the examples
   - [ ] `less`-like display
-  - [ ] links
+  - [x] links
 
 ## Documentation
 
