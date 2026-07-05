@@ -387,7 +387,21 @@ impl From<ValueMap> for ValueString {
     }
 }
 
-from_injected!(ValueString);
+impl TryFrom<ValueInjected> for ValueString {
+    type Error = CastInjectedError;
+    fn try_from(value: ValueInjected) -> Result<Self, Self::Error> {
+        let value = match push_down_injected(value) {
+            Ok(it) => it,
+            Err(CastInjectedError::NotReadable { value }) => {
+                // Print value injected if not readable
+                return Ok(ValueString::new(value.to_string()));
+            }
+            Err(err) => return Err(err),
+        };
+        let value = value.try_into()?;
+        Ok(value)
+    }
+}
 
 impl TryFrom<Value> for ValueString {
     type Error = CastInjectedError;

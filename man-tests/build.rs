@@ -11,6 +11,7 @@ use itertools::Itertools;
 use proc_macro2::TokenStream;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
 use quote::{format_ident, quote};
+use slugify::slugify;
 
 fn main() {
     change_detection();
@@ -107,7 +108,8 @@ fn build_tests_for(page: &ManPage) -> TokenStream {
         });
 
     let nested = page.children().sorted().map(|child| {
-        let name = format_ident!("_{}", child.path().last().unwrap());
+        let title = format!("{}. {}", child.path().iter().format("."), child.title());
+        let name = format_ident!("_{}", slugify!(&title, separator = "_"));
         let doc = format!(
             " {}. {}",
             child.path().into_iter().format("."),
