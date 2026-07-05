@@ -2,6 +2,10 @@
 
 use std::io::{self, stderr, stdout};
 
+use pretty::{Arena, Pretty, Render, RenderAnnotated};
+use snafu::ResultExt;
+use termcolor::{Ansi, ColorSpec, HyperlinkSpec, WriteColor};
+
 use dices_man::ManPage;
 use dices_print::{
     Element, Pretty as _,
@@ -9,11 +13,7 @@ use dices_print::{
     markdown::{DefaultCodeRender, Markdown},
 };
 use dices_values::{Value, cast::push_down_if_injected};
-use pretty::{
-    Arena, Pretty, Render, RenderAnnotated, TermColored,
-    termcolor::{Ansi, ColorSpec},
-};
-use snafu::ResultExt;
+use url::Url;
 
 use crate::{Error, PrintingSnafu, config::skin::Skin, rendered_examples::RenderedExamples};
 
@@ -77,46 +77,98 @@ fn print_inner<'a>(
     Ok(())
 }
 
-struct PrintAnnotated<'a, W>(pub W, pub &'a Skin);
+struct PrintAnnotated<'a, W> {
+    upstream: W,
+    skin: &'a Skin,
+    style_stack: Vec<Style>,
+}
 
-impl<'a, W> PrintAnnotated<'a, TermColored<Ansi<W>>> {
+#[derive(Debug)]
+struct Style {
+    color: ColorSpec,
+    link: Option<Url>,
+}
+
+impl<'a, W> PrintAnnotated<'a, Ansi<W>> {
     fn new(writer: W, skin: &'a Skin) -> Self
     where
         W: io::Write,
         Self: for<'b> RenderAnnotated<'b, Element>,
     {
-        Self(TermColored::new(Ansi::new(writer)), skin)
+        Self {
+            upstream: Ansi::new(writer),
+            skin,
+            style_stack: vec![],
+        }
     }
 }
 
 impl<W> Render for PrintAnnotated<'_, W>
 where
-    W: Render,
+    W: io::Write,
 {
-    type Error = W::Error;
+    type Error = io::Error;
 
-    fn write_str(&mut self, s: &str) -> Result<usize, Self::Error> {
-        self.0.write_str(s)
+    fn write_str(&mut self, s: &str) -> io::Result<usize> {
+        self.upstream.write(s.as_bytes())
+    }
+
+    fn write_str_all(&mut self, s: &str) -> io::Result<()> {
+        self.upstream.write_all(s.as_bytes())
     }
 
     fn fail_doc(&self) -> Self::Error {
-        self.0.fail_doc()
-    }
-
-    fn write_str_all(&mut self, s: &str) -> Result<(), Self::Error> {
-        self.0.write_str_all(s)
+        io::Error::new(io::ErrorKind::Other, "Document failed to render")
     }
 }
 
 impl<'a, W> RenderAnnotated<'_, Element> for PrintAnnotated<'a, W>
 where
-    W: RenderAnnotated<'a, ColorSpec>,
+    W: WriteColor,
 {
-    fn push_annotation(&mut self, annotation: &Element) -> Result<(), Self::Error> {
-        self.0.push_annotation(&self.1.theme.style(*annotation))
+    fn push_annotation(&mut self, element: &Element) -> Result<(), Self::Error> {
+        let color = self.skin.theme.style(element);
+        self.upstream.set_color(color)?;
+
+        let url = element.url();
+        if let Some(url) = url {
+            self.upstream
+                .set_hyperlink(&HyperlinkSpec::open(url.as_str().as_bytes()))?;
+        }
+
+        self.style_stack.push(Style {
+            color: color.clone(),
+            link: url.cloned(),
+        });
+
+        Ok(())
     }
 
     fn pop_annotation(&mut self) -> Result<(), Self::Error> {
-        self.0.pop_annotation()
+        let removed_style = self.style_stack.pop();
+        let old_style = self.style_stack.last();
+
+        match (old_style, removed_style) {
+            (Some(old_style), Some(removed_style)) => {
+                self.upstream.set_color(&old_style.color)?;
+                if removed_style.link.is_some() {
+                    self.upstream.set_hyperlink(&HyperlinkSpec::close())?;
+                }
+                if let Some(url) = old_style.link.as_ref() {
+                    self.upstream
+                        .set_hyperlink(&HyperlinkSpec::open(url.as_str().as_bytes()))?;
+                }
+                Ok(())
+            }
+            (None, Some(removed_style)) => {
+                self.upstream.reset()?;
+                if removed_style.link.is_some() {
+                    self.upstream.set_hyperlink(&HyperlinkSpec::close())?;
+                }
+                Ok(())
+            }
+            (Some(_), None) => unreachable!(),
+            (None, None) => Ok(()),
+        }
     }
 }

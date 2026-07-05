@@ -25,6 +25,7 @@ h6 { color: #7287fd; }
 pre, code { color: #ea76cb; }
 strong { font-weight: bold; color: #dc8a78; }
 em { font-style: italic; }
+a { text-decoration: underline; }
 dices-markdown-list-marker { font-weight: bold; color: #40a02b; }
 dices-prompt { color: #1e66f5; }
 dices-prompt-indicator { color: #40a02b; }

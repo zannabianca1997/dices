@@ -74,14 +74,14 @@ impl<'a> Theme<'a> {
         self.stylesheet.parse_more(css);
     }
 
-    pub fn style(&self, annotation: Element) -> Style {
+    pub fn style(&self, annotation: &Element) -> Style {
         // all styles cascade, so take the style of the parent
         let mut style = annotation
             .parent_element()
-            .map_or_else(Default::default, |parent| self.style(parent));
+            .map_or_else(Default::default, |parent| self.style(&parent));
 
         for rule in &self.stylesheet.rules {
-            if rule.selector.matches(&annotation) {
+            if rule.selector.matches(annotation) {
                 for decl in &rule.declarations {
                     OptionalStyle::from_declaration(decl.name, decl.value).apply_to(&mut style);
                 }
@@ -217,6 +217,20 @@ impl CssElement for Element {
         Some(match self {
             Element::Value(Some(_)) => Element::Value(None),
             Element::Ast(Some(_)) => Element::Ast(None),
+            Element::Markdown(Some(MarkdownElement::List {
+                element: Some(List::Item),
+                style,
+            })) => Element::Markdown(Some(MarkdownElement::List {
+                element: None,
+                style: *style,
+            })),
+            Element::Markdown(Some(MarkdownElement::List {
+                element: Some(List::Marker),
+                style,
+            })) => Element::Markdown(Some(MarkdownElement::List {
+                element: Some(List::Item),
+                style: *style,
+            })),
             Element::Markdown(Some(_)) => Element::Markdown(None),
             Element::Prompt(Some(_)) => Element::Prompt(None),
             Element::Error(Some(_)) => Element::Error(None),
@@ -269,6 +283,7 @@ impl CssElement for Element {
                 element: Some(List::Marker),
                 ..
             })) => name == "dices-markdown-list-marker",
+            Element::Markdown(Some(MarkdownElement::Link { .. })) => name == "a",
             Element::Prompt(None) => name == "dices-prompt",
             Element::Prompt(Some(PromptElement::Indicator)) => name == "dices-prompt-indicator",
             Element::Prompt(Some(PromptElement::Multiline)) => name == "dices-prompt-multiline",
@@ -318,22 +333,8 @@ impl CssElement for Element {
                 print_u8(&mut buf, &(nesting % modulus))
             }
 
-            (Element::Markdown(Some(MarkdownElement::List { style, .. })), "style") => {
-                match style {
-                    ListStyle::Ordered => "ordered",
-                    ListStyle::Unordered => "unordered",
-                }
-            }
-            (
-                Element::Markdown(Some(MarkdownElement::List {
-                    element: Some(element),
-                    ..
-                })),
-                "element",
-            ) => match element {
-                List::Item => "item",
-                List::Marker => "marker",
-            },
+            (Element::Markdown(Some(MarkdownElement::Link { url })), "href") => url.as_str(),
+
             _ => return false,
         };
 

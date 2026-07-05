@@ -2,9 +2,9 @@ use std::borrow::Cow;
 
 use dices_print::theme::{Color as ThemeColor, Style};
 use elsa::sync::FrozenMap;
-use pretty::termcolor::{Color as TermColor, ColorSpec};
 use rust_embed::Embed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use termcolor::{Color as TermColor, ColorSpec};
 use yoke::Yoke;
 
 use dices_print::{Element, PromptElement, theme::Theme as StyleSheet};
@@ -73,10 +73,12 @@ impl Theme {
         &self.name
     }
 
-    pub fn style(&self, element: Element) -> &ColorSpec {
+    pub fn style(&self, element: &Element) -> &ColorSpec {
         self.cache.get(&element).unwrap_or_else(|| {
-            self.cache
-                .insert(element, Box::new(color_spec(style(&self.sheet, element))))
+            self.cache.insert(
+                element.clone(),
+                Box::new(color_spec(style(&self.sheet, element))),
+            )
         })
     }
 
@@ -167,17 +169,17 @@ impl<'de> Deserialize<'de> for Theme {
             Ok::<_, D::Error>(sheet)
         })?;
 
-        let prompt = reedline_color(style(&sheet, Element::Prompt(None)));
+        let prompt = reedline_color(style(&sheet, &Element::Prompt(None)));
         let prompt_indicator = reedline_color(style(
             &sheet,
-            Element::Prompt(Some(PromptElement::Indicator)),
+            &Element::Prompt(Some(PromptElement::Indicator)),
         ));
         let prompt_multiline = nu_color(style(
             &sheet,
-            Element::Prompt(Some(PromptElement::Multiline)),
+            &Element::Prompt(Some(PromptElement::Multiline)),
         ));
         let prompt_right =
-            reedline_color(style(&sheet, Element::Prompt(Some(PromptElement::Right))));
+            reedline_color(style(&sheet, &Element::Prompt(Some(PromptElement::Right))));
 
         Ok(Self {
             name,
@@ -200,7 +202,7 @@ impl Serialize for Theme {
     }
 }
 
-fn style<C>(sheet: &Yoke<StyleSheet<'static>, C>, element: Element) -> Style {
+fn style<C>(sheet: &Yoke<StyleSheet<'static>, C>, element: &Element) -> Style {
     sheet.get().style(element)
 }
 

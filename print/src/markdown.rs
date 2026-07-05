@@ -5,7 +5,8 @@
 use std::{borrow::Cow, iter::once, mem};
 
 use itertools::Itertools;
-use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, Parser, Tag, TagEnd};
+use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, LinkType, Parser, Tag, TagEnd};
+use url::Url;
 
 use crate::{DocAllocator, DocBuilder, Element, List, ListStyle, MarkdownElement, Pretty};
 pub use code_rendered::{CodeRender, DefaultCodeRender};
@@ -32,7 +33,7 @@ impl<T> Markdown<T> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Ctx<R> {
     need_flow_separator: bool,
     code_render: R,
@@ -259,66 +260,11 @@ where
                         ctx.close_flow_state_inner();
                     }
 
-                    let annotated = popped.annotate(Element::Markdown(Some(match tag_end {
-                        TagEnd::Paragraph => MarkdownElement::Paragraph,
-                        TagEnd::Heading(heading_level) => MarkdownElement::Header {
-                            level: match heading_level {
-                                HeadingLevel::H1 => 1,
-                                HeadingLevel::H2 => 2,
-                                HeadingLevel::H3 => 3,
-                                HeadingLevel::H4 => 4,
-                                HeadingLevel::H5 => 5,
-                                HeadingLevel::H6 => 6,
-                            },
-                        },
-
-                        TagEnd::List(ordered) => MarkdownElement::List {
-                            style: if ordered {
-                                ListStyle::Ordered
-                            } else {
-                                ListStyle::Unordered
-                            },
-                            element: None,
-                        },
-                        TagEnd::Item => MarkdownElement::List {
-                            style: {
-                                let PrinterCtxFrame::List { ordered, .. } = ctx.current() else {
-                                    unreachable!()
-                                };
-                                if ordered.is_some() {
-                                    ListStyle::Ordered
-                                } else {
-                                    ListStyle::Unordered
-                                }
-                            },
-                            element: Some(List::Item),
-                        },
-
-                        TagEnd::Emphasis => MarkdownElement::Italic,
-                        TagEnd::Strong => MarkdownElement::Bold,
-
-                        TagEnd::CodeBlock => MarkdownElement::Code { inline: false },
-
-                        t @ (TagEnd::Link | TagEnd::Image | TagEnd::HtmlBlock) => {
-                            todo!("Tag {t:?} still to implement")
-                        }
-
-                        t @ (TagEnd::BlockQuote(_)
-                        | TagEnd::FootnoteDefinition
-                        | TagEnd::DefinitionList
-                        | TagEnd::DefinitionListTitle
-                        | TagEnd::DefinitionListDefinition
-                        | TagEnd::Table
-                        | TagEnd::TableHead
-                        | TagEnd::TableRow
-                        | TagEnd::TableCell
-                        | TagEnd::Strikethrough
-                        | TagEnd::Superscript
-                        | TagEnd::Subscript
-                        | TagEnd::MetadataBlock(_)) => {
-                            unimplemented!("Tag {t:?} not supported (not emitted without options)")
-                        }
-                    })));
+                    let annotated = if let Some(element) = markdown_element(ctx, tag_end, frame) {
+                        popped.annotate(Element::Markdown(Some(element)))
+                    } else {
+                        popped
+                    };
 
                     let current = docs.last_mut().unwrap();
 
@@ -374,6 +320,102 @@ where
         debug_assert_eq!(docs.len(), 1, "Unclosed tags");
         docs.into_iter().next().unwrap()
     }
+}
+
+fn markdown_element<'e, 'a, R>(
+    ctx: &mut PrinterCtx<'e, 'a, R>,
+    tag_end: TagEnd,
+    frame: PrinterCtxFrame<'_>,
+) -> Option<MarkdownElement> {
+    match tag_end {
+        TagEnd::Paragraph => MarkdownElement::Paragraph,
+        TagEnd::Heading(heading_level) => MarkdownElement::Header {
+            level: match heading_level {
+                HeadingLevel::H1 => 1,
+                HeadingLevel::H2 => 2,
+                HeadingLevel::H3 => 3,
+                HeadingLevel::H4 => 4,
+                HeadingLevel::H5 => 5,
+                HeadingLevel::H6 => 6,
+            },
+        },
+
+        TagEnd::List(ordered) => MarkdownElement::List {
+            style: if ordered {
+                ListStyle::Ordered
+            } else {
+                ListStyle::Unordered
+            },
+            element: None,
+        },
+        TagEnd::Item => MarkdownElement::List {
+            style: {
+                let PrinterCtxFrame::List { ordered, .. } = ctx.current() else {
+                    unreachable!()
+                };
+                if ordered.is_some() {
+                    ListStyle::Ordered
+                } else {
+                    ListStyle::Unordered
+                }
+            },
+            element: Some(List::Item),
+        },
+
+        TagEnd::Emphasis => MarkdownElement::Italic,
+        TagEnd::Strong => MarkdownElement::Bold,
+
+        TagEnd::CodeBlock => MarkdownElement::Code { inline: false },
+
+        TagEnd::Link => {
+            let PrinterCtxFrame::Generic {
+                tag:
+                    Tag::Link {
+                        mut dest_url,
+                        link_type,
+                        ..
+                    },
+            } = frame
+            else {
+                unreachable!();
+            };
+
+            if link_type == LinkType::Email {
+                dest_url = format!("mailto:{dest_url}").into();
+            }
+
+            match Url::parse(&dest_url) {
+                Ok(url) => MarkdownElement::Link { url },
+                Err(error) => {
+                    if cfg!(debug_assertions) {
+                        dbg!(dest_url.into_static(), error);
+                    }
+                    return None;
+                }
+            }
+        }
+
+        t @ (TagEnd::Image | TagEnd::HtmlBlock | TagEnd::BlockQuote(None)) => {
+            todo!("Tag {t:?} still to implement")
+        }
+
+        t @ (TagEnd::BlockQuote(Some(_))
+        | TagEnd::FootnoteDefinition
+        | TagEnd::DefinitionList
+        | TagEnd::DefinitionListTitle
+        | TagEnd::DefinitionListDefinition
+        | TagEnd::Table
+        | TagEnd::TableHead
+        | TagEnd::TableRow
+        | TagEnd::TableCell
+        | TagEnd::Strikethrough
+        | TagEnd::Superscript
+        | TagEnd::Subscript
+        | TagEnd::MetadataBlock(_)) => {
+            unimplemented!("Tag {t:?} not supported (not emitted without options)")
+        }
+    }
+    .into()
 }
 
 fn reflow_cowstr<'a, D>(allocator: &'a D, s: CowStr<'a>, preserve_spaces: bool) -> DocBuilder<'a, D>

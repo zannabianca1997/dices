@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+use url::Url;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Element {
     /// Graphical fluff
     ///
@@ -39,7 +41,7 @@ pub enum PromptElement {
     Right,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum MarkdownElement {
     Header {
@@ -54,6 +56,9 @@ pub enum MarkdownElement {
     List {
         style: ListStyle,
         element: Option<List>,
+    },
+    Link {
+        url: Url,
     },
 }
 
@@ -115,4 +120,14 @@ pub enum DelimiterKind {
 pub enum ErrorElement {
     Message,
     Cause,
+}
+
+impl Element {
+    /// Return if this element should link to something
+    pub fn url(&self) -> Option<&Url> {
+        match self {
+            Self::Markdown(Some(MarkdownElement::Link { url })) => Some(url),
+            _ => None,
+        }
+    }
 }

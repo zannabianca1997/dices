@@ -480,7 +480,7 @@ mod tests {
 
     impl<'a> RenderAnnotated<'a, Element> for Collector {
         fn push_annotation(&mut self, a: &'a Element) -> Result<(), ()> {
-            self.events.push(Event::Push(*a));
+            self.events.push(Event::Push(a.clone()));
             Ok(())
         }
 
@@ -590,10 +590,7 @@ mod tests {
                     .render_fmt(width, &mut out_owned)
                     .unwrap();
 
-                assert_eq!(
-                    out_ref, out_owned,
-                    "Mismatch at width {width}"
-                );
+                assert_eq!(out_ref, out_owned, "Mismatch at width {width}");
             }
         }
     }
