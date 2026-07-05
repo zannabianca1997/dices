@@ -13,6 +13,19 @@ use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
 use quote::{format_ident, quote};
 
 fn main() {
+    change_detection();
+    collect_tests();
+}
+
+fn change_detection() {
+    // Rerun if any of the embedded pages changed
+    //
+    // This is needed as in debug mode the manual won't recompile, as it
+    // dynamically loads the pages instead.
+    cargo_build::rerun_if_changed!("../man/pages")
+}
+
+fn collect_tests() {
     let root = Manual::new().root();
 
     let tests = build_tests_for(&root);

@@ -319,6 +319,7 @@ dependencies = [
 name = "dices-man"
 version = "0.4.0"
 dependencies = [
+ "cargo-build",
  "elsa",
  "itertools 0.15.0",
  "lazy-regex",
@@ -394,6 +395,7 @@ dependencies = [
 name = "dices-tui"
 version = "0.4.0"
 dependencies = [
+ "cargo-build",
  "chrono",
  "clap",
  "crossterm",

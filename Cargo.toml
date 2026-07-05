@@ -19,6 +19,7 @@ edition = "2024"
 license = "MIT"
 
 [workspace.dependencies]
+cargo-build = { version = "1.0.0", features = ["macros"] }
 dices-ast = { path = "ast" }
 dices-engine = { path = "engine" }
 dices-man = { path = "man" }

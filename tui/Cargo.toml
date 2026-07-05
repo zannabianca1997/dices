@@ -20,6 +20,7 @@ chrono = "0.4.45"
 clap = { version = "4.6.1", features = ["derive", "env", "string", "wrap_help"] }
 crossterm = { version = "0.29.0", features = ["serde"] }
 directories = "6.0.0"
+elsa = "1.11.2"
 figment = { workspace = true, features = ["env", "toml"] }
 itertools.workspace = true
 lazy-regex = "3.6.0"
@@ -34,7 +35,9 @@ serde.workspace = true
 snafu.workspace = true
 toml = "1.1.2"
 yoke.workspace = true
-elsa = "1.11.2"
+
+[build-dependencies]
+cargo-build.workspace = true
 
 [lints]
 workspace = true

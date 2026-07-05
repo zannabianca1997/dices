@@ -3,7 +3,7 @@ use dices_values::{
     Value, cast::push_down_if_injected, int::ValueInt, list::ValueList, map::ValueMap,
     string::ValueString,
 };
-use num::{FromPrimitive, Integer, ToPrimitive, traits::ConstZero};
+use num::{FromPrimitive, Integer, ToPrimitive, Zero, traits::ConstZero};
 
 use crate::{EvalError, context::Context, var_use::VarUse};
 
@@ -32,39 +32,41 @@ pub(crate) fn eval(
 }
 
 fn index_string(value_string: ValueString, index: Value) -> Result<Value, EvalError> {
-    let mut len = ValueInt::from_usize(value_string.chars().count()).unwrap();
-    len.dec();
+    let len = ValueInt::from_usize(value_string.chars().count()).unwrap();
+    if len.is_zero() {
+        return Ok(ValueString::empty().into());
+    }
     match into_sequence_index(index)? {
         SequenceIndex::Item { idx } => {
-            let idx = idx.clamp(ValueInt::ZERO, len).to_usize().unwrap();
+            let idx = idx.mod_floor(&len).to_usize().unwrap();
 
-            let (idx, ch) = value_string.char_indices().nth(idx).unwrap();
+            let (byte_idx, ch) = value_string.char_indices().nth(idx).unwrap();
 
             Ok(value_string
-                .slice(idx..(idx + ch.len_utf8()))
+                .slice(byte_idx..(byte_idx + ch.len_utf8()))
                 .unwrap()
                 .into())
         }
         SequenceIndex::Range { start, stop } => {
             let start = start
                 .unwrap_or(ValueInt::ZERO)
-                .clamp(ValueInt::ZERO, len.clone())
+                .mod_floor(&len)
                 .to_usize()
                 .unwrap();
             let stop = stop
-                .unwrap_or(len.clone())
-                .clamp(ValueInt::ZERO, len)
-                .to_usize()
-                .unwrap();
+                .map(|s| s.mod_floor(&len).to_usize().unwrap())
+                .unwrap_or(value_string.chars().count());
 
             if start >= stop {
                 return Ok(ValueString::empty().into());
             }
 
-            let mut indices = value_string.char_indices();
-
-            let (start_idx, _) = indices.nth(start).unwrap();
-            let (stop_idx, _) = indices.nth(stop - start - 1).unwrap();
+            let start_idx = value_string.char_indices().nth(start).unwrap().0;
+            let stop_idx = if stop == value_string.chars().count() {
+                value_string.len()
+            } else {
+                value_string.char_indices().nth(stop).unwrap().0
+            };
 
             Ok(value_string.slice(start_idx..stop_idx).unwrap().into())
         }
@@ -72,24 +74,24 @@ fn index_string(value_string: ValueString, index: Value) -> Result<Value, EvalEr
 }
 
 fn index_list(value_list: ValueList, index: Value) -> Result<Value, EvalError> {
-    let mut len = ValueInt::from_usize(value_list.len()).unwrap();
-    len.dec();
+    let len = ValueInt::from_usize(value_list.len()).unwrap();
+    if len.is_zero() {
+        return Ok(ValueList::empty().into());
+    }
     match into_sequence_index(index)? {
         SequenceIndex::Item { idx } => {
-            let idx = idx.clamp(ValueInt::ZERO, len).to_usize().unwrap();
+            let idx = idx.mod_floor(&len).to_usize().unwrap();
             Ok(value_list[idx].clone())
         }
         SequenceIndex::Range { start, stop } => {
             let start = start
                 .unwrap_or(ValueInt::ZERO)
-                .clamp(ValueInt::ZERO, len.clone())
+                .mod_floor(&len)
                 .to_usize()
                 .unwrap();
             let stop = stop
-                .unwrap_or(len.clone())
-                .clamp(ValueInt::ZERO, len)
-                .to_usize()
-                .unwrap();
+                .map(|s| s.mod_floor(&len).to_usize().unwrap())
+                .unwrap_or(value_list.len());
 
             if start >= stop {
                 return Ok(ValueList::empty().into());

@@ -19,7 +19,7 @@ snafu.workspace = true
 dices-man.workspace = true
 dices-std.workspace = true
 
-cargo-build = { version = "1.0.0", features = ["macros"] }
+cargo-build = { workspace = true, features = ["macros"] }
 itertools.workspace = true
 prettyplease = "0.2.37"
 proc-macro2 = { version = "1.0.106", default-features = false }

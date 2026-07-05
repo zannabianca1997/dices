@@ -12,5 +12,8 @@ linkme.workspace = true
 rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
 snafu.workspace = true
 
+[build-dependencies]
+cargo-build.workspace = true
+
 [lints]
 workspace = true
