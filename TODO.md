@@ -45,17 +45,16 @@
 
 - [x] Manual
   - [x] Embedding pages
-  - [ ] `covers` annotation
   - [x] Parsing the examples
   - [x] Porting of the old manual
-  - [ ] Cover the standard library
-  - [ ] Generating pages for injected values
+  - [x] Cover the standard library
+  - [x] Generating pages for injected values
 
 ## Testing
 
-- [ ] Mantests
-  - [ ] ValueMatcher
-  - [ ] Parse all tests from the manual
-  - [ ] Generate tests
+- [x] Mantests
+  - [x] ValueMatcher
+  - [x] Parse all tests from the manual
+  - [x] Generate tests
 - [ ] Manual coverage
 - [ ] Manual links integrity

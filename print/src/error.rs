@@ -12,18 +12,14 @@ impl<'a> ErrorReport<'a> {
     }
 }
 
-impl<'a, D> Pretty<'a, D, Element> for ErrorReport<'a>
+impl<'a, D> Pretty<'a, D, Element> for ErrorReport<'_>
 where
     D: DocAllocator<'a, Element>,
 {
     fn pretty(self, allocator: &'a D) -> DocBuilder<'a, D, Element> {
-        let mut doc = allocator.nil();
-
-        let message = allocator
+        let mut doc = allocator
             .text(self.0.to_string())
             .annotate(Element::Error(Some(ErrorElement::Message)));
-        doc = doc.append(message);
-        doc = doc.append(allocator.hardline());
 
         let mut causes = Vec::new();
         let mut current = self.0.source();
@@ -33,17 +29,14 @@ where
         }
 
         if !causes.is_empty() {
-            doc = doc.append(allocator.hardline());
-            doc = doc.append(allocator.text("Caused by:"));
+            doc += allocator.hardline() + allocator.text("Caused by:");
 
             for cause in causes {
-                doc = doc.append(allocator.hardline());
-                doc = doc.append(
-                    allocator.text("  - ")
-                        + allocator
-                            .as_string(cause)
-                            .annotate(Element::Error(Some(ErrorElement::Cause))),
-                );
+                doc += allocator.hardline()
+                    + allocator.text("  - ")
+                    + allocator
+                        .as_string(cause)
+                        .annotate(Element::Error(Some(ErrorElement::Cause)));
             }
         }
 

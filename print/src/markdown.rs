@@ -219,9 +219,9 @@ where
 
                     if let PrinterCtxFrame::ListItem { number } = frame {
                         let marker = if let Some(number) = number {
-                            allocator.text(number.to_string()).append(". ")
+                            allocator.text(number.to_string()).append(".")
                         } else {
-                            allocator.text("- ")
+                            allocator.text("-")
                         }
                         .annotate(Element::Markdown(Some(
                             MarkdownElement::List {
@@ -244,7 +244,7 @@ where
                         });
 
                         // Indent the list item content
-                        popped = line + marker + popped.indent(0);
+                        popped = line + marker + popped.indent(1);
                     }
 
                     let is_flow = matches!(
@@ -257,10 +257,6 @@ where
 
                     if tag_end == TagEnd::Item {
                         ctx.close_flow_state_inner();
-                    }
-
-                    if tag_end == TagEnd::CodeBlock {
-                        popped = popped.indent(2);
                     }
 
                     let annotated = popped.annotate(Element::Markdown(Some(match tag_end {
