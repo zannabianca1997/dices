@@ -44,16 +44,14 @@ where
 ///
 /// Return empty if there are no nested pages
 fn table_of_contents<'a>(page: &'a ManPage) -> impl IntoIterator<Item = Event<'a>> {
-    let nested = page
-        .descendants()
-        // do not show the root
-        .filter(|d| !d.path().is_empty())
+    let children = page
+        .children()
         // might as well do it here
         // needed to print them in order
         .sorted()
         .collect_vec();
 
-    if nested.len() <= 1 {
+    if children.is_empty() {
         return None.into_iter().flatten();
     }
 
@@ -68,87 +66,54 @@ fn table_of_contents<'a>(page: &'a ManPage) -> impl IntoIterator<Item = Event<'a
         Event::End(TagEnd::Heading(HeadingLevel::H2)),
     ];
 
-    let toc_body = nested
-        .into_iter()
-        .map(Some)
-        .chain(once(None))
-        // Scan the items
-        //
-        // Keeps track of the current path in the manual to build the correct
-        // event sequence
-        .scan(vec![], |current_path, page_or_end| {
-            let mut events = vec![];
-            // if inside an item or did already close it
-            let mut flowing = true;
-
-            let target_path = if let Some(page) = page_or_end.as_ref() {
-                // Navigate to path
-                page.path()
-            } else {
-                // Ending toc, close all items
-                &[]
-            };
-
-            let page = if target_path.len() == current_path.len()
-                && current_path
-                    .last()
-                    .is_some_and(|c| c + 1 == *target_path.last().unwrap())
-            {
-                // fast skip, just end this item and the counter
-                // will go on accordingly
-
-                *current_path.last_mut().unwrap() += 1;
-                events.push(Event::End(TagEnd::Item));
-                flowing = false;
-
-                page_or_end.unwrap()
-            } else {
-                // full reroute
-
-                while !target_path.starts_with(&current_path) {
-                    if flowing {
-                        events.push(Event::End(TagEnd::Item));
-                    }
-
-                    events.push(Event::End(TagEnd::List(true)));
-                    flowing = true;
-                    current_path.pop();
-                }
-
-                let Some(page) = page_or_end else {
-                    // End of iteration
-                    return Some(events);
-                };
-
-                while current_path != page.path() {
-                    if !flowing {
-                        events.push(Event::Start(Tag::Item));
-                    }
-
-                    events.push(Event::Start(Tag::List(Some(
-                        page.path()[current_path.len()] as _,
-                    ))));
-                    flowing = false;
-                    current_path.push(page.path()[current_path.len()]);
-                }
-
-                page
-            };
-
-            if !flowing {
-                events.push(Event::Start(Tag::Item));
-            }
-
-            match page.static_title() {
-                Ok(t) => events.extend(inline_md(t)),
-                Err(t) => events.extend(inline_md(t).into_iter().map(|e| e.into_static())),
-            }
-
-            Some(events)
-        })
-        .flatten();
+    let toc_body = children_list(children);
 
     Some(iter::chain(toc_title, toc_body)).into_iter().flatten()
+}
+
+fn children_list<'a>(
+    children: impl IntoIterator<Item = ManPage>,
+) -> impl IntoIterator<Item = Event<'a>> {
+    let mut children = children.into_iter().peekable();
+    let mut next_marker = *children.peek().unwrap().path().last().unwrap() as u64;
+    once(Event::Start(Tag::List(Some(next_marker))))
+        .chain(children.flat_map(move |page| {
+            let marker = *page.path().last().unwrap() as u64;
+            let opening = if marker != next_marker {
+                Some([
+                    Event::End(TagEnd::List(true)),
+                    Event::Start(Tag::List(Some(marker))),
+                ])
+            } else {
+                None
+            };
+            next_marker = marker + 1;
+
+            let children = page.children().sorted().collect_vec();
+
+            let children = (!children.is_empty())
+                .then(move || children_list(children))
+                .into_iter()
+                .flatten();
+
+            opening
+                .into_iter()
+                .flatten()
+                .chain(once(Event::Start(Tag::Item)))
+                .chain(match page.static_title() {
+                    Ok(t) => itertools::Either::Left(inline_md(t).into_iter()),
+                    Err(t) => itertools::Either::Right(
+                        inline_md(t)
+                            .into_iter()
+                            .map(Event::into_static)
+                            .collect_vec()
+                            .into_iter(),
+                    ),
+                })
+                .chain(children.collect_vec())
+                .chain(once(Event::End(TagEnd::Item)))
+        }))
+        .chain(once(Event::End(TagEnd::List(true))))
 }
 
 fn inline_md<'a>(s: &'a str) -> impl IntoIterator<Item = Event<'a>> {
