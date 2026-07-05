@@ -1,6 +1,6 @@
 ## Language
 
-- [ ] Member access
+- [x] Member access
   - [x] Expression
   - [x] Assign (lhs)
 - [x] `std` keyword

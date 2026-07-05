@@ -216,6 +216,7 @@ pub fn main_print_error(
                 // Failed to print error nicely, print directly
                 snafu::Report::from_error(err).report();
             });
+            eprintln!();
             ExitCode::FAILURE
         }
     }
