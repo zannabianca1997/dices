@@ -1,7 +1,12 @@
 //! Unary operator implementation
 
 use dices_ast::expr::unary::{UnOp, UnaryExpr};
-use dices_values::{Value, cast::push_down_if_injected, int::ValueInt, utils::deep_sum};
+use dices_values::{
+    Value,
+    cast::push_down_if_injected,
+    int::ValueInt,
+    utils::{deep_apply, deep_sum},
+};
 
 use crate::{EvalError, context::Context, var_use::VarUse};
 
@@ -27,9 +32,7 @@ fn eval_plus(operand: Value) -> Result<Value, EvalError> {
 }
 
 fn eval_minus(operand: Value) -> Result<Value, EvalError> {
-    deep_sum([operand])
-        .map(|int| Value::from(-int))
-        .map_err(Into::into)
+    deep_apply(operand, &mut |value| -value).map_err(Into::into)
 }
 
 fn eval_not(operand: Value) -> Result<Value, EvalError> {
