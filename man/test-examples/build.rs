@@ -23,7 +23,7 @@ fn change_detection() {
     //
     // This is needed as in debug mode the manual won't recompile, as it
     // dynamically loads the pages instead.
-    cargo_build::rerun_if_changed!("../man/pages")
+    cargo_build::rerun_if_changed!("../pages")
 }
 
 fn collect_tests() {

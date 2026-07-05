@@ -4,7 +4,7 @@ members = [
   "ast",
   "engine",
   "man",
-  "man-tests",
+  "man/test-examples",
   "parser",
   "print",
   "std",

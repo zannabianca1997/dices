@@ -331,7 +331,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "dices-man-tests"
+name = "dices-man-test-examples"
 version = "0.4.0"
 dependencies = [
  "cargo-build",
