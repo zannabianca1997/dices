@@ -1,6 +1,7 @@
 //! Matcher syntax for values
 //!
-//! Used in the
+//! Used in for the examples in the manual, where after each line a matcher is
+//! specified. They are parsed and matched against the actual result.
 
 use std::{collections::BTreeMap, rc::Rc, str::FromStr};
 
@@ -12,6 +13,7 @@ use snafu::{ResultExt, Snafu};
 use dices_values::{
     Value,
     bool::ValueBool,
+    cast::push_down_if_injected,
     int::ValueInt,
     map::ValueMap,
     null::ValueNull,
@@ -39,19 +41,6 @@ pub fn parse_matcher(input: &ValueString) -> Result<Matcher, ParseMatcherError> 
     let mut pairs = Grammar::parse(Rule::main, raw).context(PestSnafu)?;
     let matcher_pair = pairs.next().unwrap();
     build_matcher(matcher_pair, input)
-}
-
-fn resolve_value(v: &Value) -> Result<Value, ()> {
-    let mut current = v.clone();
-    loop {
-        match current {
-            Value::Injected(inj) if inj.is_readable() => {
-                current = inj.read().expect("readable injectable read failed").clone();
-            }
-            Value::Injected(_) => return Err(()),
-            resolved => return Ok(resolved),
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -100,10 +89,7 @@ impl Matcher {
         upper_inclusive: bool,
     ) -> Self {
         Self::new(move |v| {
-            let resolved = match resolve_value(v) {
-                Ok(r) => r,
-                Err(()) => return false,
-            };
+            let resolved = push_down_if_injected(v.clone()).unwrap();
             let Value::Int(n) = &resolved else {
                 return false;
             };
@@ -127,10 +113,7 @@ impl Matcher {
 
     pub fn regex(re: Regex) -> Self {
         Self::new(move |v| {
-            let resolved = match resolve_value(v) {
-                Ok(r) => r,
-                Err(()) => return false,
-            };
+            let resolved = push_down_if_injected(v.clone()).unwrap();
             let Value::String(s) = &resolved else {
                 return false;
             };
@@ -151,10 +134,7 @@ impl Matcher {
 
     pub fn list_exact(items: Vec<Matcher>) -> Self {
         Self::new(move |v| {
-            let resolved = match resolve_value(v) {
-                Ok(r) => r,
-                Err(()) => return false,
-            };
+            let resolved = push_down_if_injected(v.clone()).unwrap();
             let Value::List(list) = &resolved else {
                 return false;
             };
@@ -172,10 +152,7 @@ impl Matcher {
 
     pub fn list_slice(prefix: Vec<Matcher>, middle: Option<Matcher>, suffix: Vec<Matcher>) -> Self {
         Self::new(move |v| {
-            let resolved = match resolve_value(v) {
-                Ok(r) => r,
-                Err(()) => return false,
-            };
+            let resolved = push_down_if_injected(v.clone()).unwrap();
             let Value::List(list) = &resolved else {
                 return false;
             };
@@ -211,10 +188,7 @@ impl Matcher {
 
     pub fn map_exact(entries: Vec<(ValueString, Matcher)>) -> Self {
         Self::new(move |v| {
-            let resolved = match resolve_value(v) {
-                Ok(r) => r,
-                Err(()) => return false,
-            };
+            let resolved = push_down_if_injected(v.clone()).unwrap();
             let Value::Map(map) = &resolved else {
                 return false;
             };
@@ -233,10 +207,7 @@ impl Matcher {
 
     pub fn map_rest(entries: Vec<(ValueString, Matcher)>, rest: Option<Matcher>) -> Self {
         Self::new(move |v| {
-            let resolved = match resolve_value(v) {
-                Ok(r) => r,
-                Err(()) => return false,
-            };
+            let resolved = push_down_if_injected(v.clone()).unwrap();
             let Value::Map(map) = &resolved else {
                 return false;
             };
@@ -488,10 +459,7 @@ fn build_raw_string_inner(pair: pest::iterators::Pair<Rule>, input: &ValueString
 
 fn build_exact_matcher(value: Value) -> Matcher {
     Matcher::new(move |v| {
-        let resolved = match resolve_value(v) {
-            Ok(r) => r,
-            Err(()) => return false,
-        };
+        let resolved = push_down_if_injected(v.clone()).unwrap();
         resolved == value
     })
 }

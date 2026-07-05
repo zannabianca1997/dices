@@ -11,7 +11,7 @@ use crate::repl::{Abort, Help, Print};
 ///
 /// ```dices
 /// >>> std.prelude
-/// <| .. |>
+/// <| ... |>
 /// ```
 ///
 /// Differently from `std`, is it possible to override the values imported in

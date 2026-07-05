@@ -38,7 +38,7 @@ range_upper_inclusive = { "=" ~ int }
 
 regex = { "r" ~ string }
 
-injectable = @{ "<" ~ ("..." | (!">" ~ ANY)*) ~ ">" }
+injectable = @{ "<" ~ !"|" ~ ("..." | (!">" ~ ANY)*) ~ ">" }
 
 map = { "<|" ~ map_body? ~ "|>" }
 map_body = {

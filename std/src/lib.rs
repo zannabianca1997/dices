@@ -24,7 +24,7 @@ pub mod sys;
 ///
 /// ```dices
 /// >>> std
-/// <| .. |>
+/// <| ... |>
 /// ```
 ///
 /// Some parts of it can be missing if not injected, for example `std.sys` will
