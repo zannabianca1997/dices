@@ -1,0 +1,20 @@
+{
+  "lsp": {
+    "vscode-css-language-server": {
+      "settings": {
+        "css": {
+          "lint": {
+            "unknownProperties": "ignore",
+          },
+        },
+      },
+    },
+    "rust-analyzer": {
+      "initialization_options": {
+        "cargo": {
+          "features": "all",
+        },
+      },
+    },
+  },
+}

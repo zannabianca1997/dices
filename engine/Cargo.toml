@@ -1,27 +1,22 @@
 [package]
 name = "dices-engine"
-description = "Implementation of the `dices` engine"
 version.workspace = true
 edition.workspace = true
-authors.workspace = true
 license.workspace = true
+
+[dependencies]
+dices-ast.workspace = true
+dices-man.workspace = true
+dices-std.workspace = true
+dices-values.workspace = true
+
+itertools.workspace = true
+num.workspace = true
+rand.workspace = true
+rand_pcg = { version = "0.3.1", features = ["serde1"] }
+rand_seeder.workspace = true
+serde.workspace = true
+snafu.workspace = true
 
 [lints]
 workspace = true
-
-[features]
-eval_str = ["dices-ast/parse_expression", "dep:either"]
-bincode = ["dices-ast/bincode", "dep:bincode"]
-
-[dependencies]
-derive_more = { version = "1.0", features = ["debug", "constructor"] }
-dices-ast = { path = "../ast", features = ["parse_value", "rand", "serde"] }
-itertools = "0.14"
-nunny = "0.2"
-rand = "0.8"
-either = { version = "1.13", optional = true }
-serde_json = "1.0"
-serde = "1.0"
-dices-version = { path = "../version", features = ["serde"] }
-bincode = { version = "2.0.0-rc.3", optional = true, features = ["serde"] }
-thiserror = "2.0.11"

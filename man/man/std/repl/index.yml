@@ -1,5 +1,0 @@
-name: "The *REPL* intrisics"
-index:
-  - "help.md"
-  - "print.md"
-  - "quit.md"

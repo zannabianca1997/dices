@@ -1,0 +1,22 @@
+[package]
+name = "dices-parser"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+dices-ast.workspace = true
+dices-values.workspace = true
+
+derive_more.workspace = true
+itertools.workspace = true
+lazy-regex.workspace = true
+pest = "2.8.6"
+pest_derive = "2.8.6"
+snafu.workspace = true
+
+[features]
+matcher = []
+
+[lints]
+workspace = true

@@ -1,0 +1,60 @@
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+
+main = { SOI ~ matcher ~ EOI }
+
+matcher    = { or_matcher }
+or_matcher  = { and_matcher ~ ("|" ~ and_matcher)* }
+and_matcher = { not_matcher ~ ("&" ~ not_matcher)* }
+not_matcher = { "!" ~ not_matcher | primary }
+
+primary = _{
+    any |
+    range |
+    regex |
+    map |
+    injectable |
+    list |
+    string |
+    bool |
+    null |
+    int |
+    paren
+}
+
+paren = { "(" ~ matcher ~ ")" }
+
+any    = @{ "_" }
+null   = @{ "null" }
+bool   = @{ "true" | "false" }
+int    = @{ "-"? ~ ASCII_DIGIT+ }
+string = @{ "\"" ~ (("\\" ~ ANY) | (!"\"" ~ ANY))* ~ "\"" }
+
+range = {
+    int ~ range_sep ~ (range_upper_inclusive | int)? |
+    range_sep ~ (range_upper_inclusive | int)?
+}
+range_sep = { ".." ~ !"." }
+range_upper_inclusive = { "=" ~ int }
+
+regex = { "r" ~ string }
+
+injectable = @{ "<" ~ !"|" ~ ("..." | (!">" ~ ANY)*) ~ ">" }
+
+map = { "<|" ~ map_body? ~ "|>" }
+map_body = {
+    entries ~ ("," ~ slice)? |
+    slice
+}
+entries  = { entry ~ ("," ~ entry)* }
+entry    = { map_key ~ ":" ~ matcher }
+slice    = { "..." ~ matcher? }
+map_key  = _{ string | identifier }
+
+list = { "[" ~ list_body? ~ "]" }
+list_body = {
+    elements ~ ("," ~ slice ~ ("," ~ elements)?)? |
+    slice ~ ("," ~ elements)?
+}
+elements = { matcher ~ ("," ~ matcher)* }
+
+identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }

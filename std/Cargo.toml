@@ -1,0 +1,19 @@
+[package]
+name = "dices-std"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+dices-man.workspace = true
+dices-parser.workspace = true
+dices-values = { workspace = true, features = ["macros"] }
+linkme.workspace = true
+
+chrono = { version = "0.4.45", features = ["serde"] }
+itertools.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

@@ -1,223 +1,487 @@
-//! Context essential to evaluate a `dices` expression
+//! Evaluation context
 
-use std::{collections::BTreeMap, fmt::Debug, mem};
+use std::{
+    collections::BTreeMap,
+    error::Error,
+    hash::{Hash, Hasher},
+    iter::once,
+    mem,
+    panic::{AssertUnwindSafe, catch_unwind, resume_unwind},
+};
 
-use dices_ast::{ident::IdentStr, value::Value};
-use nunny::NonEmpty;
+use num::{FromPrimitive, traits::ConstOne};
+use rand::Rng;
+use rand_seeder::Seeder;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-type Scope<InjectedIntrisic> = BTreeMap<Box<IdentStr>, Value<InjectedIntrisic>>;
+use dices_ast::{expr::scope::ScopeInner, identifier::Identifier};
+use dices_man::ManPage;
+use dices_std::Std;
+use dices_values::{
+    Value,
+    injected::{ValueInjected, call::InjectedContext, typed::TypedValueInjected},
+    int::ValueInt,
+    serde::{de::ValueDeserializer, ser::ValueSerializer},
+    string::ValueString,
+};
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Context<RNG, InjectedIntrisic, InjectedIntrisicData> {
-    /// the stack of variables
-    scopes: NonEmpty<Vec<Scope<InjectedIntrisic>>>,
-    /// The random number generator
-    rng: RNG,
-    /// The data for the injected intrisics
-    injected_intrisics_data: InjectedIntrisicData,
+use crate::{Engine, EvalError, ui::Ui};
+
+pub(crate) trait Context: Ui {
+    /// Seed the random number generator
+    fn rng_seed(&mut self, seed: impl Hash);
+
+    /// Serialize the random number generator state
+    fn rng_save<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>;
+
+    /// Restore the random number generator state
+    fn rng_restore<'de, D: Deserializer<'de>>(&mut self, deserializer: D) -> Result<(), D::Error>;
+
+    /// Throw a dice
+    fn dice(&mut self, faces: ValueInt) -> ValueInt;
+
+    type Scoped: Context + ?Sized;
+    /// Execute an expression in a scoped context
+    ///
+    /// The executed expression can read and set variables from the outside
+    /// context, but not define new ones.
+    fn scope<R>(&mut self, fun: impl FnOnce(&mut Self::Scoped) -> R) -> R;
+
+    type Jailed: Context + ?Sized;
+    /// Execute an expression in a jailed context
+    ///
+    /// The executed expression won't be able to modify or read any variable
+    /// from the external scope.
+    fn jail<R>(&mut self, fun: impl FnOnce(&mut Self::Jailed) -> R) -> R;
+
+    /// Create a variable
+    ///
+    /// If it exists in the current scope, shadows it
+    fn let_var(&mut self, name: Identifier, value: Value);
+
+    /// Get a variable value
+    fn var(&self, name: &Identifier) -> Option<&Value>;
+
+    /// Get a mutable variable value
+    fn var_mut(&mut self, name: &Identifier) -> Option<&mut Value>;
+
+    fn as_injected(&mut self) -> &mut dyn InjectedContext;
+
+    /// Get the standard library
+    fn std(&self) -> TypedValueInjected<Std>;
+
+    /// Stop execution
+    fn abort(&mut self, reason: Value) -> !;
 }
 
-#[cfg(feature = "bincode")]
-impl<RNG, InjectedIntrisic, InjectedIntrisicData> bincode::Encode
-    for Context<RNG, InjectedIntrisic, InjectedIntrisicData>
+/// Evaluation context
+pub struct EngineContext<'engine, Ui> {
+    engine: &'engine mut Engine,
+    scopes: Vec<Scope>,
+    ui: Ui,
+}
+
+/// Payload of the unwind created by `abort`
+struct Abort {
+    reason: Value,
+}
+
+impl<'engine, Ui> EngineContext<'engine, Ui> {
+    /// Create a new context
+    pub(crate) fn new(engine: &'engine mut Engine, ui: Ui) -> Self {
+        Self {
+            engine,
+            scopes: vec![],
+            ui,
+        }
+    }
+
+    fn scopes(&self) -> impl Iterator<Item = &Scope> {
+        self.scopes.iter().rev().chain(once(&self.engine.globals))
+    }
+    fn scopes_mut(&mut self) -> impl Iterator<Item = &mut Scope> {
+        self.scopes
+            .iter_mut()
+            .rev()
+            .chain(once(&mut self.engine.globals))
+    }
+
+    pub(crate) fn eval(&mut self, stmt: &ScopeInner) -> Result<Value, EvalError>
+    where
+        Ui: crate::ui::Ui,
+    {
+        match catch_unwind(AssertUnwindSafe(|| {
+            crate::eval::expr::scope::eval_inner(stmt, self)
+        })) {
+            Ok(r) => r,
+            Err(err) => match err.downcast::<Abort>() {
+                Ok(abort) => {
+                    // Check if we unwind cleanly
+                    debug_assert!(
+                        self.scopes.is_empty(),
+                        "scopes leaked across abort: {}",
+                        self.scopes.len()
+                    );
+                    Ok(abort.reason)
+                }
+                Err(panic) => resume_unwind(panic),
+            },
+        }
+    }
+}
+
+impl<'engine, Ui> Context for EngineContext<'engine, Ui>
 where
-    RNG: serde::Serialize,
-    Value<InjectedIntrisic>: bincode::Encode + 'static,
-    InjectedIntrisicData: bincode::Encode,
+    Ui: crate::ui::Ui,
 {
-    fn encode<E: bincode::enc::Encoder>(
-        &self,
-        encoder: &mut E,
-    ) -> core::result::Result<(), bincode::error::EncodeError> {
-        bincode::Encode::encode(self.scopes.as_slice(), encoder)?;
-        bincode::Encode::encode(&bincode::serde::Compat(&self.rng), encoder)?;
-        bincode::Encode::encode(&self.injected_intrisics_data, encoder)?;
+    fn rng_seed(&mut self, seed: impl Hash) {
+        self.engine.rng = Seeder::from(seed).make_rng();
+    }
+
+    fn rng_save<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.engine.rng.serialize(serializer)
+    }
+    fn rng_restore<'de, D: Deserializer<'de>>(&mut self, deserializer: D) -> Result<(), D::Error> {
+        self.engine.rng = Deserialize::deserialize(deserializer)?;
         Ok(())
     }
-}
 
-#[cfg(feature = "bincode")]
-impl<RNG, InjectedIntrisic, InjectedIntrisicData> bincode::Decode
-    for Context<RNG, InjectedIntrisic, InjectedIntrisicData>
-where
-    RNG: serde::de::DeserializeOwned,
-    Value<InjectedIntrisic>: bincode::Decode + 'static,
-    InjectedIntrisicData: bincode::Decode,
-{
-    fn decode<D: bincode::de::Decoder>(
-        decoder: &mut D,
-    ) -> core::result::Result<Self, bincode::error::DecodeError> {
-        Ok(Self {
-            scopes: NonEmpty::<Vec<_>>::new(bincode::Decode::decode(decoder)?)
-                .map_err(|_| bincode::error::DecodeError::Other("Empty scopes stack"))?,
-            rng: bincode::serde::Compat::decode(decoder)?.0,
-            injected_intrisics_data: bincode::Decode::decode(decoder)?,
-        })
-    }
-}
-
-#[cfg(feature = "bincode")]
-impl<'de, RNG, InjectedIntrisic, InjectedIntrisicData> bincode::BorrowDecode<'de>
-    for Context<RNG, InjectedIntrisic, InjectedIntrisicData>
-where
-    RNG: serde::de::Deserialize<'de>,
-    Value<InjectedIntrisic>: bincode::de::BorrowDecode<'de>,
-    InjectedIntrisicData: bincode::de::BorrowDecode<'de>,
-{
-    fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
-        decoder: &mut D,
-    ) -> core::result::Result<Self, bincode::error::DecodeError> {
-        Ok(Self {
-            scopes: NonEmpty::<Vec<_>>::new(bincode::BorrowDecode::borrow_decode(decoder)?)
-                .map_err(|_| bincode::error::DecodeError::Other("Empty scopes stack"))?,
-            rng: bincode::serde::BorrowCompat::borrow_decode(decoder)?.0,
-            injected_intrisics_data: bincode::BorrowDecode::borrow_decode(decoder)?,
-        })
-    }
-}
-
-impl<RNG, InjectedIntrisic, InjectedIntrisicData>
-    Context<RNG, InjectedIntrisic, InjectedIntrisicData>
-{
-    pub fn new(rng: RNG, injected_intrisics_data: InjectedIntrisicData) -> Self {
-        Self {
-            scopes: nunny::vec![Scope::new()],
-            rng,
-            injected_intrisics_data,
-        }
-    }
-
-    /// run code in a local scope, with the same RNG and no local variables
-    #[allow(unsafe_code)]
-    pub fn scoped<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
-        self.scopes.push(Scope::new());
-        let res = f(self);
-        unsafe {
-            // SAFETY: pushing and popping is balanced.
-            // We just pushed on a non empty vector, so we can
-            // pop without emptying it.
-            self.scopes.as_mut_vec().pop()
+    fn dice(&mut self, faces: ValueInt) -> ValueInt {
+        let range = if faces > ValueInt::ONE {
+            ValueInt::ONE..=faces
+        } else {
+            faces..=ValueInt::ONE
         };
-        res
+        self.engine.rng.gen_range(range)
     }
 
-    /// run code in a jail, with the same RNG but no variables
-    pub fn jailed<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
-        let old_scopes = mem::replace(&mut self.scopes, nunny::vec![Scope::new()]);
-        let res = f(self);
-        self.scopes = old_scopes;
-        res
+    fn let_var(&mut self, name: Identifier, value: Value) {
+        self.scopes_mut().next().unwrap().vars.insert(name, value);
     }
 
-    /// Obtain a readonly handle to the variables
-    pub fn vars(&self) -> Vars<InjectedIntrisic> {
-        Vars(&self.scopes)
-    }
-    /// Obtain an handle to the variables
-    pub fn vars_mut(&mut self) -> VarsMut<InjectedIntrisic> {
-        VarsMut(&mut self.scopes)
+    fn var(&self, name: &Identifier) -> Option<&Value> {
+        self.scopes().find_map(|s| s.vars.get(name))
     }
 
-    /// Obtain an handle to the rng
-    pub fn rng(&mut self) -> &mut RNG {
-        &mut self.rng
+    fn var_mut(&mut self, name: &Identifier) -> Option<&mut Value> {
+        self.scopes_mut().find_map(|s| s.vars.get_mut(name))
     }
 
-    /// Handler to the data used by the injected intrisics
-    pub const fn injected_intrisics_data(&self) -> &InjectedIntrisicData {
-        &self.injected_intrisics_data
-    }
+    type Scoped = Self;
 
-    /// Mutable handler to the data used by the injected intrisics
-    pub fn injected_intrisics_data_mut(&mut self) -> &mut InjectedIntrisicData {
-        &mut self.injected_intrisics_data
-    }
-
-    /// Obtain all the separate mutable handlers
-    ///
-    /// This enable an algorithm to keep mutable handlers to the non overlapping parts of the context
-    pub fn handlers_mut(
-        &mut self,
-    ) -> (
-        VarsMut<InjectedIntrisic>,
-        &mut RNG,
-        &mut InjectedIntrisicData,
-    ) {
-        let Self {
-            scopes,
-            rng,
-            injected_intrisics_data,
-        } = self;
-        (VarsMut(scopes), rng, injected_intrisics_data)
-    }
-
-    pub(crate) fn map_injected_intrisics_data<NewInjectedIntrisicData>(
-        self,
-        f: impl FnOnce(InjectedIntrisicData) -> NewInjectedIntrisicData,
-    ) -> Context<RNG, InjectedIntrisic, NewInjectedIntrisicData> {
-        let Self {
-            scopes,
-            rng,
-            injected_intrisics_data,
-        } = self;
-        Context {
-            scopes,
-            rng,
-            injected_intrisics_data: f(injected_intrisics_data),
+    fn scope<R>(&mut self, fun: impl FnOnce(&mut Self::Scoped) -> R) -> R {
+        self.scopes.push(Scope::new());
+        let res = catch_unwind(AssertUnwindSafe(|| fun(self)));
+        self.scopes.pop().unwrap();
+        match res {
+            Ok(r) => r,
+            Err(panic) => resume_unwind(panic),
         }
     }
+
+    type Jailed = Self;
+
+    fn jail<R>(&mut self, fun: impl FnOnce(&mut Self::Jailed) -> R) -> R {
+        let globals = mem::take(&mut self.engine.globals);
+        let scopes = mem::take(&mut self.scopes);
+
+        let res = catch_unwind(AssertUnwindSafe(|| fun(self)));
+
+        self.engine.globals = globals;
+        self.scopes = scopes;
+
+        match res {
+            Ok(r) => r,
+            Err(panic) => resume_unwind(panic),
+        }
+    }
+
+    fn as_injected(&mut self) -> &mut dyn InjectedContext {
+        self
+    }
+
+    fn std(&self) -> TypedValueInjected<Std> {
+        self.engine.std.clone()
+    }
+
+    fn abort(&mut self, reason: Value) -> ! {
+        #[cfg(not(panic = "unwind"))]
+        compile_error!("Panic must be implemented via unwind to support abort");
+
+        resume_unwind(Box::new(Abort { reason }))
+    }
 }
 
-#[derive(Debug, Clone, Copy)]
-/// Readonly vars handler
-///
-/// This is a handler that enable one to read the variable values
-pub struct Vars<'c, InjectedIntrisic>(&'c NonEmpty<[Scope<InjectedIntrisic>]>);
+impl<U: Ui> Ui for EngineContext<'_, U> {
+    type PrintError = U::PrintError;
 
-impl<InjectedIntrisic> Vars<'_, InjectedIntrisic> {
-    /// Find the value of a variable
-    pub fn get(&self, name: &IdentStr) -> Option<&Value<InjectedIntrisic>> {
-        // find the last scope that contains that variable
-        self.0.iter().rev().find_map(|s| s.get(name))
+    fn print(&self, value: impl Into<Value>) -> Result<(), Self::PrintError> {
+        self.ui.print(value)
     }
-}
-impl<'c, InjectedIntrisic> From<VarsMut<'c, InjectedIntrisic>> for Vars<'c, InjectedIntrisic> {
-    fn from(value: VarsMut<'c, InjectedIntrisic>) -> Self {
-        Self(&*value.0)
+
+    fn print_str<V: AsRef<str> + Into<ValueString>>(
+        &self,
+        value: V,
+    ) -> Result<(), Self::PrintError> {
+        self.ui.print_str(value)
     }
-}
-impl<'c, InjectedIntrisic> From<&'c VarsMut<'c, InjectedIntrisic>> for Vars<'c, InjectedIntrisic> {
-    fn from(value: &'c VarsMut<'c, InjectedIntrisic>) -> Self {
-        Self(&*value.0)
+
+    fn print_md<V: AsRef<str> + Into<ValueString>>(
+        &self,
+        value: V,
+    ) -> Result<(), Self::PrintError> {
+        self.ui.print_md(value)
     }
-}
-impl<'c, InjectedIntrisic> From<&'c mut VarsMut<'c, InjectedIntrisic>>
-    for Vars<'c, InjectedIntrisic>
-{
-    fn from(value: &'c mut VarsMut<'c, InjectedIntrisic>) -> Self {
-        Self(&*value.0)
+
+    fn manual(&self, page: &ManPage) -> Result<(), Self::PrintError> {
+        self.ui.manual(page)
     }
 }
 
-#[derive(Debug)]
-/// Mutable vars handles
-///
-/// This is a handler that enable one to read and modify the variable values
-pub struct VarsMut<'c, InjectedIntrisic>(&'c mut NonEmpty<[Scope<InjectedIntrisic>]>);
+impl<U: Ui> InjectedContext for EngineContext<'_, U> {
+    fn rng_seed(&mut self, seed: &[Value]) {
+        Context::rng_seed(self, seed);
+    }
 
-impl<InjectedIntrisic> VarsMut<'_, InjectedIntrisic> {
-    /// Let a variable be, setting its value if present in the current scope, or creating it
-    pub fn let_(&mut self, name: Box<IdentStr>, value: Value<InjectedIntrisic>) {
-        self.0.last_mut().insert(name, value);
+    fn rng_save(&self, serializer: ValueSerializer) -> dices_values::serde::error::Result<Value> {
+        Context::rng_save(self, serializer)
     }
-    /// Find the value of a variable
-    pub fn get(&self, name: &IdentStr) -> Option<&Value<InjectedIntrisic>> {
-        // find the last scope that contains that variable
-        self.0.iter().rev().find_map(|s| s.get(name))
+
+    fn rng_restore(
+        &mut self,
+        deserializer: ValueDeserializer,
+    ) -> dices_values::serde::error::Result<()> {
+        Context::rng_restore(self, deserializer)
     }
-    /// Find the value of a variable, and permit to modify it
-    pub fn get_mut(&mut self, name: &IdentStr) -> Option<&mut Value<InjectedIntrisic>> {
-        // find the last scope that contains that variable
-        self.0.iter_mut().rev().find_map(|s| s.get_mut(name))
+
+    fn dice(&mut self, faces: ValueInt) -> ValueInt {
+        Context::dice(self, faces)
+    }
+
+    fn enter_scope(&mut self) -> Box<dyn std::any::Any> {
+        self.scopes.push(Scope::new());
+        Box::new(())
+    }
+
+    fn exit_scope(&mut self, _: Box<dyn std::any::Any>) {
+        self.scopes.pop().unwrap();
+    }
+
+    fn enter_jail(&mut self) -> Box<dyn std::any::Any> {
+        let globals = mem::take(&mut self.engine.globals);
+        let scopes = mem::take(&mut self.scopes);
+
+        Box::new((globals, scopes))
+    }
+
+    fn exit_jail(&mut self, data: Box<dyn std::any::Any>) {
+        let (globals, scopes) = *data.downcast().unwrap();
+
+        self.engine.globals = globals;
+        self.scopes = scopes;
+    }
+
+    fn let_var(&mut self, name: Identifier, value: Value) {
+        Context::let_var(self, name, value);
+    }
+
+    fn var(&self, name: &Identifier) -> Option<&Value> {
+        Context::var(self, name)
+    }
+
+    fn var_mut(&mut self, name: &Identifier) -> Option<&mut Value> {
+        Context::var_mut(self, name)
+    }
+
+    fn std(&self) -> ValueInjected {
+        TypedValueInjected::type_erase(Context::std(self))
+    }
+
+    fn print(&self, value: Value) -> Result<(), Box<dyn Error>> {
+        Ui::print(self, value).map_err(Into::into)
+    }
+
+    fn print_manual(&self, page: &ManPage) -> Result<(), Box<dyn Error>> {
+        Ui::manual(self, page).map_err(Into::into)
+    }
+
+    fn abort(&mut self, reason: Value) -> ! {
+        Context::abort(self, reason)
+    }
+
+    fn print_str(&self, value: ValueString) -> Result<(), Box<dyn std::error::Error>> {
+        Ui::print_str(self, value).map_err(Into::into)
+    }
+
+    fn print_md(&self, value: ValueString) -> Result<(), Box<dyn std::error::Error>> {
+        Ui::print_md(self, value).map_err(Into::into)
+    }
+}
+
+impl Context for dyn InjectedContext + '_ {
+    fn rng_seed(&mut self, seed: impl Hash) {
+        /// Hasher storing all bytes as values
+        struct HashToValues(Vec<Value>);
+        impl Hasher for HashToValues {
+            fn finish(&self) -> u64 {
+                let bytes = Seeder::from(&self.0).make_seed();
+                u64::from_le_bytes(bytes)
+            }
+
+            fn write(&mut self, bytes: &[u8]) {
+                let (chunks, rem) = bytes.as_chunks();
+                for chunk in chunks {
+                    self.0.push(
+                        ValueInt::from_i64(i64::from_le_bytes(*chunk))
+                            .unwrap()
+                            .into(),
+                    );
+                }
+                let mut remaining = [0; _];
+                remaining[..rem.len()].copy_from_slice(rem);
+                self.0.push(
+                    ValueInt::from_i64(i64::from_le_bytes(remaining))
+                        .unwrap()
+                        .into(),
+                );
+            }
+        }
+
+        let mut state = HashToValues(vec![]);
+        seed.hash(&mut state);
+        InjectedContext::rng_seed(self, &state.0);
+    }
+
+    fn rng_save<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        InjectedContext::rng_save(self, ValueSerializer)
+            .map_err(serde::ser::Error::custom)?
+            .serialize(serializer)
+    }
+
+    fn rng_restore<'de, D: Deserializer<'de>>(&mut self, deserializer: D) -> Result<(), D::Error> {
+        InjectedContext::rng_restore(self, ValueDeserializer(Value::deserialize(deserializer)?))
+            .map_err(serde::de::Error::custom)
+    }
+
+    fn dice(&mut self, faces: ValueInt) -> ValueInt {
+        InjectedContext::dice(self, faces)
+    }
+
+    type Scoped = Self;
+
+    fn scope<R>(&mut self, fun: impl FnOnce(&mut Self::Scoped) -> R) -> R {
+        let data = self.enter_scope();
+        let res = catch_unwind(AssertUnwindSafe(|| fun(self)));
+        self.exit_scope(data);
+        match res {
+            Ok(r) => r,
+            Err(panic) => resume_unwind(panic),
+        }
+    }
+
+    type Jailed = Self;
+
+    fn jail<R>(&mut self, fun: impl FnOnce(&mut Self::Jailed) -> R) -> R {
+        let data = self.enter_jail();
+        let res = catch_unwind(AssertUnwindSafe(|| fun(self)));
+        self.exit_jail(data);
+        match res {
+            Ok(r) => r,
+            Err(panic) => resume_unwind(panic),
+        }
+    }
+
+    fn let_var(&mut self, name: Identifier, value: Value) {
+        InjectedContext::let_var(self, name, value);
+    }
+
+    fn var(&self, name: &Identifier) -> Option<&Value> {
+        InjectedContext::var(self, name)
+    }
+
+    fn var_mut(&mut self, name: &Identifier) -> Option<&mut Value> {
+        InjectedContext::var_mut(self, name)
+    }
+
+    fn as_injected(&mut self) -> &mut dyn InjectedContext {
+        self
+    }
+
+    fn std(&self) -> TypedValueInjected<Std> {
+        InjectedContext::std(self)
+            .downcast()
+            .expect("Only the standard library should be returned from `std`")
+    }
+
+    fn abort(&mut self, reason: Value) -> ! {
+        InjectedContext::abort(self, reason)
+    }
+}
+
+impl Ui for dyn InjectedContext + '_ {
+    fn print(&self, value: impl Into<Value>) -> Result<(), Self::PrintError> {
+        InjectedContext::print(self, value.into())
+    }
+
+    fn manual(&self, page: &ManPage) -> Result<(), Self::PrintError> {
+        InjectedContext::print_manual(self, page)
+    }
+
+    type PrintError = Box<dyn Error>;
+
+    fn print_str<V: AsRef<str> + Into<ValueString>>(
+        &self,
+        value: V,
+    ) -> Result<(), Self::PrintError> {
+        InjectedContext::print_str(self, value.into())
+    }
+
+    fn print_md<V: AsRef<str> + Into<ValueString>>(
+        &self,
+        value: V,
+    ) -> Result<(), Self::PrintError> {
+        InjectedContext::print_md(self, value.into())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Scope {
+    vars: BTreeMap<Identifier, Value>,
+}
+
+impl Scope {
+    pub fn new() -> Self {
+        Self {
+            vars: BTreeMap::new(),
+        }
+    }
+
+    /// Creates a new global scope
+    ///
+    /// Filles in the global variable from the prelude
+    pub fn new_global(std: TypedValueInjected<Std>) -> Self {
+        let prelude = std
+            .project(|s| &s.prelude)
+            .as_type_erased()
+            .read()
+            .unwrap()
+            .unwrap_map()
+            .into_iter()
+            .map(|(k, v)| {
+                (
+                    Identifier::new(k)
+                        .expect("All values in prelude should have a valid identifier as a key"),
+                    v,
+                )
+            })
+            .collect();
+
+        Self { vars: prelude }
+    }
+}
+
+impl Default for Scope {
+    fn default() -> Self {
+        Self::new()
     }
 }

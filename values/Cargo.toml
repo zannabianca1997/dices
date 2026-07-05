@@ -1,0 +1,36 @@
+[package]
+name = "dices-values"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[test]]
+name = "macros"
+required-features = ["macros"]
+
+[dependencies]
+dices-man.workspace = true
+dices-values-macros = { workspace = true, optional = true }
+
+derive_more = { workspace = true, features = ["full"] }
+itertools.workspace = true
+lazy-regex.workspace = true
+num = { workspace = true, features = ["num-bigint", "rand", "serde"] }
+paste = "1.0.15"
+phf = { version = "0.14.0", features = ["macros"] }
+pretty.workspace = true
+rand.workspace = true
+serde.workspace = true
+snafu.workspace = true
+strum = { workspace = true, features = ["derive"] }
+yoke.workspace = true
+
+
+[dev-dependencies]
+serde = { workspace = true, features = ["derive"] }
+
+[features]
+macros = ["dep:dices-values-macros"]
+
+[lints]
+workspace = true

@@ -1,0 +1,36 @@
+/* Catppuccin Mocha */
+/* https://github.com/catppuccin/palette */
+
+dices-fluff { color: #7f849c; }
+dices-value-null { color: #7f849c; font-style: italic; }
+dices-value-integer { color: #fab387; }
+dices-value-bool { color: #cba6f7; }
+dices-value-string { color: #a6e3a1; }
+dices-value-string[escape='true'] { color: #fab387; }
+dices-value-delimiter[depth-6='0'] { color: #f9e2af; }
+dices-value-delimiter[depth-6='1'] { color: #89b4fa; }
+dices-value-delimiter[depth-6='2'] { color: #cba6f7; }
+dices-value-delimiter[depth-6='3'] { color: #94e2d5; }
+dices-value-delimiter[depth-6='4'] { color: #89dceb; }
+dices-value-delimiter[depth-6='5'] { color: #b4befe; }
+dices-value-punctuator { color: #a6adc8; }
+dices-value-injected { color: #f9e2af; }
+dices-ast { color: white; }
+dices-ast-ident { color: #89dceb; }
+h1 { font-weight: bold; color: #f9e2af; }
+h2 { font-weight: bold; color: #89b4fa; }
+h3 { color: #cba6f7; }
+h4 { color: #94e2d5; }
+h5 { color: #89dceb; }
+h6 { color: #b4befe; }
+pre, code { color: #f5c2e7; }
+strong { font-weight: bold; color: #f5e0dc; }
+em { font-style: italic; }
+a { text-decoration: underline; }
+dices-markdown-list-marker { font-weight: bold; color: #a6e3a1; }
+dices-prompt { color: #89b4fa; }
+dices-prompt-indicator { color: #a6e3a1; }
+dices-prompt-multiline { color: #7f849c; }
+dices-prompt-right { color: #7f849c; }
+dices-error { color: #f38ba8; }
+dices-error-message { font-weight: bold; }

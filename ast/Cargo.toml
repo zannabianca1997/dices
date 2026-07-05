@@ -1,65 +1,14 @@
 [package]
 name = "dices-ast"
-description = "The ast of `dices`"
 version.workspace = true
 edition.workspace = true
-authors.workspace = true
 license.workspace = true
+
+[dependencies]
+dices-values.workspace = true
+
+derive_more.workspace = true
+pretty.workspace = true
 
 [lints]
 workspace = true
-
-[features]
-# Add the ability of parsing a value from a string
-parse_value = ["dep:peg", "dep:either"]
-# Add the ability of parsing an expression from a string
-parse_expression = ["dep:peg", "dep:either"]
-
-# Add the representation of a matcher checking if a value is of a given shape
-# Used in checking the example from the manual
-matcher = []
-# Add the parsing of a matcher from a string
-parse_matcher = ["matcher", "dep:peg", "dep:either"]
-
-# Add the ability to generate random `dices` number
-rand = ["dep:rand", "num-bigint/rand"]
-
-# Enable serialization and deserialization of values to other format (eg. JSON)
-serde = ["dep:serde", "bincode", "dep:serde_bytes", "num-bigint/serde"]
-# Enable serialization and deserialization of values and expressions to a byte string
-bincode = ["dep:bincode"]
-
-
-[dependencies]
-derive_more = { version = "1.0", features = [
-    "from",
-    "as_ref",
-    "deref",
-    "deref_mut",
-    "display",
-    "into",
-    "add",
-    "add_assign",
-    "mul",
-    "mul_assign",
-    "not",
-    "unwrap",
-    "try_unwrap",
-] }
-either = { version = "1.13", optional = true }
-itertools = "0.14"
-lazy-regex = "3.2"
-peg = { version = "0.8", optional = true }
-phf = { version = "0.11", features = ["macros"] }
-nunny = "0.2"
-pretty = { version = "0.12", optional = true }
-num-bigint = { version = "0.4" }
-rand = { version = "0.8", optional = true }
-enum-as-inner = "0.6"
-bincode = { version = "2.0.0-rc.3", optional = true }
-serde = { version = "1.0", features = ["derive"], optional = true }
-serde_bytes = { version = "0.11", optional = true }
-
-dices-version = { path = "../version" }
-dices-ast-macros = { path = "./macros" }
-thiserror = "2.0.11"

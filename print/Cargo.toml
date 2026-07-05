@@ -1,0 +1,21 @@
+[package]
+name = "dices-print"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+dices-man.workspace = true
+dices-values.workspace = true
+
+itertools.workspace = true
+optional_struct = "0.5"
+pretty.workspace = true
+pulldown-cmark.workspace = true
+simplecss = "0.2"
+snafu.workspace = true
+url.workspace = true
+yoke = { workspace = true, features = ["derive"] }
+
+[lints]
+workspace = true

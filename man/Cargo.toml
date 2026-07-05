@@ -1,42 +1,21 @@
 [package]
 name = "dices-man"
-description = "Contains the manual pages for `dices`"
 version.workspace = true
 edition.workspace = true
-authors.workspace = true
 license.workspace = true
+
+[dependencies]
+elsa = "1.11.2"
+itertools.workspace = true
+lazy-regex = "3.6.0"
+linkme.workspace = true
+rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
+slugify.workspace = true
+snafu.workspace = true
+url.workspace = true
+
+[build-dependencies]
+cargo-build.workspace = true
 
 [lints]
 workspace = true
-
-[features]
-test_std_handle = []
-
-[dependencies]
-phf = "0.11"
-markdown = "1.0.0-alpha.20"
-nunny = "0.2"
-lazy-regex = "3.3"
-rand = "0.8"
-dices-engine = { path = "../engine" }
-dices-ast = { path = "../ast", features = [
-    "matcher",
-    "pretty",
-    "parse_matcher",
-    "parse_expression",
-] }
-pretty = "0.12"
-itertools = "0.14"
-typed-arena = "2.0"
-mdast2minimad = "0.1"
-rand_xoshiro = { version = "0.6", features = ["serde1"] }
-mini-moka = "0.10"
-
-[build-dependencies]
-phf_codegen = "0.11"
-quote = "1.0"
-anyhow = "1.0"
-proc-macro2 = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-lazy-regex = "3.3"
-serde_yaml = "0.9"
