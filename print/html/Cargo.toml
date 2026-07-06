@@ -1,0 +1,17 @@
+[package]
+name = "dices-print-html"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+dices-print.workspace = true
+
+html-escape = "0.2"
+pretty.workspace = true
+
+[dev-dependencies]
+url.workspace = true
+
+[lints]
+workspace = true

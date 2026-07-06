@@ -7,6 +7,7 @@ members = [
   "man/test-examples",
   "parser",
   "print",
+  "print/html",
   "std",
   "tui",
   "values",
@@ -25,6 +26,7 @@ dices-engine = { path = "engine" }
 dices-man = { path = "man" }
 dices-parser = { path = "parser" }
 dices-print = { path = "print" }
+dices-print-html = { path = "print/html" }
 dices-std = { path = "std" }
 dices-values = { path = "values" }
 dices-values-macros = { path = "values/macros" }

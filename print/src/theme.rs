@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::borrow::Cow;
 
 pub use optional_struct::Applicable as MergeStyle;
 use optional_struct::optional_struct;
@@ -215,6 +215,108 @@ fn parse_color(value: &str) -> Option<Color> {
     })
 }
 
+impl Element {
+    /// The HTML/custom-element tag name representing this element.
+    ///
+    /// Used by the theming style sheet
+    pub fn local_name(&self) -> &'static str {
+        match self {
+            Element::Fluff => "dices-fluff",
+            Element::Value(None) => "dices-value",
+            Element::Value(Some(ValueElement::Null)) => "dices-value-null",
+            Element::Value(Some(ValueElement::Bool { .. })) => "dices-value-bool",
+            Element::Value(Some(ValueElement::Integer)) => "dices-value-integer",
+            Element::Value(Some(ValueElement::String { .. })) => "dices-value-string",
+            Element::Value(Some(ValueElement::Delimiter { .. })) => "dices-value-delimiter",
+            Element::Value(Some(ValueElement::Punctuator)) => "dices-value-punctuator",
+            Element::Value(Some(ValueElement::Injected)) => "dices-value-injected",
+            Element::Ast(None) => "dices-ast",
+            Element::Ast(Some(AstElement::Ident)) => "dices-ast-ident",
+            Element::Markdown(None) => "dices-markdown",
+            Element::Markdown(Some(MarkdownElement::Paragraph)) => "p",
+            Element::Markdown(Some(MarkdownElement::Header { level })) => match level {
+                1 => "h1",
+                2 => "h2",
+                3 => "h3",
+                4 => "h4",
+                5 => "h5",
+                _ => "h6",
+            },
+            Element::Markdown(Some(MarkdownElement::Code { inline: false })) => "pre",
+            Element::Markdown(Some(MarkdownElement::Code { inline: true })) => "code",
+            Element::Markdown(Some(MarkdownElement::Bold)) => "strong",
+            Element::Markdown(Some(MarkdownElement::Italic)) => "em",
+            Element::Markdown(Some(MarkdownElement::List {
+                style: ListStyle::Unordered,
+                element: None,
+            })) => "ul",
+            Element::Markdown(Some(MarkdownElement::List {
+                style: ListStyle::Ordered,
+                element: None,
+            })) => "ol",
+            Element::Markdown(Some(MarkdownElement::List {
+                element: Some(List::Item),
+                ..
+            })) => "li",
+            Element::Markdown(Some(MarkdownElement::List {
+                element: Some(List::Marker),
+                ..
+            })) => "dices-markdown-list-marker",
+            Element::Markdown(Some(MarkdownElement::Link { .. })) => "a",
+            Element::Prompt(None) => "dices-prompt",
+            Element::Prompt(Some(PromptElement::Indicator)) => "dices-prompt-indicator",
+            Element::Prompt(Some(PromptElement::Multiline)) => "dices-prompt-multiline",
+            Element::Prompt(Some(PromptElement::Right)) => "dices-prompt-right",
+            Element::Error(None) => "dices-error",
+            Element::Error(Some(ErrorElement::Message)) => "dices-error-message",
+            Element::Error(Some(ErrorElement::Cause)) => "dices-error-cause",
+        }
+    }
+
+    /// The HTML/custom-element attributes carrying this element's data.
+    ///
+    /// Source of truth for both the CSS attribute matcher below and HTML
+    /// renderers. Does not include the computed `depth-N` selector, which has
+    /// no single fixed value (see [`CssElement::attribute_matches`]).
+    pub fn attributes(&self) -> Vec<(&'static str, Cow<'_, str>)> {
+        fn bool_str(value: &bool) -> &'static str {
+            match value {
+                true => "true",
+                false => "false",
+            }
+        }
+
+        match self {
+            Element::Markdown(Some(MarkdownElement::Header { level })) => {
+                vec![("level", Cow::Owned(level.to_string()))]
+            }
+            Element::Markdown(Some(MarkdownElement::Code { inline })) => {
+                vec![("inline", Cow::Borrowed(bool_str(inline)))]
+            }
+            Element::Value(Some(ValueElement::Bool { value })) => {
+                vec![("value", Cow::Borrowed(bool_str(value)))]
+            }
+            Element::Value(Some(ValueElement::String { escape })) => {
+                vec![("escape", Cow::Borrowed(bool_str(escape)))]
+            }
+            Element::Value(Some(ValueElement::Delimiter { kind, nesting })) => vec![
+                (
+                    "kind",
+                    Cow::Borrowed(match kind {
+                        DelimiterKind::List => "list",
+                        DelimiterKind::Map => "map",
+                    }),
+                ),
+                ("depth", Cow::Owned(nesting.to_string())),
+            ],
+            Element::Markdown(Some(MarkdownElement::Link { url })) => {
+                vec![("href", Cow::Borrowed(url.as_str()))]
+            }
+            _ => Vec::new(),
+        }
+    }
+}
+
 impl CssElement for Element {
     fn parent_element(&self) -> Option<Self> {
         Some(match self {
@@ -246,105 +348,69 @@ impl CssElement for Element {
     }
 
     fn has_local_name(&self, name: &str) -> bool {
-        match self {
-            Element::Fluff => name == "dices-fluff",
-            Element::Value(None) => name == "dices-value",
-            Element::Value(Some(ValueElement::Null)) => name == "dices-value-null",
-            Element::Value(Some(ValueElement::Bool { .. })) => name == "dices-value-bool",
-            Element::Value(Some(ValueElement::Integer)) => name == "dices-value-integer",
-            Element::Value(Some(ValueElement::String { .. })) => name == "dices-value-string",
-            Element::Value(Some(ValueElement::Delimiter { .. })) => name == "dices-value-delimiter",
-            Element::Value(Some(ValueElement::Punctuator)) => name == "dices-value-punctuator",
-            Element::Value(Some(ValueElement::Injected)) => name == "dices-value-injected",
-            Element::Ast(None) => name == "dices-ast",
-            Element::Ast(Some(AstElement::Ident)) => name == "dices-ast-ident",
-            Element::Markdown(None) => name == "dices-markdown",
-            Element::Markdown(Some(MarkdownElement::Paragraph)) => name == "p",
-            Element::Markdown(Some(MarkdownElement::Header { level })) => {
-                matches!(
-                    (name, level),
-                    ("h1", 1) | ("h2", 2) | ("h3", 3) | ("h4", 4) | ("h5", 5) | ("h6", 6)
-                )
-            }
-            Element::Markdown(Some(MarkdownElement::Code { inline: false })) => name == "pre",
-            Element::Markdown(Some(MarkdownElement::Code { inline: true })) => name == "code",
-            Element::Markdown(Some(MarkdownElement::Bold)) => name == "strong",
-            Element::Markdown(Some(MarkdownElement::Italic)) => name == "em",
-            Element::Markdown(Some(MarkdownElement::List {
-                style: ListStyle::Unordered,
-                element: None,
-            })) => name == "ul",
-            Element::Markdown(Some(MarkdownElement::List {
-                style: ListStyle::Ordered,
-                element: None,
-            })) => name == "ol",
-            Element::Markdown(Some(MarkdownElement::List {
-                element: Some(List::Item),
-                ..
-            })) => name == "li",
-            Element::Markdown(Some(MarkdownElement::List {
-                element: Some(List::Marker),
-                ..
-            })) => name == "dices-markdown-list-marker",
-            Element::Markdown(Some(MarkdownElement::Link { .. })) => name == "a",
-            Element::Prompt(None) => name == "dices-prompt",
-            Element::Prompt(Some(PromptElement::Indicator)) => name == "dices-prompt-indicator",
-            Element::Prompt(Some(PromptElement::Multiline)) => name == "dices-prompt-multiline",
-            Element::Prompt(Some(PromptElement::Right)) => name == "dices-prompt-right",
-            Element::Error(None) => name == "dices-error",
-            Element::Error(Some(ErrorElement::Message)) => name == "dices-error-message",
-            Element::Error(Some(ErrorElement::Cause)) => name == "dices-error-cause",
-        }
+        self.local_name() == name
     }
 
     fn attribute_matches(&self, local_name: &str, operator: AttributeOperator<'_>) -> bool {
-        fn bool_str(value: &bool) -> &'static str {
-            match value {
-                true => "true",
-                false => "false",
-            }
-        }
-        fn print_u8<'b, const N: usize>(buf: &'b mut [u8; N], value: &u8) -> &'b str {
-            let mut dest = &mut buf[..];
-            write!(&mut dest, "{value}").unwrap();
-            let written = N - dest.len();
-            str::from_utf8(&buf[..written]).unwrap()
+        // special `depth-N` selector creates dummy `depth-N` attributes on the
+        // fly to match the styled css
+        if let Element::Value(Some(ValueElement::Delimiter { nesting, .. })) = self
+            && let Some(modulus) = local_name
+                .strip_prefix("depth-")
+                .and_then(|m| m.parse::<u8>().ok())
+        {
+            return operator.matches(&(nesting % modulus).to_string());
         }
 
-        let mut buf = [0; 3];
-
-        let value = match (self, local_name) {
-            (Element::Markdown(Some(MarkdownElement::Header { level })), "level") => {
-                print_u8(&mut buf, level)
-            }
-            (Element::Markdown(Some(MarkdownElement::Code { inline })), "inline") => {
-                bool_str(inline)
-            }
-            (Element::Value(Some(ValueElement::Bool { value })), "value") => bool_str(value),
-            (Element::Value(Some(ValueElement::String { escape })), "escape") => bool_str(escape),
-            (Element::Value(Some(ValueElement::Delimiter { kind, .. })), "kind") => match kind {
-                DelimiterKind::List => "list",
-                DelimiterKind::Map => "map",
-            },
-            (Element::Value(Some(ValueElement::Delimiter { nesting, .. })), "depth") => {
-                print_u8(&mut buf, nesting)
-            }
-            (Element::Value(Some(ValueElement::Delimiter { nesting, .. })), s)
-                if let Some(modulus) =
-                    s.strip_prefix("depth-").and_then(|m| m.parse::<u8>().ok()) =>
-            {
-                print_u8(&mut buf, &(nesting % modulus))
-            }
-
-            (Element::Markdown(Some(MarkdownElement::Link { url })), "href") => url.as_str(),
-
-            _ => return false,
-        };
-
-        operator.matches(value)
+        self.attributes()
+            .into_iter()
+            .find(|(name, _)| *name == local_name)
+            .is_some_and(|(_, value)| operator.matches(&value))
     }
 
     fn pseudo_class_matches(&self, _class: PseudoClass<'_>) -> bool {
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use url::Url;
+
+    use super::*;
+
+    #[test]
+    fn local_name_matches_expected_tags() {
+        assert_eq!(Element::Fluff.local_name(), "dices-fluff");
+        assert_eq!(
+            Element::Markdown(Some(MarkdownElement::Header { level: 3 })).local_name(),
+            "h3"
+        );
+        assert_eq!(
+            Element::Markdown(Some(MarkdownElement::Link {
+                url: Url::parse("https://example.com/").unwrap()
+            }))
+            .local_name(),
+            "a"
+        );
+    }
+
+    #[test]
+    fn css_matches_depth_and_href_selectors() {
+        let theme = Theme::parse(
+            "dices-value-delimiter[depth-3=\"1\"] { color: red; }\n\
+             a[href=\"https://example.com/\"] { color: blue; }",
+        );
+
+        let delimiter = Element::Value(Some(ValueElement::Delimiter {
+            kind: DelimiterKind::List,
+            nesting: 4, // 4 % 3 == 1
+        }));
+        assert_eq!(theme.style(&delimiter).fg_color, Some(Color::Red));
+
+        let link = Element::Markdown(Some(MarkdownElement::Link {
+            url: Url::parse("https://example.com/").unwrap(),
+        }));
+        assert_eq!(theme.style(&link).fg_color, Some(Color::Blue));
     }
 }
