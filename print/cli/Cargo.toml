@@ -1,5 +1,5 @@
 [package]
-name = "dices-print-tui"
+name = "dices-print-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

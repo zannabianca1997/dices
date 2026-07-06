@@ -53,7 +53,7 @@ impl<'s> Prompt<'s> {
     }
 }
 
-impl dices_print_tui::PromptDisplay for Prompt<'_> {
+impl dices_print_cli::PromptDisplay for Prompt<'_> {
     fn prompt_left(&self) -> Cow<'static, str> {
         Self::render_prompt_left(self)
     }

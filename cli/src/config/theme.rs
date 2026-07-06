@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use dices_print::theme::Style;
-use dices_print_tui::convert_color;
+use dices_print_cli::convert_color;
 use elsa::sync::FrozenMap;
 use rust_embed::Embed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

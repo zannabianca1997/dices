@@ -2,15 +2,15 @@
 resolver = "3"
 members = [
   "ast",
+  "cli",
   "engine",
   "man",
   "man/tests/examples",
   "parser",
   "print",
+  "print/cli",
   "print/html",
-  "print/tui",
   "std",
-  "tui",
   "values",
   "values/macros"
 ]
@@ -27,8 +27,8 @@ dices-engine = { path = "engine" }
 dices-man = { path = "man" }
 dices-parser = { path = "parser" }
 dices-print = { path = "print" }
+dices-print-cli = { path = "print/cli" }
 dices-print-html = { path = "print/html" }
-dices-print-tui = { path = "print/tui" }
 dices-std = { path = "std" }
 dices-values = { path = "values" }
 dices-values-macros = { path = "values/macros" }

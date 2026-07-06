@@ -34,7 +34,7 @@
   - [ ] `import`
 - [x] Prelude
 
-## Tui
+## Cli
 
 - [x] Rendering the manual
   - [x] Rendering the examples

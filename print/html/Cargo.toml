@@ -11,6 +11,12 @@ html-escape = "0.2"
 pretty.workspace = true
 
 [dev-dependencies]
+dices-man.workspace = true
+dices-print-cli.workspace = true
+dices-std.workspace = true
+
+clap = { version = "4.6.1", features = ["derive"] }
+strum.workspace = true
 url.workspace = true
 
 [lints]

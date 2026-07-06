@@ -7,20 +7,20 @@ use snafu::ResultExt;
 
 use dices_man::ManPage;
 use dices_print::{
-    Element, Pretty as _,
     error::ErrorReport,
     markdown::{DefaultCodeRender, Markdown},
+    Element, Pretty as _,
 };
-use dices_print_tui::examples::TuiCodeRender;
-use dices_values::{Value, cast::push_down_if_injected};
+use dices_print_cli::examples::CliCodeRender;
+use dices_values::{cast::push_down_if_injected, Value};
 use url::Url;
 
-use crate::{Error, PrintingSnafu, config::skin::Skin, prompt::Prompt};
+use crate::{config::skin::Skin, prompt::Prompt, Error, PrintingSnafu};
 
 pub fn print_markdown(skin: &Skin, text: &str, man_pages_base_url: Url) -> Result<(), Error> {
     let text: Markdown<&str> = Markdown::new(text);
 
-    let renderer = (TuiCodeRender::new(Prompt(skin)), DefaultCodeRender);
+    let renderer = (CliCodeRender::new(Prompt(skin)), DefaultCodeRender);
     let ctx = dices_print::manual::Ctx::new(renderer, man_pages_base_url);
 
     let arena = Arena::new();
@@ -30,7 +30,7 @@ pub fn print_markdown(skin: &Skin, text: &str, man_pages_base_url: Url) -> Resul
 pub fn print_man_item(skin: &Skin, item: &ManPage, man_pages_base_url: Url) -> Result<(), Error> {
     let arena = Arena::new();
 
-    let renderer = (TuiCodeRender::new(Prompt(skin)), DefaultCodeRender);
+    let renderer = (CliCodeRender::new(Prompt(skin)), DefaultCodeRender);
     let ctx = dices_print::manual::Ctx::new(renderer, man_pages_base_url);
 
     print_inner(skin, &arena, item.with_ctx(ctx), stdout())?;
@@ -62,7 +62,7 @@ fn print_inner<'a>(
         // default to no wrap
         .unwrap_or(usize::MAX);
 
-    dices_print_tui::render(printing, arena, out, width, skin.color, |element| {
+    dices_print_cli::render(printing, arena, out, width, skin.color, |element| {
         *skin.theme.style(element)
     })
     .context(PrintingSnafu)

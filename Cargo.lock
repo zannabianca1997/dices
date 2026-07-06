@@ -299,6 +299,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "dices-cli"
+version = "0.4.0"
+dependencies = [
+ "cargo-build",
+ "chrono",
+ "clap",
+ "crossterm",
+ "derive_more",
+ "dices-engine",
+ "dices-man",
+ "dices-parser",
+ "dices-print",
+ "dices-print-cli",
+ "dices-std",
+ "dices-values",
+ "directories",
+ "elsa",
+ "figment",
+ "itertools 0.15.0",
+ "lazy-regex",
+ "nu-ansi-term",
+ "pretty",
+ "rand",
+ "rand_seeder",
+ "reedline",
+ "rust-embed",
+ "serde",
+ "snafu",
+ "termcolor",
+ "toml 1.1.2+spec-1.1.0",
+ "url",
+ "yoke",
+]
+
+[[package]]
 name = "dices-engine"
 version = "0.4.0"
 dependencies = [
@@ -382,17 +417,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "dices-print-html"
-version = "0.4.0"
-dependencies = [
- "dices-print",
- "html-escape",
- "pretty",
- "url",
-]
-
-[[package]]
-name = "dices-print-tui"
+name = "dices-print-cli"
 version = "0.4.0"
 dependencies = [
  "dices-engine",
@@ -408,6 +433,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "dices-print-html"
+version = "0.4.0"
+dependencies = [
+ "clap",
+ "dices-man",
+ "dices-print",
+ "dices-print-cli",
+ "dices-std",
+ "html-escape",
+ "pretty",
+ "strum 0.28.0",
+ "url",
+]
+
+[[package]]
 name = "dices-std"
 version = "0.4.0"
 dependencies = [
@@ -419,41 +459,6 @@ dependencies = [
  "linkme",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "dices-tui"
-version = "0.4.0"
-dependencies = [
- "cargo-build",
- "chrono",
- "clap",
- "crossterm",
- "derive_more",
- "dices-engine",
- "dices-man",
- "dices-parser",
- "dices-print",
- "dices-print-tui",
- "dices-std",
- "dices-values",
- "directories",
- "elsa",
- "figment",
- "itertools 0.15.0",
- "lazy-regex",
- "nu-ansi-term",
- "pretty",
- "rand",
- "rand_seeder",
- "reedline",
- "rust-embed",
- "serde",
- "snafu",
- "termcolor",
- "toml 1.1.2+spec-1.1.0",
- "url",
- "yoke",
 ]
 
 [[package]]

@@ -4,15 +4,15 @@ use clap::{Args, Parser};
 use figment::{Figment, Provider};
 use itertools::Itertools;
 
-use crate::config::{themes_dir, theme};
+use crate::config::{theme, themes_dir};
 
-/// dices TUI
+/// dices CLI
 ///
 /// A REPL to a local dices engine.
 #[derive(Debug, Parser)]
 #[clap(name = "dices", version)]
 pub struct Cli {
-    /// Configuration of the tui
+    /// Configuration of the cli
     #[clap(flatten)]
     pub config: CliConfig,
 
@@ -35,7 +35,7 @@ pub struct Cli {
     )]
     /// Command to run
     ///
-    /// If given, this command will be executed and then the tui will exit if
+    /// If given, this command will be executed and then the cli will exit if
     /// `interactive` is not specified. Banners will be off by default.
     pub command: Option<Vec<String>>,
 }

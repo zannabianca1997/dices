@@ -19,9 +19,9 @@ use pulldown_cmark::CowStr;
 
 use crate::PromptDisplay;
 
-pub struct TuiCodeRender<P>(P);
+pub struct CliCodeRender<P>(P);
 
-impl<P: PromptDisplay> TuiCodeRender<P> {
+impl<P: PromptDisplay> CliCodeRender<P> {
     pub fn new(prompt: P) -> Self {
         Self(prompt)
     }
@@ -56,7 +56,7 @@ impl Ui for ExampleRenderUi {
     }
 }
 
-impl<P: PromptDisplay> CodeRender for TuiCodeRender<P> {
+impl<P: PromptDisplay> CodeRender for CliCodeRender<P> {
     fn handles(language: Option<&str>) -> bool {
         matches!(language, None | Some("dices") | Some("dices-example"))
     }
