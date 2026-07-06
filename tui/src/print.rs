@@ -19,13 +19,16 @@ use url::Url;
 use crate::{
     Error, PrintingSnafu,
     config::{skin::Skin, theme::color_spec},
-    rendered_examples::RenderedExamples,
 };
+
+use examples_render::TuiCodeRender;
+
+mod examples_render;
 
 pub fn print_markdown(skin: &Skin, text: &str, man_pages_base_url: Url) -> Result<(), Error> {
     let text: Markdown<&str> = Markdown::new(text);
 
-    let renderer = (RenderedExamples::new(skin), DefaultCodeRender);
+    let renderer = (TuiCodeRender::new(skin), DefaultCodeRender);
     let ctx = dices_print::manual::Ctx::new(renderer, man_pages_base_url);
 
     let arena = Arena::new();
@@ -35,7 +38,7 @@ pub fn print_markdown(skin: &Skin, text: &str, man_pages_base_url: Url) -> Resul
 pub fn print_man_item(skin: &Skin, item: &ManPage, man_pages_base_url: Url) -> Result<(), Error> {
     let arena = Arena::new();
 
-    let renderer = (RenderedExamples::new(skin), DefaultCodeRender);
+    let renderer = (TuiCodeRender::new(skin), DefaultCodeRender);
     let ctx = dices_print::manual::Ctx::new(renderer, man_pages_base_url);
 
     print_inner(skin, &arena, item.with_ctx(ctx), stdout())?;

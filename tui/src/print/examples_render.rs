@@ -15,9 +15,9 @@ use reedline::PromptEditMode;
 
 use crate::{CommandError, config::skin::Skin, prompt::Prompt};
 
-pub struct RenderedExamples<'a>(&'a Skin);
+pub struct TuiCodeRender<'a>(&'a Skin);
 
-impl<'a> RenderedExamples<'a> {
+impl<'a> TuiCodeRender<'a> {
     pub fn new(skin: &'a Skin) -> Self {
         Self(skin)
     }
@@ -52,7 +52,7 @@ impl Ui for ExampleRenderUi {
     }
 }
 
-impl CodeRender for RenderedExamples<'_> {
+impl CodeRender for TuiCodeRender<'_> {
     fn handles(language: Option<&str>) -> bool {
         matches!(language, None | Some("dices") | Some("dices-example"))
     }
