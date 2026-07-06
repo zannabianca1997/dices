@@ -1,6 +1,11 @@
 #![doc = include_str!("../README.md")]
 
-use std::{borrow::Cow, iter::Filter, ops::Deref};
+use std::{
+    borrow::Cow,
+    hash::{DefaultHasher, Hash, Hasher},
+    iter::Filter,
+    ops::Deref,
+};
 
 pub use registry::Manual;
 use slugify::slugify;
@@ -14,14 +19,14 @@ pub mod registry;
 
 pub type PathComponent = u16;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ManPage {
     manual: Manual,
     path: Cow<'static, [PathComponent]>,
     content: ManPageContent,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ManPageContent {
     title: Cow<'static, str>,
     content: Cow<'static, str>,
@@ -63,6 +68,14 @@ impl ManPage {
             .unwrap()
             .extend(self.path().iter().map(|s| s.to_string()))
             .push(&format!("{}.html", slugify!(self.title())));
+
+        let hash = {
+            let mut state = DefaultHasher::new();
+            self.hash(&mut state);
+            state.finish().to_string()
+        };
+
+        url.query_pairs_mut().append_pair("h", &hash).finish();
 
         url
     }
@@ -120,6 +133,6 @@ impl Ord for ManPage {
 #[linked::distributed_slice(linked::LINKED_PAGES)]
 static ROOT_PAGE: linked::LinkedPage = linked::LinkedPage {
     path: &[],
-    title: "Manual for `dices`",
+    title: "Index",
     content: "Use `help([1])`, `help([2,1])`, etc. to see specific pages.",
 };

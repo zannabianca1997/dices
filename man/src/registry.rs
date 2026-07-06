@@ -163,7 +163,7 @@ impl Entry {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub struct Manual {
     /// Only one global registry, we do not need to actually store the pointer
     _priv: PhantomData<&'static Shared>,
