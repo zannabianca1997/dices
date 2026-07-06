@@ -1,17 +1,17 @@
 use std::{env, fs, path::PathBuf};
 
-use dices_man::{
-    ManPage, Manual,
-    examples::{Command, Example},
-};
-
-// Ensure that `std` is brought in, so the man pages for it are present
-use dices_std as _;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
 use quote::{format_ident, quote};
 use slugify::slugify;
+
+use dices_man::{
+    ManPage, Manual,
+    examples::{Command, Example},
+};
+// Ensure that `std` is brought in, so the man pages for it are present
+use dices_std as _;
 
 fn main() {
     change_detection();
@@ -23,7 +23,7 @@ fn change_detection() {
     //
     // This is needed as in debug mode the manual won't recompile, as it
     // dynamically loads the pages instead.
-    cargo_build::rerun_if_changed!("../pages")
+    cargo_build::rerun_if_changed!("../../pages")
 }
 
 fn collect_tests() {

@@ -1,5 +1,5 @@
 [package]
-name = "dices-man-test-examples"
+name = "dices-man-tests-examples"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
