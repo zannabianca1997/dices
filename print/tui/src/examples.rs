@@ -1,3 +1,8 @@
+//! Render `dices-example` code blocks found in the manual
+//!
+//! Each command in the example is echoed with a prompt and evaluated, its
+//! result (or error) rendered below it.
+
 use std::convert::Infallible;
 
 use dices_engine::{Engine, Evaluator, ui::Ui};
@@ -11,15 +16,14 @@ use dices_std::{Std, StdOptions};
 use dices_values::{Value, cast::push_down_if_injected, null::ValueNull, string::ValueString};
 use pretty::Pretty;
 use pulldown_cmark::CowStr;
-use reedline::PromptEditMode;
 
-use crate::{CommandError, config::skin::Skin, prompt::Prompt};
+use crate::PromptDisplay;
 
-pub struct TuiCodeRender<'a>(&'a Skin);
+pub struct TuiCodeRender<P>(P);
 
-impl<'a> TuiCodeRender<'a> {
-    pub fn new(skin: &'a Skin) -> Self {
-        Self(skin)
+impl<P: PromptDisplay> TuiCodeRender<P> {
+    pub fn new(prompt: P) -> Self {
+        Self(prompt)
     }
 }
 
@@ -52,7 +56,7 @@ impl Ui for ExampleRenderUi {
     }
 }
 
-impl CodeRender for TuiCodeRender<'_> {
+impl<P: PromptDisplay> CodeRender for TuiCodeRender<P> {
     fn handles(language: Option<&str>) -> bool {
         matches!(language, None | Some("dices") | Some("dices-example"))
     }
@@ -68,24 +72,22 @@ impl CodeRender for TuiCodeRender<'_> {
         D: DocAllocator<'a>,
         D::Doc: Clone,
     {
-        let skin = self.0;
+        let prompt = &self.0;
         let mut engine = Engine::new([0u8; _], Std::new(StdOptions::sandboxed()));
 
         let example = Example::new(tags.unwrap_or(""), &code);
 
         let mut commands = vec![];
 
-        let prompt = Prompt(skin);
-
         for cmd in &example.commands {
-            let parsed = parse_scope_inner(&cmd.command().into()).map_err(CommandError::from);
+            let parsed = parse_scope_inner(&cmd.command().into());
 
             if !cmd.hidden {
                 let mut prompt_doc = (allocator
-                    .text(prompt.render_prompt_left())
+                    .text(prompt.prompt_left())
                     .annotate(Element::Prompt(None))
                     + allocator
-                        .text(prompt.render_prompt_indicator(PromptEditMode::Default))
+                        .text(prompt.prompt_indicator())
                         .annotate(Element::Prompt(Some(PromptElement::Indicator))))
                 .annotate(Element::Prompt(None));
 
@@ -98,7 +100,7 @@ impl CodeRender for TuiCodeRender<'_> {
                 for line in lines {
                     prompt_doc += allocator.hardline()
                         + allocator
-                            .text(prompt.render_prompt_multiline_indicator())
+                            .text(prompt.prompt_multiline_indicator())
                             .annotate(Element::Prompt(Some(PromptElement::Multiline)))
                             .annotate(Element::Prompt(None))
                         + allocator.text(line.to_owned()).annotate(Element::Ast(None));
@@ -106,15 +108,17 @@ impl CodeRender for TuiCodeRender<'_> {
                 commands.push(prompt_doc);
             }
 
-            match parsed.and_then(|p| engine.eval(&p, ExampleRenderUi).map_err(CommandError::from))
-            {
-                Ok(Value::Null(ValueNull)) => (),
-                Ok(value) => {
-                    let value = push_down_if_injected(value.clone()).unwrap_or(value);
-                    let mut value_ctx = value::Ctx::default();
-                    commands.push(value.pretty(allocator, &mut value_ctx))
-                }
+            match parsed {
                 Err(error) => commands.push(ErrorReport::new(&error).pretty(allocator)),
+                Ok(parsed) => match engine.eval(&parsed, ExampleRenderUi) {
+                    Ok(Value::Null(ValueNull)) => (),
+                    Ok(value) => {
+                        let value = push_down_if_injected(value.clone()).unwrap_or(value);
+                        let mut value_ctx = value::Ctx::default();
+                        commands.push(value.pretty(allocator, &mut value_ctx))
+                    }
+                    Err(error) => commands.push(ErrorReport::new(&error).pretty(allocator)),
+                },
             };
         }
 

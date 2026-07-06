@@ -392,6 +392,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "dices-print-tui"
+version = "0.4.0"
+dependencies = [
+ "dices-engine",
+ "dices-man",
+ "dices-parser",
+ "dices-print",
+ "dices-std",
+ "dices-values",
+ "pretty",
+ "pulldown-cmark",
+ "termcolor",
+ "url",
+]
+
+[[package]]
 name = "dices-std"
 version = "0.4.0"
 dependencies = [
@@ -418,6 +434,7 @@ dependencies = [
  "dices-man",
  "dices-parser",
  "dices-print",
+ "dices-print-tui",
  "dices-std",
  "dices-values",
  "directories",
@@ -427,7 +444,6 @@ dependencies = [
  "lazy-regex",
  "nu-ansi-term",
  "pretty",
- "pulldown-cmark",
  "rand",
  "rand_seeder",
  "reedline",

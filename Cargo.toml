@@ -8,6 +8,7 @@ members = [
   "parser",
   "print",
   "print/html",
+  "print/tui",
   "std",
   "tui",
   "values",
@@ -27,6 +28,7 @@ dices-man = { path = "man" }
 dices-parser = { path = "parser" }
 dices-print = { path = "print" }
 dices-print-html = { path = "print/html" }
+dices-print-tui = { path = "print/tui" }
 dices-std = { path = "std" }
 dices-values = { path = "values" }
 dices-values-macros = { path = "values/macros" }

@@ -53,6 +53,20 @@ impl<'s> Prompt<'s> {
     }
 }
 
+impl dices_print_tui::PromptDisplay for Prompt<'_> {
+    fn prompt_left(&self) -> Cow<'static, str> {
+        Self::render_prompt_left(self)
+    }
+
+    fn prompt_indicator(&self) -> Cow<'static, str> {
+        Self::render_prompt_indicator(self, PromptEditMode::Default)
+    }
+
+    fn prompt_multiline_indicator(&self) -> Cow<'static, str> {
+        Self::render_prompt_multiline_indicator(self)
+    }
+}
+
 impl reedline::Prompt for Prompt<'_> {
     fn render_prompt_left(&self) -> Cow<'_, str> {
         Self::render_prompt_left(&self)

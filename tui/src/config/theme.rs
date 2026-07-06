@@ -1,10 +1,11 @@
 use std::borrow::Cow;
 
-use dices_print::theme::{Color as ThemeColor, FullStyle, Style};
+use dices_print::theme::Style;
+use dices_print_tui::convert_color;
 use elsa::sync::FrozenMap;
 use rust_embed::Embed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use termcolor::{Color as TermColor, ColorSpec};
+use termcolor::Color as TermColor;
 use yoke::Yoke;
 
 use dices_print::{Element, PromptElement, theme::Theme as StyleSheet};
@@ -202,34 +203,6 @@ impl Serialize for Theme {
 
 fn style<C>(sheet: &Yoke<StyleSheet<'static>, C>, element: &Element) -> Style {
     sheet.get().style(element)
-}
-
-fn convert_color(c: ThemeColor) -> TermColor {
-    match c {
-        ThemeColor::Black => TermColor::Black,
-        ThemeColor::Blue => TermColor::Blue,
-        ThemeColor::Green => TermColor::Green,
-        ThemeColor::Red => TermColor::Red,
-        ThemeColor::Cyan => TermColor::Cyan,
-        ThemeColor::Magenta => TermColor::Magenta,
-        ThemeColor::Yellow => TermColor::Yellow,
-        ThemeColor::White => TermColor::White,
-        ThemeColor::Ansi256(n) => TermColor::Ansi256(n),
-        ThemeColor::Rgb(r, g, b) => TermColor::Rgb(r, g, b),
-    }
-}
-
-pub fn color_spec(spec: &FullStyle) -> ColorSpec {
-    let mut cs = ColorSpec::new();
-    cs.set_fg(spec.fg_color.map(convert_color));
-    cs.set_bg(spec.bg_color.map(convert_color));
-    cs.set_bold(spec.bold);
-    cs.set_intense(spec.intense);
-    cs.set_underline(spec.underline);
-    cs.set_dimmed(spec.dimmed);
-    cs.set_italic(spec.italic);
-    cs.set_reset(spec.reset);
-    cs
 }
 
 fn reedline_color(spec: Style) -> reedline::Color {

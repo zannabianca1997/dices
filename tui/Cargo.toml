@@ -13,6 +13,7 @@ dices-engine.workspace = true
 dices-man.workspace = true
 dices-parser.workspace = true
 dices-print.workspace = true
+dices-print-tui.workspace = true
 dices-std.workspace = true
 dices-values.workspace = true
 
@@ -27,7 +28,6 @@ itertools.workspace = true
 lazy-regex = "3.6.0"
 nu-ansi-term = { version = "0.50.3", features = ["derive_serde_style", "serde"] }
 pretty.workspace = true
-pulldown-cmark = "0.13.4"
 rand.workspace = true
 rand_seeder.workspace = true
 reedline = "0.48.0"
