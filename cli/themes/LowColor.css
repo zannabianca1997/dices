@@ -3,14 +3,14 @@
  * colors (black, red, green, yellow, blue, magenta, cyan, white) so it renders
  * faithfully on terminals without 256-color or truecolor support.
  *
- * `intense = false` keeps these on the standard codes (not the bright variants),
- * and subdued greys are rendered as the base color dimmed.
+ * `cli-intense = false` keeps these on the standard codes (not the bright variants),
+ * and subdued greys are rendered as the base color with reduced opacity.
  */
 
 html { color-scheme: dark; }
 a { color: blue; text-decoration: underline; }
-dices-fluff { dimmed: true; }
-dices-value-null { dimmed: true; font-style: italic; }
+dices-fluff { opacity: 0.6; }
+dices-value-null { opacity: 0.6; font-style: italic; }
 dices-value-integer { color: yellow; }
 dices-value-bool { color: magenta; }
 dices-value-string { color: green; }
@@ -19,7 +19,7 @@ dices-value-delimiter[data-depth-4='0'] { color: yellow; }
 dices-value-delimiter[data-depth-4='1'] { color: blue; }
 dices-value-delimiter[data-depth-4='2'] { color: magenta; }
 dices-value-delimiter[data-depth-4='3'] { color: cyan; }
-dices-value-punctuator { dimmed: true; }
+dices-value-punctuator { opacity: 0.6; }
 dices-value-injected { color: yellow; }
 dices-ast { color: white; }
 dices-ast-ident { color: cyan; }
@@ -33,7 +33,7 @@ em { font-style: italic; }
 dices-markdown-list-marker { font-weight: bold; color: green; }
 dices-prompt { color: blue; }
 dices-prompt-indicator { color: green; }
-dices-prompt-multiline { dimmed: true; }
-dices-prompt-right { dimmed: true; }
+dices-prompt-multiline { opacity: 0.6; }
+dices-prompt-right { opacity: 0.6; }
 dices-error { color: red; }
 dices-error-message { font-weight: bold; }
