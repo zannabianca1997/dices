@@ -1,5 +1,7 @@
 # `dices` 0.4.1
 
+> damn, it looks like you wrote half of a lisp for dice rolls
+
 This is a program able to simulate dice-throwing. It supports traditional dice
 notation, but also mathematical operations, variables, and closures. 
 
