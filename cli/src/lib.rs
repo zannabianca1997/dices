@@ -63,6 +63,8 @@ pub enum CommandError {
 struct Ui<'a> {
     skin: &'a Skin,
     man_pages_base_url: Option<Url>,
+    #[cfg_attr(not(feature = "man-server"), allow(dead_code))]
+    browser: bool,
 }
 
 impl dices_engine::ui::Ui for Ui<'_> {
@@ -73,7 +75,17 @@ impl dices_engine::ui::Ui for Ui<'_> {
     }
 
     fn manual(&self, item: &ManPage) -> Result<(), Self::PrintError> {
-        print_man_item(self.skin, &item, self.man_pages_base_url.clone())
+        #[cfg(feature = "man-server")]
+        if self.browser
+            && let Some(base_url) = self.man_pages_base_url.as_ref()
+        {
+            let url = item.url(base_url.clone());
+            match webbrowser::open(url.as_str()) {
+                Ok(()) => return Ok(()),
+                Err(err) => eprintln!("Could not open manual page in browser: {err}"),
+            }
+        }
+        print_man_item(self.skin, item, self.man_pages_base_url.clone())
     }
 
     type PrintError = Error;
@@ -127,6 +139,7 @@ fn main_inner(
         None => None,
     };
     let base_url = || man_server.as_ref().map(|s| s.base_url()).cloned();
+    let browser = links.as_ref().is_some_and(|l| l.browser);
 
     if skin.banners {
         print_markdown(skin, &banners::opening(), base_url())?;
@@ -147,6 +160,7 @@ fn main_inner(
                         Ui {
                             skin,
                             man_pages_base_url: base_url(),
+                            browser,
                         },
                     )
                     .map_err(CommandError::from)
@@ -186,10 +200,11 @@ fn main_inner(
                     engine
                         .eval(
                             &scope_inner,
-                            Ui {
-                                skin,
-                                man_pages_base_url: base_url(),
-                            },
+                        Ui {
+                            skin,
+                            man_pages_base_url: base_url(),
+                            browser,
+                        },
                         )
                         .map_err(CommandError::from)
                 });

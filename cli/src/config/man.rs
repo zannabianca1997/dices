@@ -30,6 +30,9 @@ pub struct Links {
     ///
     /// If [`None`], bind to a random port
     pub port: Option<u16>,
+    /// Open manual pages in the user's web browser instead of printing them
+    #[serde(default = "default_true")]
+    pub browser: bool,
 }
 
 impl Default for Links {
@@ -37,8 +40,13 @@ impl Default for Links {
         Self {
             address: Ipv4Addr::LOCALHOST.into(),
             port: None,
+            browser: true,
         }
     }
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn deserialize_bool_or_struct<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>

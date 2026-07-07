@@ -20,7 +20,5 @@ pub trait Ui {
     -> Result<(), Self::PrintError>;
 
     /// Display a manual item
-    ///
-    /// Returns only when the user exit the item
     fn manual(&self, item: &ManPage) -> Result<(), Self::PrintError>;
 }

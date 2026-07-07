@@ -50,7 +50,7 @@ struct ServerStarted {
 
 impl ManServer {
     /// Start the manual server
-    pub fn spawn(Links { address, port }: Links, skin: Arc<Skin>) -> Result<Self, Error> {
+    pub fn spawn(Links { address, port, .. }: Links, skin: Arc<Skin>) -> Result<Self, Error> {
         let cancel = CancellationToken::new();
 
         let (tx, rx) = oneshot::channel();
@@ -142,21 +142,11 @@ impl ManServer {
             )
             .route(
                 "/styles/skin.css",
-                get(async move || {
-                    (
-                        [("Content-Type", "text/css")],
-                        skin.theme.to_css().to_string(),
-                    )
-                }),
+                get(async move || ([("Content-Type", "text/css")], skin_style(&skin))),
             )
             .route(
                 "/styles/style.css",
-                get(async move || {
-                    (
-                        [("Content-Type", "text/css")],
-                        Assets::get("styles/style.css").unwrap().data,
-                    )
-                }),
+                get(async move || ([("Content-Type", "text/css")], global_style())),
             )
     }
 
@@ -164,6 +154,14 @@ impl ManServer {
     pub fn base_url(&self) -> &Url {
         &self.base_url
     }
+}
+
+fn global_style() -> std::borrow::Cow<'static, [u8]> {
+    Assets::get("styles/style.css").unwrap().data
+}
+
+fn skin_style(skin: &Skin) -> String {
+    skin.theme.to_css().to_string()
 }
 
 #[derive(Embed)]
