@@ -292,26 +292,26 @@ impl Element {
 
         match self {
             Element::Markdown(Some(MarkdownElement::Header { level })) => {
-                vec![("level", Cow::Owned(level.to_string()))]
+                vec![("data-level", Cow::Owned(level.to_string()))]
             }
             Element::Markdown(Some(MarkdownElement::Code { inline })) => {
-                vec![("inline", Cow::Borrowed(bool_str(inline)))]
+                vec![("data-inline", Cow::Borrowed(bool_str(inline)))]
             }
             Element::Value(Some(ValueElement::Bool { value })) => {
-                vec![("value", Cow::Borrowed(bool_str(value)))]
+                vec![("data-value", Cow::Borrowed(bool_str(value)))]
             }
             Element::Value(Some(ValueElement::String { escape })) => {
-                vec![("escape", Cow::Borrowed(bool_str(escape)))]
+                vec![("data-escape", Cow::Borrowed(bool_str(escape)))]
             }
             Element::Value(Some(ValueElement::Delimiter { kind, nesting })) => vec![
                 (
-                    "kind",
+                    "data-kind",
                     Cow::Borrowed(match kind {
                         DelimiterKind::List => "list",
                         DelimiterKind::Map => "map",
                     }),
                 ),
-                ("depth", Cow::Owned(nesting.to_string())),
+                ("data-depth", Cow::Owned(nesting.to_string())),
             ],
             Element::Markdown(Some(MarkdownElement::Link { url })) => {
                 vec![("href", Cow::Borrowed(url.as_str()))]
@@ -360,7 +360,7 @@ impl CssElement for Element {
         // fly to match the styled css
         if let Element::Value(Some(ValueElement::Delimiter { nesting, .. })) = self
             && let Some(modulus) = local_name
-                .strip_prefix("depth-")
+                .strip_prefix("data-depth-")
                 .and_then(|m| m.parse::<u8>().ok())
         {
             return operator.matches(&(nesting % modulus).to_string());
@@ -402,7 +402,7 @@ mod tests {
     #[test]
     fn css_matches_depth_and_href_selectors() {
         let theme = Theme::parse(
-            "dices-value-delimiter[depth-3=\"1\"] { color: red; }\n\
+            "dices-value-delimiter[data-depth-3=\"1\"] { color: red; }\n\
              a[href=\"https://example.com/\"] { color: blue; }",
         );
 
