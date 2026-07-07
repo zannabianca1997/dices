@@ -1,4 +1,4 @@
-# `dices` 0.4.0
+# `dices` 0.4.1
 
 This is a program able to simulate dice-throwing. It supports traditional dice
 notation, but also mathematical operations, variables, and closures. 
@@ -14,8 +14,8 @@ and then run:
 cargo install --git https://repos.zannabianca1997.site/zannabianca1997/dices.git
 ```
 
-You should see a lot of text, and then a prompt similar to `>>>`. Press `Ctrl +
-D` to exit.
+You should see a lot of text while it compiles. When it stop, run `dices` and
+then a prompt similar to `>>>` should appear. Press `Ctrl + D` to exit.
 
 ## Where to go from there
 

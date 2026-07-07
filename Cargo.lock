@@ -381,7 +381,7 @@ dependencies = [
 
 [[package]]
 name = "dices-ast"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "derive_more",
  "dices-values",
@@ -390,7 +390,7 @@ dependencies = [
 
 [[package]]
 name = "dices-cli"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "axum",
  "cargo-build",
@@ -430,7 +430,7 @@ dependencies = [
 
 [[package]]
 name = "dices-engine"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "dices-ast",
  "dices-man",
@@ -447,7 +447,7 @@ dependencies = [
 
 [[package]]
 name = "dices-man"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "cargo-build",
  "elsa",
@@ -462,7 +462,7 @@ dependencies = [
 
 [[package]]
 name = "dices-man-tests-examples"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "cargo-build",
  "dices-ast",
@@ -483,7 +483,7 @@ dependencies = [
 
 [[package]]
 name = "dices-parser"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "derive_more",
  "dices-ast",
@@ -497,7 +497,7 @@ dependencies = [
 
 [[package]]
 name = "dices-print"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "dices-man",
  "dices-values",
@@ -513,7 +513,7 @@ dependencies = [
 
 [[package]]
 name = "dices-print-cli"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "dices-engine",
  "dices-man",
@@ -529,7 +529,7 @@ dependencies = [
 
 [[package]]
 name = "dices-print-html"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "clap",
  "dices-man",
@@ -544,7 +544,7 @@ dependencies = [
 
 [[package]]
 name = "dices-std"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "chrono",
  "dices-man",
@@ -558,7 +558,7 @@ dependencies = [
 
 [[package]]
 name = "dices-values"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "derive_more",
  "dices-man",
@@ -578,7 +578,7 @@ dependencies = [
 
 [[package]]
 name = "dices-values-macros"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "heck",
  "itertools 0.15.0",
