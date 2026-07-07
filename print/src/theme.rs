@@ -147,15 +147,22 @@ impl Style {
                     ..Default::default()
                 }
             }
-            "intense" => Self {
+            "cli-intense" => Self {
                 intense: Some(parse_boolean(value)),
                 ..Default::default()
             },
-            "dimmed" => Self {
+            "cli-dimmed" => Self {
                 dimmed: Some(parse_boolean(value)),
                 ..Default::default()
             },
-            "reset" => Self {
+            "opacity" => {
+                let opacity: f32 = value.parse().unwrap_or(1.0);
+                Self {
+                    dimmed: if opacity < 0.9 { Some(true) } else { None },
+                    ..Default::default()
+                }
+            }
+            "cli-reset" => Self {
                 reset: Some(parse_boolean(value)),
                 ..Default::default()
             },
@@ -416,5 +423,18 @@ mod tests {
             url: Url::parse("https://example.com/").unwrap(),
         }));
         assert_eq!(theme.style(&link).fg_color, Some(Color::Blue));
+    }
+
+    #[test]
+    fn css_opacity_dimmed_mapping() {
+        let theme = Theme::parse(
+            "dices-fluff { opacity: 0.5; }\n\
+             dices-value-null { opacity: 0.95; }\n\
+             dices-value-integer { opacity: 0.8999; }",
+        );
+
+        assert!(theme.style(&Element::Fluff).dimmed.unwrap_or(false));
+        assert!(!theme.style(&Element::Value(Some(ValueElement::Null))).dimmed.unwrap_or(false));
+        assert!(theme.style(&Element::Value(Some(ValueElement::Integer))).dimmed.unwrap_or(false));
     }
 }
