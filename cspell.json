@@ -39,6 +39,7 @@
     "unparse",
     "prettyplease",
     "oneshot",
-    "rsplit"
+    "rsplit",
+    "webbrowser"
   ]
 }
