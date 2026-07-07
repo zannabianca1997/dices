@@ -36,7 +36,7 @@ rust-embed.workspace = true
 serde.workspace = true
 snafu.workspace = true
 termcolor = "1.4.1"
-tokio-util = { version = "0.7.18", default-features = false }
+tokio-util = { version = "0.7.18", default-features = false, optional = true }
 toml = "1.1.2"
 url.workspace = true
 webbrowser = { version = "1.2.1", optional = true }
@@ -59,7 +59,13 @@ cargo-build.workspace = true
 
 [features]
 default = ["man-server"]
-man-server = ["dep:axum", "dep:dices-print-html", "dep:tokio", "dep:webbrowser"]
+man-server = [
+  "dep:axum",
+  "dep:dices-print-html",
+  "dep:tokio",
+  "dep:tokio-util",
+  "dep:webbrowser"
+]
 
 [lints]
 workspace = true
