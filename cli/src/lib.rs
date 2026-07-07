@@ -143,6 +143,7 @@ fn main_inner(
 
     if skin.banners {
         print_markdown(skin, &banners::opening(), base_url())?;
+        println!();
     };
 
     // Execute command
@@ -200,11 +201,11 @@ fn main_inner(
                     engine
                         .eval(
                             &scope_inner,
-                        Ui {
-                            skin,
-                            man_pages_base_url: base_url(),
-                            browser,
-                        },
+                            Ui {
+                                skin,
+                                man_pages_base_url: base_url(),
+                                browser,
+                            },
                         )
                         .map_err(CommandError::from)
                 });
@@ -240,7 +241,7 @@ pub fn main(
         command,
     }: Cli,
 ) -> Result<(), Error> {
-    let config = Config::extract(config, command.is_some())?;
+    let config = Config::extract(config, command.is_some() && !interactive)?;
     main_inner(seed, &config, interactive, command)
 }
 pub fn main_print_error(
@@ -251,7 +252,7 @@ pub fn main_print_error(
         command,
     }: Cli,
 ) -> ExitCode {
-    let config = match Config::extract(config, command.is_some()) {
+    let config = match Config::extract(config, command.is_some() && !interactive) {
         Ok(c) => c,
         Err(err) => {
             // No skin, need to directly print

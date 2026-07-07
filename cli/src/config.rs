@@ -42,13 +42,8 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn extract(cli: CliConfig, command_given: bool) -> Result<Self, figment::Error> {
-        let mut defaults = Config::default();
-        if command_given {
-            Arc::get_mut(&mut defaults.skin).unwrap().banners = false
-        }
-
-        let mut figment = Figment::new().merge(Serialized::defaults(defaults));
+    pub fn extract(cli: CliConfig, closes_soon: bool) -> Result<Self, figment::Error> {
+        let mut figment = Figment::new().merge(Serialized::defaults(Config::default()));
 
         if !cli.no_default_config {
             if let Some(config) = config_file()
@@ -63,7 +58,15 @@ impl Config {
             figment = figment.merge(Toml::file_exact(path));
         }
 
-        figment = figment.merge(Env::prefixed("DICES_").split("_")).merge(cli);
+        figment = figment.merge(Env::prefixed("DICES_").split("_"));
+
+        // If cli will run a single command, disable banners and links
+        if closes_soon {
+            figment = figment.merge(("skin", figment::util::nest("banners", false.into())));
+            figment = figment.merge(("man", figment::util::nest("links", false.into())));
+        }
+
+        figment = figment.merge(cli);
 
         let config: Self = figment.extract()?;
         Ok(config)
