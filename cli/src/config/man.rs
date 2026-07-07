@@ -1,34 +1,61 @@
-use serde::{Deserialize, Deserializer, Serialize};
-use url::Url;
+use std::net::{IpAddr, Ipv4Addr};
 
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+use serde::{Deserialize, Deserializer, Serialize};
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(default)]
 pub struct ManConfig {
-    pub links: Links,
+    #[serde(deserialize_with = "deserialize_bool_or_struct")]
+    pub links: Option<Links>,
+}
+
+impl Default for ManConfig {
+    fn default() -> Self {
+        Self {
+            links: if cfg!(feature = "man-server") {
+                Some(Links::default())
+            } else {
+                None
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(default)]
 pub struct Links {
-    #[serde(deserialize_with = "deserialize_url_can_be_a_base")]
-    pub base: Url,
+    /// Address for the manual server to bind to
+    pub address: IpAddr,
+    /// Port for the manual server
+    ///
+    /// If [`None`], bind to a random port
+    pub port: Option<u16>,
 }
 
 impl Default for Links {
     fn default() -> Self {
         Self {
-            base: Url::parse("https://dices.zannabianca1997.site/man").unwrap(),
+            address: Ipv4Addr::LOCALHOST.into(),
+            port: None,
         }
     }
 }
 
-fn deserialize_url_can_be_a_base<'de, D>(deserializer: D) -> Result<Url, D::Error>
+fn deserialize_bool_or_struct<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
     D: Deserializer<'de>,
+    T: Deserialize<'de> + Default,
 {
-    let url = Url::deserialize(deserializer)?;
-    if url.cannot_be_a_base() {
-        return Err(serde::de::Error::custom(format_args!(
-            "base url {url} cannot be a base"
-        )));
+    #[derive(Debug, Deserialize)]
+    #[serde(untagged)]
+    enum BoolOrStruct<T> {
+        Bool(bool),
+        Struct(T),
     }
-    Ok(url)
+
+    Ok(match Deserialize::deserialize(deserializer)? {
+        Some(BoolOrStruct::Bool(false)) | None => None,
+        Some(BoolOrStruct::Bool(true)) => Some(T::default()),
+        Some(BoolOrStruct::Struct(t)) => Some(t),
+    })
 }

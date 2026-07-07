@@ -19,7 +19,8 @@ use url::Url;
 
 use crate::{
     cli::Cli,
-    config::{Config, skin::Skin},
+    config::{Config, man::ManConfig, skin::Skin},
+    man_server::ManServer,
     print::{print_error, print_man_item, print_markdown, print_value},
 };
 
@@ -29,6 +30,9 @@ mod config;
 mod history;
 pub mod print;
 mod prompt;
+
+#[cfg_attr(not(feature = "man-server"), path = "no_man_server.rs")]
+mod man_server;
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -58,7 +62,7 @@ pub enum CommandError {
 
 struct Ui<'a> {
     skin: &'a Skin,
-    man_pages_base_url: Url,
+    man_pages_base_url: Option<Url>,
 }
 
 impl dices_engine::ui::Ui for Ui<'_> {
@@ -99,7 +103,7 @@ fn main_inner(
         history,
         skin,
         std: std_opts,
-        man,
+        man: ManConfig { links },
     }: &Config,
     interactive: bool,
     command: Option<Vec<String>>,
@@ -114,9 +118,19 @@ fn main_inner(
         Std::new(std_opts.clone()),
     );
 
+    let man_server = match links.clone().map(|l| ManServer::spawn(l, skin.clone())) {
+        Some(Ok(man_server)) => Some(man_server),
+        Some(Err(error)) => {
+            eprintln!("Cannot start man server: {error}");
+            None
+        }
+        None => None,
+    };
+    let base_url = || man_server.as_ref().map(|s| s.base_url()).cloned();
+
     if skin.banners {
-        print_markdown(skin, &banners::opening(), man.links.base.clone())?;
-    }
+        print_markdown(skin, &banners::opening(), base_url())?;
+    };
 
     // Execute command
     if let Some(command) = command.as_ref() {
@@ -132,7 +146,7 @@ fn main_inner(
                         &scope_inner,
                         Ui {
                             skin,
-                            man_pages_base_url: man.links.base.clone(),
+                            man_pages_base_url: base_url(),
                         },
                     )
                     .map_err(CommandError::from)
@@ -174,7 +188,7 @@ fn main_inner(
                             &scope_inner,
                             Ui {
                                 skin,
-                                man_pages_base_url: man.links.base.clone(),
+                                man_pages_base_url: base_url(),
                             },
                         )
                         .map_err(CommandError::from)
@@ -190,8 +204,14 @@ fn main_inner(
     }
 
     if skin.banners {
-        print_markdown(skin, &banners::closing(), man.links.base.clone())?;
+        print_markdown(skin, &banners::closing(), base_url())?;
         println!();
+    }
+
+    if let Some(man_server) = man_server
+        && let Err(err) = man_server.join()
+    {
+        eprintln!("Error in closing manual server: {err}")
     }
 
     Ok(())

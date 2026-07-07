@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use dices_std::StdOptions;
 use directories::ProjectDirs;
@@ -35,7 +36,7 @@ pub fn banners_dir() -> Option<PathBuf> {
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Config {
     pub history: HistoryConfig,
-    pub skin: Skin,
+    pub skin: Arc<Skin>,
     pub std: StdOptions,
     pub man: ManConfig,
 }
@@ -44,7 +45,7 @@ impl Config {
     pub fn extract(cli: CliConfig, command_given: bool) -> Result<Self, figment::Error> {
         let mut defaults = Config::default();
         if command_given {
-            defaults.skin.banners = false;
+            Arc::get_mut(&mut defaults.skin).unwrap().banners = false
         }
 
         let mut figment = Figment::new().merge(Serialized::defaults(defaults));

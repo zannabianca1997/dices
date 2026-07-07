@@ -79,6 +79,12 @@ impl ManPage {
 
         url
     }
+
+    pub fn parent(&self) -> Option<Self> {
+        let mut path = self.path().to_owned();
+        path.pop()?;
+        self.manual().fetch(path)
+    }
 }
 
 impl ManPageContent {

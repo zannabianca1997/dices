@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Display};
 
 pub use optional_struct::Applicable as MergeStyle;
 use optional_struct::optional_struct;
@@ -92,6 +92,10 @@ impl<'a> Theme<'a> {
         }
 
         style
+    }
+
+    pub fn to_css(&self) -> impl Display {
+        &self.stylesheet
     }
 }
 

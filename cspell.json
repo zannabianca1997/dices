@@ -37,6 +37,8 @@
     "codepoint",
     "sandboxed",
     "unparse",
-    "prettyplease"
+    "prettyplease",
+    "oneshot",
+    "rsplit"
   ]
 }

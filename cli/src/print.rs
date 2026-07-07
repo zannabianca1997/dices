@@ -7,31 +7,47 @@ use snafu::ResultExt;
 
 use dices_man::ManPage;
 use dices_print::{
+    Element, Pretty as _,
     error::ErrorReport,
     markdown::{DefaultCodeRender, Markdown},
-    Element, Pretty as _,
 };
 use dices_print_cli::examples::CliCodeRender;
-use dices_values::{cast::push_down_if_injected, Value};
+use dices_values::{Value, cast::push_down_if_injected};
 use url::Url;
 
-use crate::{config::skin::Skin, prompt::Prompt, Error, PrintingSnafu};
+use crate::{Error, PrintingSnafu, config::skin::Skin, prompt::Prompt};
 
-pub fn print_markdown(skin: &Skin, text: &str, man_pages_base_url: Url) -> Result<(), Error> {
+pub fn print_markdown(
+    skin: &Skin,
+    text: &str,
+    man_pages_base_url: Option<Url>,
+) -> Result<(), Error> {
     let text: Markdown<&str> = Markdown::new(text);
 
     let renderer = (CliCodeRender::new(Prompt(skin)), DefaultCodeRender);
-    let ctx = dices_print::manual::Ctx::new(renderer, man_pages_base_url);
+    let ctx = if let Some(man_pages_base_url) = man_pages_base_url {
+        dices_print::manual::Ctx::new_with_links(renderer, man_pages_base_url)
+    } else {
+        dices_print::manual::Ctx::new(renderer)
+    };
 
     let arena = Arena::new();
     print_inner(skin, &arena, text.with_ctx(ctx), stdout())?;
     Ok(())
 }
-pub fn print_man_item(skin: &Skin, item: &ManPage, man_pages_base_url: Url) -> Result<(), Error> {
+pub fn print_man_item(
+    skin: &Skin,
+    item: &ManPage,
+    man_pages_base_url: Option<Url>,
+) -> Result<(), Error> {
     let arena = Arena::new();
 
     let renderer = (CliCodeRender::new(Prompt(skin)), DefaultCodeRender);
-    let ctx = dices_print::manual::Ctx::new(renderer, man_pages_base_url);
+    let ctx = if let Some(man_pages_base_url) = man_pages_base_url {
+        dices_print::manual::Ctx::new_with_links(renderer, man_pages_base_url)
+    } else {
+        dices_print::manual::Ctx::new(renderer)
+    };
 
     print_inner(skin, &arena, item.with_ctx(ctx), stdout())?;
     Ok(())

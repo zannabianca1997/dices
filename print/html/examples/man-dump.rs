@@ -66,7 +66,7 @@ fn dump_all<R: CodeRender>(code_render: R, link_base: &Url, dir_base: &Url) -> s
     let manual = Manual::new();
     for page in manual.root().descendants() {
         let arena = Arena::new();
-        let ctx = Ctx::new(&code_render, link_base.clone());
+        let ctx = Ctx::new_with_links(&code_render, link_base.clone());
         let html = dices_print_html::render((&page).with_ctx(ctx), &arena)?;
 
         let dest = page

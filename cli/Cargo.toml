@@ -14,6 +14,7 @@ dices-man.workspace = true
 dices-parser.workspace = true
 dices-print.workspace = true
 dices-print-cli.workspace = true
+dices-print-html = { workspace = true, optional = true }
 dices-std.workspace = true
 dices-values.workspace = true
 
@@ -35,12 +36,33 @@ rust-embed.workspace = true
 serde.workspace = true
 snafu.workspace = true
 termcolor = "1.4.1"
+tokio-util = { version = "0.7.18", default-features = false }
 toml = "1.1.2"
 url.workspace = true
 yoke.workspace = true
 
+[dependencies.axum]
+version = "0.8.9"
+default-features = false
+features = ["http1", "macros", "original-uri", "tokio"]
+optional = true
+
+[dependencies.tokio]
+version = "1.52.3"
+default-features = false
+features = ["net", "rt"]
+optional = true
+
 [build-dependencies]
 cargo-build.workspace = true
+
+[features]
+man-server = [
+  "dep:axum",
+  "dep:dices-print-html",
+  "dep:tokio",
+  "rust-embed/axum"
+]
 
 [lints]
 workspace = true

@@ -44,7 +44,7 @@ pulldown-cmark = "0.13.4"
 rand = "0.8.6"
 rand_seeder = "0.3.0"
 rust-embed = { version = "8.11.0", features = ["interpolate-folder-path"] }
-serde = { version = "1.0.228", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive", "rc"] }
 serde_json = "1.0"
 slugify = "0.1.0"
 snafu = "0.9.1"

@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Display};
 
 use dices_print::theme::Style;
 use dices_print_cli::convert_color;
@@ -95,6 +95,10 @@ impl Theme {
 
     pub fn prompt_right(&self) -> reedline::Color {
         self.prompt_right
+    }
+
+    pub fn to_css(&self) -> impl Display {
+        self.sheet.get().to_css()
     }
 }
 

@@ -1,0 +1,68 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    background-color: #1e1e2e;
+    background-color: light-dark(#eff1f5, #1e1e2e);
+    color: light-dark(#4c4f69, #cdd6f4);
+
+    font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", "Fira Code",
+        Consolas, "Liberation Mono", monospace;
+    font-size: 14px;
+    line-height: 1.5;
+
+    display: flex;
+    flex-direction: column;
+    padding: 1em;
+}
+
+header {
+    display: flex;
+    gap: 2em;
+    padding: 0.5em 1em;
+    border-bottom: 1px solid light-dark(#bcc0cc, #45475a);
+    background-color: light-dark(#e6e9ef, #181825);
+}
+
+main {
+    flex-grow: 1;
+    width: 100%;
+    max-width: 100ch;
+    margin: 0 auto;
+    overflow: auto;
+
+    ol,
+    ul {
+        list-style: none;
+        padding-left: 1em;
+    }
+}
+
+pre {
+    margin: 1em 0;
+    padding: 0.75em 1em;
+    background-color: light-dark(#e6e9ef, #11111b);
+    border: 1px solid light-dark(#bcc0cc, #45475a);
+    border-left: 3px solid light-dark(#bcc0cc, #45475a);
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+code {
+    font-family: inherit;
+}
+
+footer {
+    margin-top: 1em;
+    padding: 0.5em 1em;
+    border-top: 1px solid light-dark(#bcc0cc, #45475a);
+    color: light-dark(#6c6f85, #7f849c);
+    font-size: 0.85em;
+}

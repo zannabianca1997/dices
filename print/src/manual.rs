@@ -29,14 +29,14 @@ where
             attrs: vec![],
         }))
         .chain(number(self.path()))
-        .chain(inline_md(self.title(), ctx.man_pages_base_url().clone()))
+        .chain(inline_md(self.title(), ctx.man_pages_base_url().cloned()))
         .chain(once(Event::End(TagEnd::Heading(HeadingLevel::H1))));
 
-        let index = table_of_contents(self, ctx.man_pages_base_url().clone());
+        let index = table_of_contents(self, ctx.man_pages_base_url().cloned());
 
         let mut doc = title.chain(index.into_iter()).chain(Markdown::parser(
             self.content(),
-            ctx.man_pages_base_url().clone(),
+            ctx.man_pages_base_url().cloned(),
         ));
 
         Printer::new(&mut doc)
@@ -50,7 +50,7 @@ where
 /// Return empty if there are no nested pages
 fn table_of_contents<'a>(
     page: &'a ManPage,
-    man_pages_base_url: impl Borrow<Url>,
+    man_pages_base_url: Option<impl Borrow<Url>>,
 ) -> impl IntoIterator<Item = Event<'a>> {
     let children = page
         .children()
@@ -81,7 +81,7 @@ fn table_of_contents<'a>(
 
 fn children_list<'a>(
     children: impl IntoIterator<Item = ManPage>,
-    man_pages_base_url: impl Borrow<Url>,
+    man_pages_base_url: Option<impl Borrow<Url>>,
 ) -> impl IntoIterator<Item = Event<'a>> {
     let mut children = children.into_iter().peekable();
     let mut next_marker = *children.peek().unwrap().path().last().unwrap() as u64;
@@ -101,15 +101,15 @@ fn children_list<'a>(
             let children = page.children().sorted().collect_vec();
 
             let children = (!children.is_empty())
-                .then(|| children_list(children, man_pages_base_url.borrow()))
+                .then(|| children_list(children, man_pages_base_url.as_ref().map(Borrow::borrow)))
                 .into_iter()
                 .flatten();
 
             opening
                 .into_iter()
                 .flatten()
-                .chain([
-                    Event::Start(Tag::Item),
+                .chain(once(Event::Start(Tag::Item)))
+                .chain(man_pages_base_url.as_ref().map(|man_pages_base_url| {
                     Event::Start(Tag::Link {
                         link_type: pulldown_cmark::LinkType::ReferenceUnknown,
                         dest_url: page
@@ -121,28 +121,36 @@ fn children_list<'a>(
                             Err(t) => t.to_string().into(),
                         },
                         id: "".into(),
-                    }),
-                ])
+                    })
+                }))
                 .chain(match page.static_title() {
                     Ok(t) => itertools::Either::Left(
-                        inline_md(t, man_pages_base_url.borrow().clone()).into_iter(),
+                        inline_md(t, man_pages_base_url.as_ref().map(Borrow::borrow).cloned())
+                            .into_iter(),
                     ),
                     Err(t) => itertools::Either::Right(
-                        inline_md(t, man_pages_base_url.borrow().clone())
+                        inline_md(t, man_pages_base_url.as_ref().map(Borrow::borrow).cloned())
                             .into_iter()
                             .map(Event::into_static)
                             .collect_vec()
                             .into_iter(),
                     ),
                 })
-                .chain(once(Event::End(TagEnd::Link)))
+                .chain(
+                    man_pages_base_url
+                        .is_some()
+                        .then_some(Event::End(TagEnd::Link)),
+                )
                 .chain(children.collect_vec())
                 .chain(once(Event::End(TagEnd::Item)))
         }))
         .chain(once(Event::End(TagEnd::List(true))))
 }
 
-fn inline_md<'a>(s: &'a str, man_pages_base_url: Url) -> impl IntoIterator<Item = Event<'a>> {
+fn inline_md<'a>(
+    s: &'a str,
+    man_pages_base_url: Option<Url>,
+) -> impl IntoIterator<Item = Event<'a>> {
     Markdown::parser(s, man_pages_base_url)
         .filter(|evt| evt != &Event::Start(Tag::Paragraph) && evt != &Event::End(TagEnd::Paragraph))
 }

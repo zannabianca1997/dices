@@ -41,18 +41,21 @@ impl<'a, T> Markdown<&'a T>
 where
     T: AsRef<str> + ?Sized,
 {
-    pub fn parser(text: &'a T, man_pages_base_url: Url) -> Parser<'a, impl BrokenLinkCallback<'a>> {
+    pub(crate) fn parser(
+        text: &'a T,
+        man_pages_base_url: Option<Url>,
+    ) -> Parser<'a, impl BrokenLinkCallback<'a>> {
         Parser::new_with_broken_link_callback(
             text.as_ref(),
             Options::empty(),
-            Some(move |link| broken_link_callback(link, &man_pages_base_url)),
+            Some(move |link| broken_link_callback(link, man_pages_base_url.as_ref())),
         )
     }
 }
 
 fn broken_link_callback<'a>(
     link: BrokenLink<'a>,
-    man_pages_base_url: &Url,
+    man_pages_base_url: Option<&Url>,
 ) -> Option<(CowStr<'a>, CowStr<'a>)> {
     if let Some((path, title)) = link.reference.split_once(". ")
         && let Ok(path) = path
@@ -69,7 +72,9 @@ fn broken_link_callback<'a>(
         }
 
         return Some((
-            page.url(man_pages_base_url.clone()).to_string().into(),
+            man_pages_base_url
+                .map(|base_url| page.url(base_url.clone()).to_string().into())
+                .unwrap_or_else(|| "".into()),
             match page.static_title() {
                 Ok(t) => t.into(),
                 Err(t) => t.to_owned().into(),
@@ -87,21 +92,28 @@ fn broken_link_callback<'a>(
 pub struct Ctx<R> {
     need_flow_separator: bool,
     code_render: R,
-    man_pages_base_url: Url,
+    man_pages_base_url: Option<Url>,
 }
 
 impl<R> Ctx<R> {
-    pub fn new(code_render: R, man_pages_base_url: Url) -> Self {
+    pub fn new(code_render: R) -> Self {
+        Self {
+            need_flow_separator: false,
+            code_render,
+            man_pages_base_url: None,
+        }
+    }
+    pub fn new_with_links(code_render: R, man_pages_base_url: Url) -> Self {
         debug_assert!(!man_pages_base_url.cannot_be_a_base());
         Self {
             need_flow_separator: false,
             code_render,
-            man_pages_base_url,
+            man_pages_base_url: Some(man_pages_base_url),
         }
     }
 
-    pub fn man_pages_base_url(&self) -> &Url {
-        &self.man_pages_base_url
+    pub fn man_pages_base_url(&self) -> Option<&Url> {
+        self.man_pages_base_url.as_ref()
     }
 }
 
@@ -126,7 +138,7 @@ where
     fn pretty(self, allocator: &'a D, ctx: &mut Ctx<R>) -> DocBuilder<'a, D> {
         Printer::new(&mut Self::parser(
             self.text,
-            ctx.man_pages_base_url().clone(),
+            ctx.man_pages_base_url().cloned(),
         ))
         .pretty(allocator, &mut PrinterCtx::new(ctx))
         .annotate(Element::Markdown(None))
@@ -421,7 +433,7 @@ fn markdown_element<'e, 'a, R>(
 
         TagEnd::CodeBlock => MarkdownElement::Code { inline: false },
 
-        TagEnd::Link => {
+        TagEnd::Link if ctx.root.man_pages_base_url.is_some() => {
             let PrinterCtxFrame::Generic {
                 tag:
                     Tag::Link {
@@ -442,12 +454,14 @@ fn markdown_element<'e, 'a, R>(
                 Ok(url) => MarkdownElement::Link { url },
                 Err(error) => {
                     if cfg!(debug_assertions) {
-                        dbg!(dest_url.into_static(), error);
+                        dbg!(dest_url, error);
                     }
                     return None;
                 }
             }
         }
+        // disabled manual link, simply do not tag
+        TagEnd::Link => return None,
 
         t @ (TagEnd::Image | TagEnd::HtmlBlock | TagEnd::BlockQuote(None)) => {
             todo!("Tag {t:?} still to implement")
