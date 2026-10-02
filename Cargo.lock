@@ -389,6 +389,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "dices-badge"
+version = "0.4.1"
+dependencies = [
+ "dices-engine",
+ "dices-man",
+ "dices-parser",
+ "dices-print",
+ "dices-print-cli",
+ "dices-std",
+ "dices-values",
+ "pretty",
+ "rand",
+]
+
+[[package]]
 name = "dices-cli"
 version = "0.4.1"
 dependencies = [

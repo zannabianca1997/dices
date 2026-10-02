@@ -1,0 +1,25 @@
+[package]
+name = "dices-badge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "dices_badge"
+# `rlib` so Rust tests can link it, `staticlib` so the Tactility app (C/C++) can
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+dices-engine.workspace = true
+dices-man.workspace = true
+dices-parser.workspace = true
+dices-print.workspace = true
+dices-print-cli.workspace = true
+dices-std.workspace = true
+dices-values.workspace = true
+
+pretty.workspace = true
+rand.workspace = true
+
+[lints]
+workspace = true

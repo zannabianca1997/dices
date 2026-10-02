@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
   "ast",
+  "badge",
   "cli",
   "engine",
   "man",
