@@ -1,0 +1,20 @@
+# ESP-IDF v6.1 (the version the Tactility 0.8.0-dev SDK is built against) plus
+# the espup Rust toolchain for building the dices-badge staticlib for the
+# badge's ESP32-S3.
+FROM espressif/idf:v6.1
+
+# Rust stable
+ENV RUSTUP_HOME=/opt/rustup \
+    CARGO_HOME=/opt/cargo \
+    PATH=/opt/cargo/bin:${PATH}
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable --profile minimal
+
+# espup: Rust fork with the Xtensa std target used by the ESP32-S3 (espidf)
+RUN curl -L https://github.com/esp-rs/espup/releases/latest/download/espup-x86_64-unknown-linux-gnu -o /usr/local/bin/espup \
+    && chmod +x /usr/local/bin/espup \
+    && espup install --targets xtensa-esp32s3-espidf \
+    && rm -rf /opt/rustup/downloads /opt/rustup/tmp
+
+# espup generates this; source it before using `cargo +esp`
+ENV ESPUP_EXPORT_FILE=/opt/export-esp.sh
+RUN bash -c 'test -f /opt/export-esp.sh || espup install --targets xtensa-esp32s3-espidf'

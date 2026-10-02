@@ -1,0 +1,8 @@
+# Tactility app build artifacts
+build/
+generated/
+sdk-cache/
+tools/
+managed_components/
+dependencies.lock
+.tactility/
