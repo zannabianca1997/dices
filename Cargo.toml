@@ -58,3 +58,19 @@ result_large_err = "allow"
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
+
+[patch.crates-io]
+# Vendored with ESP-IDF support: linkme-impl's cfg gates for the extern section
+# boundary symbols do not know `target_os = "espidf"`, which compiles fine but
+# leaves the distributed slices empty (and errors out) on the badge. ESP-IDF
+# uses the same GNU ld section mechanics as the supported `none`/`linux`.
+linkme-impl = { path = "badge/vendor/linkme-impl" }
+
+# Size-optimized profile for the badge staticlib: the app link feeds it to GNU
+# ld with --gc-sections, so debuginfo and unoptimized bloat translate directly
+# into minutes of link time (and dead weight on the badge).
+[profile.badge]
+inherits = "release"
+opt-level = "s"
+debug = false
+strip = "debuginfo"

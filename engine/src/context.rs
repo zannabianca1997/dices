@@ -205,10 +205,24 @@ where
     }
 
     fn abort(&mut self, reason: Value) -> ! {
-        #[cfg(not(panic = "unwind"))]
+        // The abort feature is implemented as a resume_unwind caught at the
+        // eval boundary, so it requires the unwind panic strategy. Platforms
+        // that only support abort (e.g. Xtensa ESP-IDF) must not bind
+        // `std.repl.abort` in their prelude instead: see dices-std's Abort.
+        #[cfg(not(any(panic = "unwind", target_os = "espidf")))]
         compile_error!("Panic must be implemented via unwind to support abort");
 
-        resume_unwind(Box::new(Abort { reason }))
+        #[cfg(panic = "unwind")]
+        resume_unwind(Box::new(Abort { reason }));
+
+        #[cfg(all(not(panic = "unwind"), target_os = "espidf"))]
+        {
+            // Unreachable if `std.repl.abort` is not bound. Should it ever be
+            // reached, stop rather than corrupt the host: on Tactility the
+            // crash handler reports it and the system recovers.
+            let _ = reason;
+            std::process::exit(70);
+        }
     }
 }
 

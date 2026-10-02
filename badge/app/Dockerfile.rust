@@ -9,12 +9,11 @@ ENV RUSTUP_HOME=/opt/rustup \
     PATH=/opt/cargo/bin:${PATH}
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable --profile minimal
 
-# espup: Rust fork with the Xtensa std target used by the ESP32-S3 (espidf)
-RUN curl -L https://github.com/esp-rs/espup/releases/latest/download/espup-x86_64-unknown-linux-gnu -o /usr/local/bin/espup \
+# espup: Rust fork with the Xtensa std target used by the ESP32-S3 (espidf).
+# `--std` skips the GCC download: this image already ships the ESP-IDF
+# toolchain (xtensa-esp-elf-gcc), which the app build uses anyway.
+RUN curl -L https://github.com/esp-rs/espup/releases/latest/download/espup-x86_64-unknown-linux-gnu \
+        -o /usr/local/bin/espup \
     && chmod +x /usr/local/bin/espup \
-    && espup install --targets xtensa-esp32s3-espidf \
+    && espup install --targets esp32s3 --toolchain-version 1.96.0.0 --export-file /opt/export-esp.sh \
     && rm -rf /opt/rustup/downloads /opt/rustup/tmp
-
-# espup generates this; source it before using `cargo +esp`
-ENV ESPUP_EXPORT_FILE=/opt/export-esp.sh
-RUN bash -c 'test -f /opt/export-esp.sh || espup install --targets xtensa-esp32s3-espidf'

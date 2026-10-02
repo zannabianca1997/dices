@@ -81,9 +81,23 @@ pub fn PrintMarkdown(
 /// >>> { let x = 2; abort("calculation stopped"); x }
 /// "calculation stopped"
 /// ```
+///
+/// On platforms without unwinding (e.g. Xtensa ESP-IDF, where only the abort
+/// panic strategy is supported) this binding is kept but always fails, so
+/// programs get a normal error instead of a crash.
+#[cfg(not(target_os = "espidf"))]
 #[injectable]
 pub fn Abort(#[cx] cx: &mut (impl InjectedContext + ?Sized), reason: Value) -> ! {
     cx.abort(reason)
+}
+
+#[cfg(target_os = "espidf")]
+#[injectable]
+pub fn Abort(
+    #[cx] _cx: &mut (impl InjectedContext + ?Sized),
+    _reason: Value,
+) -> Result<(), Box<dyn Error>> {
+    Err("abort is not supported on this platform".into())
 }
 
 /// 5.4.5. Help
