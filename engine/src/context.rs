@@ -474,12 +474,16 @@ impl Scope {
     ///
     /// Filles in the global variable from the prelude
     pub fn new_global(std: TypedValueInjected<Std>) -> Self {
-        let prelude = std
-            .project(|s| &s.prelude)
-            .as_type_erased()
-            .read()
-            .unwrap()
-            .unwrap_map()
+        crate::badge_debug_mark("S:project\n");
+        let projected = std.project(|s| &s.prelude);
+        crate::badge_debug_mark("S:erased\n");
+        let erased = projected.as_type_erased();
+        crate::badge_debug_mark("S:read\n");
+        let value = erased.read().unwrap();
+        crate::badge_debug_mark("S:unwrap-map\n");
+        let map = value.unwrap_map();
+        crate::badge_debug_mark("S:collect\n");
+        let prelude = map
             .into_iter()
             .map(|(k, v)| {
                 (
@@ -489,6 +493,7 @@ impl Scope {
                 )
             })
             .collect();
+        crate::badge_debug_mark("S:done\n");
 
         Self { vars: prelude }
     }

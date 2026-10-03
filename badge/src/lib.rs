@@ -172,6 +172,37 @@ impl BadgeRepl {
         crate::raw_mark("R:new-entered\n");
         let seed: [u8; 16] = OsRng.r#gen();
         crate::raw_mark("R:seeded\n");
+
+        // TEMP diagnostic: exercise the allocator and Rust's data structures
+        // before the engine touches anything, to separate "infrastructure is
+        // broken" from "the std's prelude data is broken".
+        {
+            use std::collections::BTreeMap;
+
+            let mut map: BTreeMap<u32, Vec<u8>> = BTreeMap::new();
+            crate::raw_mark("T:map-created\n");
+
+            for i in 0..200u32 {
+                map.insert(i, vec![i as u8; 16]);
+            }
+
+            crate::raw_mark("T:map-filled\n");
+
+            let sum: u32 = map.values().map(|v| v.len() as u32).sum();
+            crate::raw_mark(if sum == 3200 {
+                "T:map-sum-ok\n"
+            } else {
+                "T:map-sum-bad\n"
+            });
+
+            let joined: String = map.keys().map(|k| k.to_string()).collect();
+            crate::raw_mark(if joined.len() > 100 {
+                "T:string-ok\n"
+            } else {
+                "T:string-bad\n"
+            });
+        }
+
         Self::with_seed(seed)
     }
 
