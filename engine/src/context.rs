@@ -474,28 +474,25 @@ impl Scope {
     ///
     /// Filles in the global variable from the prelude
     pub fn new_global(std: TypedValueInjected<Std>) -> Self {
-        crate::badge_debug_mark("S:project\n");
         let projected = std.project(|s| &s.prelude);
-        crate::badge_debug_mark("S:erased\n");
         let erased = projected.as_type_erased();
-        crate::badge_debug_mark("S:read\n");
         let value = erased.read().unwrap();
-        crate::badge_debug_mark("S:unwrap-map\n");
         let map = value.unwrap_map();
-        crate::badge_debug_mark("S:collect\n");
-        let prelude = map
-            .into_iter()
-            .map(|(k, v)| {
-                (
-                    Identifier::new(k)
-                        .expect("All values in prelude should have a valid identifier as a key"),
-                    v,
-                )
-            })
-            .collect();
-        crate::badge_debug_mark("S:done\n");
 
-        Self { vars: prelude }
+        // Iterate by reference and clone each entry instead of consuming the
+        // map: `into_iter()` on the shared ValueMap calls Arc::unwrap_or_clone,
+        // which deep-clones the whole BTreeMap recursively. That is both a large
+        // allocation and deep stack usage, which is painful on the badge.
+        let mut vars = BTreeMap::new();
+
+        for (k, v) in map.iter() {
+            let key = Identifier::new(k.clone())
+                .expect("All values in prelude should have a valid identifier as a key");
+
+            vars.insert(key, v.clone());
+        }
+
+        Self { vars }
     }
 }
 

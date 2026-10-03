@@ -83,22 +83,6 @@ mod esp_alloc {
 #[global_allocator]
 static ESP_HEAP: esp_alloc::EspHeap = esp_alloc::EspHeap;
 
-/// Write a marker straight to fd 1: no stdio, no buffering, no allocation, so a
-/// marker that shows up on the badge console proves execution reached that line.
-#[cfg(target_os = "espidf")]
-pub(crate) fn raw_mark(s: &str) {
-    unsafe extern "C" {
-        fn write(fd: i32, buf: *const u8, n: usize) -> isize;
-    }
-
-    unsafe {
-        let _ = write(1, s.as_ptr(), s.len());
-    }
-}
-
-#[cfg(not(target_os = "espidf"))]
-pub(crate) fn raw_mark(_s: &str) {}
-
 pub mod ffi;
 pub mod manual_resource;
 
@@ -169,50 +153,13 @@ impl Default for BadgeRepl {
 impl BadgeRepl {
     /// Create a REPL with a random seed and the default wrap width.
     pub fn new() -> Self {
-        crate::raw_mark("R:new-entered\n");
-        let seed: [u8; 16] = OsRng.r#gen();
-        crate::raw_mark("R:seeded\n");
-
-        // TEMP diagnostic: exercise the allocator and Rust's data structures
-        // before the engine touches anything, to separate "infrastructure is
-        // broken" from "the std's prelude data is broken".
-        {
-            use std::collections::BTreeMap;
-
-            let mut map: BTreeMap<u32, Vec<u8>> = BTreeMap::new();
-            crate::raw_mark("T:map-created\n");
-
-            for i in 0..200u32 {
-                map.insert(i, vec![i as u8; 16]);
-            }
-
-            crate::raw_mark("T:map-filled\n");
-
-            let sum: u32 = map.values().map(|v| v.len() as u32).sum();
-            crate::raw_mark(if sum == 3200 {
-                "T:map-sum-ok\n"
-            } else {
-                "T:map-sum-bad\n"
-            });
-
-            let joined: String = map.keys().map(|k| k.to_string()).collect();
-            crate::raw_mark(if joined.len() > 100 {
-                "T:string-ok\n"
-            } else {
-                "T:string-bad\n"
-            });
-        }
-
-        Self::with_seed(seed)
+        Self::with_seed(OsRng.r#gen())
     }
 
     /// Create a REPL with a fixed seed (for deterministic tests).
     pub fn with_seed(seed: [u8; 16]) -> Self {
-        crate::raw_mark("R:constructing-std\n");
         let std = Std::new(StdOptions::sandboxed());
-        crate::raw_mark("R:std-constructed\n");
         let engine = Engine::new(seed, std);
-        crate::raw_mark("R:engine-constructed\n");
         Self {
             engine,
             width: DEFAULT_WIDTH,
