@@ -60,18 +60,14 @@ void evaluate(Context *ctx) {
 /** Text of the button that swaps the dice pad for the full keyboard. */
 static constexpr const char *TOGGLE_KEYBOARD_LABEL = "abc " LV_SYMBOL_KEYBOARD;
 
-/** Focus @a obj in whatever group it belongs to (the window's input group). */
-static void focusObj(lv_obj_t *obj) {
-  lv_group_t *group = lv_obj_get_group(obj);
-  if (group != nullptr) {
-    lv_group_focus_obj(obj);
-  }
-}
-
 /**
- * Show the dice pad, the full keyboard or neither. Focusing the widget that is
- * on screen keeps the badge's arrow keys with it: on the pads they move between
- * buttons, on the history they scroll it.
+ * Show the dice pad, the full keyboard or neither.
+ *
+ * Focus is deliberately left alone: Tactility's keypad sends its arrows as
+ * LV_KEY_PREV/NEXT (focus navigation) and only turns them into LV_KEY_UP/DOWN
+ * for the widget that has focus and claims them (LV_OBJ_FLAG_USER_1/2). The pads
+ * claim them; the history is scrolled by us instead (see onPadKey), so nothing
+ * here has to steal focus from wherever the keypad already put it.
  */
 static void setInputMode(Context *ctx, InputMode mode) {
   ctx->inputMode = mode;
@@ -87,34 +83,38 @@ static void setInputMode(Context *ctx, InputMode mode) {
   } else {
     lv_obj_add_flag(ctx->fullKeyboard, LV_OBJ_FLAG_HIDDEN);
   }
+}
 
-  switch (mode) {
-  case InputMode::Dice:
-    focusObj(ctx->tokenPad);
-    break;
-  case InputMode::Full:
-    focusObj(ctx->fullKeyboard);
-    break;
-  case InputMode::Results:
-    focusObj(ctx->outputArea);
-    break;
-  }
+/** Scroll the history by one screenful-ish step, clamped to its extent. */
+void scrollHistory(Context *ctx, bool up) {
+  constexpr int32_t STEP = 40;
+
+  int32_t y = lv_obj_get_scroll_y(ctx->outputArea) + (up ? -STEP : STEP);
+  if (y < 0)
+    y = 0;
+
+  lv_obj_scroll_to_y(ctx->outputArea, y, LV_ANIM_OFF);
 }
 
 /**
- * While the history has the screen, the arrows move its cursor, which scrolls it
- * (nothing can be typed into it: see accepted_chars below). Any other key starts
- * a new input line.
+ * With the pads collapsed the history has the screen: the arrows scroll it and
+ * any other key brings the dice pad back. The pads keep the keypad's focus while
+ * hidden, which is what delivers these keys here.
  */
-void onHistoryKey(lv_event_t *e) {
+void onPadKey(lv_event_t *e) {
   if (lv_event_get_code(e) != LV_EVENT_KEY)
     return;
 
-  uint32_t key = lv_event_get_key(e);
-  if (key == LV_KEY_UP || key == LV_KEY_DOWN)
-    return;
-
   auto *ctx = static_cast<Context *>(lv_event_get_user_data(e));
+  if (ctx->inputMode != InputMode::Results)
+    return; // a visible pad handles its own navigation
+
+  uint32_t key = lv_event_get_key(e);
+  if (key == LV_KEY_UP || key == LV_KEY_DOWN) {
+    scrollHistory(ctx, key == LV_KEY_UP);
+    return;
+  }
+
   setInputMode(ctx, InputMode::Dice);
 }
 
@@ -144,6 +144,14 @@ void onMatrixPressed(lv_event_t *e) {
     return;
 
   auto *ctx = static_cast<Context *>(lv_event_get_user_data(e));
+
+  // Collapsed: the first pad press just brings the pad back (and is swallowed,
+  // so it cannot append a token to the next expression).
+  if (ctx->inputMode == InputMode::Results) {
+    setInputMode(ctx, InputMode::Dice);
+    return;
+  }
+
   lv_obj_t *matrix = lv_event_get_current_target_obj(e);
   uint32_t buttonId = lv_buttonmatrix_get_selected_button(matrix);
   if (buttonId == LV_BUTTONMATRIX_BUTTON_NONE)
@@ -182,11 +190,7 @@ void dicesCreateWidgets(lv_obj_t *parent, void *userData) {
   lv_textarea_set_one_line(ctx->outputArea, false);
   lv_obj_set_width(ctx->outputArea, LV_PCT(100));
   lv_obj_set_flex_grow(ctx->outputArea, 1);
-  lv_obj_add_flag(ctx->outputArea, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_event_cb(ctx->outputArea, onHistoryKey, LV_EVENT_KEY, ctx);
-  // Read-only, in effect: the history is output, so keystrokes must not land in
-  // it. Arrow keys still move the cursor, and the view scrolls with it.
-  lv_textarea_set_accepted_chars(ctx->outputArea, "");
+  lv_obj_remove_flag(ctx->outputArea, LV_OBJ_FLAG_CLICKABLE);
   lv_textarea_set_text(ctx->outputArea, "dices!\n");
 
   // One-line input
@@ -228,11 +232,13 @@ void dicesCreateWidgets(lv_obj_t *parent, void *userData) {
   }
 
   // Claim the arrow keys: with these flags the badge's keypad driver sends
-  // LV_KEY_UP/DOWN/LEFT/RIGHT to the matrix instead of walking the focus ring
+  // LV_KEY_UP/DOWN/LEFT/RIGHT to the matrix instead of walking the focus ring.
+  // That is also what lets a collapsed pad scroll the history (onPadKey).
   lv_obj_add_flag(ctx->tokenPad, LV_OBJ_FLAG_USER_1);
   lv_obj_add_flag(ctx->tokenPad, LV_OBJ_FLAG_USER_2);
   lv_obj_add_event_cb(ctx->tokenPad, onMatrixPressed, LV_EVENT_VALUE_CHANGED,
                       ctx);
+  lv_obj_add_event_cb(ctx->tokenPad, onPadKey, LV_EVENT_KEY, ctx);
 
   // Full keyboard, hidden until asked for. `1#` reaches the symbol map (with
   // `(`, `)`, `{`, `}`, `;`, quotes and brackets), `abc`/`ABC` the letters.
@@ -243,6 +249,7 @@ void dicesCreateWidgets(lv_obj_t *parent, void *userData) {
   lv_obj_add_flag(ctx->fullKeyboard, LV_OBJ_FLAG_USER_2);
   lv_obj_add_event_cb(ctx->fullKeyboard, onKeyboardEvent, LV_EVENT_READY, ctx);
   lv_obj_add_event_cb(ctx->fullKeyboard, onKeyboardEvent, LV_EVENT_CANCEL, ctx);
+  lv_obj_add_event_cb(ctx->fullKeyboard, onPadKey, LV_EVENT_KEY, ctx);
 
   setInputMode(ctx, InputMode::Dice);
 }
