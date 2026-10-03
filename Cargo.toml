@@ -71,6 +71,8 @@ linkme-impl = { path = "badge/vendor/linkme-impl" }
 # into minutes of link time (and dead weight on the badge).
 [profile.badge]
 inherits = "release"
-opt-level = "s"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
 debug = false
 strip = "debuginfo"

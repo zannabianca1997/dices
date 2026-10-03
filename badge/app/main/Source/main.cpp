@@ -12,6 +12,7 @@
 #include <tactility/check.h>
 
 #include <cstdio>
+#include <unistd.h>
 #include <cstdlib>
 
 namespace {
@@ -49,12 +50,30 @@ void loadManual(dices_repl_t* repl) {
 
 extern "C" {
 
+/* Raw fd write: no stdio buffering, so a marker shown here means the app really
+ * reached that point. */
+static void mark(const char* s) {
+  size_t n = 0;
+  while (s[n]) {
+    n++;
+  }
+  ssize_t written = write(1, s, n);
+  (void)written;
+}
+
 int main(int argc, char *argv[]) {
+  mark("M:main-entered\n");
+
   AppInstanceId app_instance_id = app_scheduler_current_app_id();
+  mark("M:scheduler-ok\n");
 
   Context ctx{};
   ctx.appInstanceId = app_instance_id;
+  mark("M:before-dices-repl-new\n");
   ctx.repl = dices_repl_new();
+  mark("M:repl-created\n");
+  loadManual(ctx.repl);
+  mark("M:manual-loaded\n");
 
   struct TaskEventGroup event_group{};
   task_event_group_construct(&event_group);
@@ -64,6 +83,7 @@ int main(int argc, char *argv[]) {
 
   WindowId window =
       window_manager_create(app_instance_id, dicesCreateWidgets, &ctx);
+  mark("M:window-created\n");
 
   bool should_close = false;
   while (!should_close) {

@@ -27,7 +27,10 @@ pub const DICES_STATUS_MANUAL_ERROR: c_int = 3;
 /// The returned pointer must be released with [`dices_repl_free`].
 #[unsafe(no_mangle)]
 pub extern "C" fn dices_repl_new() -> *mut BadgeRepl {
-    Box::into_raw(Box::new(BadgeRepl::new()))
+    crate::raw_mark("R:ffi-entered\n");
+    let repl = Box::new(BadgeRepl::new());
+    crate::raw_mark("R:boxed\n");
+    Box::into_raw(repl)
 }
 
 /// Release a REPL. Passing null is ignored.

@@ -22,6 +22,83 @@ use dices_values::{Value, cast::push_down_if_injected, null::ValueNull, string::
 use pretty::Arena;
 use rand::{Rng, rngs::OsRng};
 
+/// Allocator for the badge firmware.
+///
+/// Rust's default allocator on ESP-IDF calls `posix_memalign`, which the
+/// Tactility app loader does not export to apps, so linking succeeds but
+/// relocation fails with "Can't find common posix_memalign". `malloc`/`free`
+/// are exported, so allocate through them and keep the raw `malloc` pointer in
+/// a header word in front of the returned block to support any alignment.
+#[cfg(target_os = "espidf")]
+mod esp_alloc {
+    use core::alloc::{GlobalAlloc, Layout};
+    use core::ffi::c_void;
+    use core::ptr;
+
+    unsafe extern "C" {
+        fn malloc(size: usize) -> *mut c_void;
+        fn free(ptr: *mut c_void);
+    }
+
+    /// Size of the header holding the pointer returned by `malloc`.
+    const HDR: usize = core::mem::size_of::<usize>();
+
+    pub struct EspHeap;
+
+    unsafe impl GlobalAlloc for EspHeap {
+        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+            unsafe {
+                let align = layout.align().max(HDR);
+
+                let Some(total) = layout.size().checked_add(align + HDR) else {
+                    return ptr::null_mut();
+                };
+
+                let raw = malloc(total) as usize;
+                if raw == 0 {
+                    return ptr::null_mut();
+                }
+
+                let addr = (raw + HDR + align - 1) & !(align - 1);
+                *((addr - HDR) as *mut usize) = raw;
+
+                addr as *mut u8
+            }
+        }
+
+        unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
+            unsafe {
+                if ptr.is_null() {
+                    return;
+                }
+
+                let raw = *((ptr as usize - HDR) as *const usize);
+                free(raw as *mut c_void);
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "espidf")]
+#[global_allocator]
+static ESP_HEAP: esp_alloc::EspHeap = esp_alloc::EspHeap;
+
+/// Write a marker straight to fd 1: no stdio, no buffering, no allocation, so a
+/// marker that shows up on the badge console proves execution reached that line.
+#[cfg(target_os = "espidf")]
+pub(crate) fn raw_mark(s: &str) {
+    unsafe extern "C" {
+        fn write(fd: i32, buf: *const u8, n: usize) -> isize;
+    }
+
+    unsafe {
+        let _ = write(1, s.as_ptr(), s.len());
+    }
+}
+
+#[cfg(not(target_os = "espidf"))]
+pub(crate) fn raw_mark(_s: &str) {}
+
 pub mod ffi;
 pub mod manual_resource;
 
@@ -92,13 +169,21 @@ impl Default for BadgeRepl {
 impl BadgeRepl {
     /// Create a REPL with a random seed and the default wrap width.
     pub fn new() -> Self {
-        Self::with_seed(OsRng.r#gen())
+        crate::raw_mark("R:new-entered\n");
+        let seed: [u8; 16] = OsRng.r#gen();
+        crate::raw_mark("R:seeded\n");
+        Self::with_seed(seed)
     }
 
     /// Create a REPL with a fixed seed (for deterministic tests).
     pub fn with_seed(seed: [u8; 16]) -> Self {
+        crate::raw_mark("R:constructing-std\n");
+        let std = Std::new(StdOptions::sandboxed());
+        crate::raw_mark("R:std-constructed\n");
+        let engine = Engine::new(seed, std);
+        crate::raw_mark("R:engine-constructed\n");
         Self {
-            engine: Engine::new(seed, Std::new(StdOptions::sandboxed())),
+            engine,
             width: DEFAULT_WIDTH,
             manual_pages: PrerenderedManual::default(),
         }
