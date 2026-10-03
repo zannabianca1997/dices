@@ -32,6 +32,8 @@ if [[ -n "${TARGET}" ]]; then
             # and dices-std's std.repl.abort) and compiles fine under abort.
             BUILD_STD=1
             CARGO_ARGS+=("-Z" "build-std=std,panic_abort")
+            # Strip panic formatting from std: big savings, and dices errors
+            # are values, not panics, so nothing user-facing is lost
             ;;
     esac
 fi

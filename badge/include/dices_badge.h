@@ -21,6 +21,7 @@ enum {
     DICES_STATUS_OK = 0,
     DICES_STATUS_PARSE_ERROR = 1,
     DICES_STATUS_EVAL_ERROR = 2,
+    DICES_STATUS_MANUAL_ERROR = 3,
     DICES_STATUS_INVALID_ARG = -1,
     /** OR-ed into a status when the output did not fit the buffer. */
     DICES_STATUS_TRUNCATED = 0x100,
@@ -41,6 +42,16 @@ dices_repl_t *dices_repl_new(void);
  * A non-positive width is ignored.
  */
 void dices_repl_set_width(dices_repl_t *repl, int width);
+
+/**
+ * Load the prerendered manual (a blob produced by the host-side prerender
+ * tool). Until this is called, the manual pages are unavailable.
+ *
+ * @return DICES_STATUS_OK, DICES_STATUS_MANUAL_ERROR if the blob is malformed,
+ *         or DICES_STATUS_INVALID_ARG if a pointer is NULL.
+ */
+int dices_repl_set_manual(dices_repl_t *repl, const unsigned char *data,
+                          size_t len);
 
 /** Forget all variables and re-seed the REPL with a fresh random seed. */
 void dices_repl_reset(dices_repl_t *repl);

@@ -27,6 +27,9 @@ project(dices)
 # needs (unused members are dropped; everything the OS provides stays
 # undefined for the loader to resolve).
 set(ELF_LIBS
+    # Nothing imports the app's own symbols (the package is self-contained),
+    # so hide the huge Rust symbol tables from the dynamic symbol section
+    "-Wl,--exclude-libs=ALL"
     "-Wl,--whole-archive"
     "${DICES_STATICLIB}"
     "-Wl,--no-whole-archive"
@@ -34,3 +37,12 @@ set(ELF_LIBS
 )
 
 tactility_project_post(dices)
+
+# The SDK's project_elf() custom command depends on the component archives but
+# not on the Rust staticlib, so ninja would happily keep an app.elf linked
+# against a stale libdices_badge.a. Declare the dependency explicitly.
+add_custom_command(
+    OUTPUT ${CMAKE_PROJECT_NAME}.app.elf
+    APPEND
+    DEPENDS "${DICES_STATICLIB}"
+)

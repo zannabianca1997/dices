@@ -17,6 +17,8 @@ pub const DICES_STATUS_EVAL_ERROR: c_int = 2;
 pub const DICES_STATUS_INVALID_ARG: c_int = -1;
 /// OR-ed into a status when the output did not fit in the buffer.
 pub const DICES_STATUS_TRUNCATED: c_int = 0x100;
+/// The manual blob could not be parsed ([`dices_repl_set_manual`]).
+pub const DICES_STATUS_MANUAL_ERROR: c_int = 3;
 
 /// Create a new REPL with a random seed and the default wrap width.
 ///
@@ -65,6 +67,39 @@ pub unsafe extern "C" fn dices_repl_set_width(repl: *mut BadgeRepl, width: c_int
         && width > 0
     {
         repl.set_width(width as usize);
+    }
+}
+
+/// Load the prerendered manual (a blob produced by `src/bin/prerender.rs`).
+///
+/// Until this is called, `std.help` answers that pages are unavailable: the
+/// badge does not link the markdown renderer that would render them.
+///
+/// # Safety
+///
+/// `repl` must come from [`dices_repl_new`] and still be valid; `data` must be
+/// readable for `len` bytes.
+#[unsafe(no_mangle)]
+#[allow(clippy::cast_possible_truncation)]
+pub unsafe extern "C" fn dices_repl_set_manual(
+    repl: *mut BadgeRepl,
+    data: *const u8,
+    len: usize,
+) -> c_int {
+    // SAFETY: the caller guarantees `repl` is valid or null and `data`/`len`
+    // describe a readable buffer.
+    unsafe {
+        let Some(repl) = repl.as_mut() else {
+            return DICES_STATUS_INVALID_ARG;
+        };
+        if data.is_null() {
+            return DICES_STATUS_INVALID_ARG;
+        }
+        let blob = core::slice::from_raw_parts(data, len);
+        match repl.set_manual(blob) {
+            Ok(()) => DICES_STATUS_OK,
+            Err(_) => DICES_STATUS_MANUAL_ERROR,
+        }
     }
 }
 

@@ -9,6 +9,16 @@ name = "dices_badge"
 # `rlib` so Rust tests can link it, `staticlib` so the Tactility app (C/C++) can
 crate-type = ["staticlib", "rlib"]
 
+[features]
+# Host-only manual prerenderer (see src/bin/prerender.rs): gated so a
+# `cargo build -p dices-badge` for the target never tries to build it.
+prerender = []
+
+[[bin]]
+name = "prerender"
+path = "src/bin/prerender.rs"
+required-features = ["prerender"]
+
 [dependencies]
 dices-engine.workspace = true
 dices-man.workspace = true

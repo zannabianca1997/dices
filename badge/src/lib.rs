@@ -15,20 +15,17 @@ use std::convert::Infallible;
 use dices_engine::{Engine, Evaluator, ui::Ui};
 use dices_man::ManPage;
 use dices_parser::parse_scope_inner;
-use dices_print::{
-    Element, Pretty as _,
-    error::ErrorReport,
-    manual,
-    markdown::{DefaultCodeRender, Markdown},
-    theme::Style,
-};
-use dices_print_cli::{examples::CliCodeRender, render as render_doc};
+use dices_print::{Element, Pretty as _, error::ErrorReport, theme::Style};
+use dices_print_cli::render as render_doc;
 use dices_std::{Std, StdOptions};
 use dices_values::{Value, cast::push_down_if_injected, null::ValueNull, string::ValueString};
 use pretty::Arena;
 use rand::{Rng, rngs::OsRng};
 
 pub mod ffi;
+pub mod manual_resource;
+
+use manual_resource::PrerenderedManual;
 
 /// Wrap width chosen to fit the badge display (320 px wide).
 pub const DEFAULT_WIDTH: usize = 40;
@@ -83,6 +80,7 @@ pub struct Output {
 pub struct BadgeRepl {
     engine: Engine,
     width: usize,
+    manual_pages: PrerenderedManual,
 }
 
 impl Default for BadgeRepl {
@@ -102,7 +100,15 @@ impl BadgeRepl {
         Self {
             engine: Engine::new(seed, Std::new(StdOptions::sandboxed())),
             width: DEFAULT_WIDTH,
+            manual_pages: PrerenderedManual::default(),
         }
+    }
+
+    /// Load the prerendered manual (see [`manual_resource`]) so `std.help` can
+    /// show pages without the markdown renderer being linked into the app.
+    pub fn set_manual(&mut self, blob: &[u8]) -> Result<(), manual_resource::ParseError> {
+        self.manual_pages = PrerenderedManual::parse(blob)?;
+        Ok(())
     }
 
     /// Set the wrap width used when rendering output.
@@ -133,6 +139,7 @@ impl BadgeRepl {
         let ui = CollectUi {
             printed: &printed,
             width: self.width,
+            manual_pages: &self.manual_pages,
         };
 
         let result = parse_scope_inner(&ValueString::new(input.to_owned()))
@@ -196,6 +203,7 @@ fn render<'a>(
 struct CollectUi<'a> {
     printed: &'a RefCell<Vec<String>>,
     width: usize,
+    manual_pages: &'a PrerenderedManual,
 }
 
 impl CollectUi<'_> {
@@ -227,21 +235,25 @@ impl Ui for CollectUi<'_> {
         Ok(())
     }
 
+    /// Markdown that the program prints itself is shown as plain text: the
+    /// badge does not link a markdown renderer.
     fn print_md<V: AsRef<str> + Into<ValueString>>(
         &self,
         value: V,
     ) -> Result<(), Self::PrintError> {
-        let arena = Arena::new();
-        let markdown = Markdown::new(value.as_ref());
-        let ctx = manual::Ctx::new((CliCodeRender::new(BadgePrompt), DefaultCodeRender));
-        self.push(render(self.width, &arena, markdown.with_ctx(ctx)));
-        Ok(())
+        self.print_str(value)
     }
 
     fn manual(&self, item: &ManPage) -> Result<(), Self::PrintError> {
-        let arena = Arena::new();
-        let ctx = manual::Ctx::new((CliCodeRender::new(BadgePrompt), DefaultCodeRender));
-        self.push(render(self.width, &arena, item.with_ctx(ctx)));
+        match self.manual_pages.page(item.path()) {
+            Some(text) => {
+                self.push(text.to_owned());
+                if !text.ends_with('\n') {
+                    self.push("\n".into());
+                }
+            }
+            None => self.push("Man page not available on this device.\n".into()),
+        }
         Ok(())
     }
 }

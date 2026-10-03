@@ -1,6 +1,7 @@
 #include "Dices.h"
 
 #include <app/event.h>
+#include <app/paths.h>
 #include <app/manager.h>
 #include <app/scheduler.h>
 
@@ -9,6 +10,42 @@
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/check.h>
+
+#include <cstdio>
+#include <cstdlib>
+
+namespace {
+
+/** Must match app.id in manifest.properties. */
+constexpr const char* APP_ID = "site.zannabianca1997.dices";
+
+/**
+ * The manual is prerendered at build time and shipped in the app's assets: the
+ * app does not link a markdown renderer to be able to show it.
+ */
+void loadManual(dices_repl_t* repl) {
+    char path[192];
+    if (app_paths_get_assets_path(APP_ID, "manual.bin", path, sizeof(path)) != ERROR_NONE) {
+        return;
+    }
+    FILE* file = fopen(path, "rb");
+    if (file == nullptr) {
+        return;
+    }
+    fseek(file, 0, SEEK_END);
+    const long size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    if (size > 0) {
+        auto* data = static_cast<unsigned char*>(malloc(static_cast<size_t>(size)));
+        if (data != nullptr && fread(data, 1, static_cast<size_t>(size), file) == static_cast<size_t>(size)) {
+            dices_repl_set_manual(repl, data, static_cast<size_t>(size));
+        }
+        free(data);
+    }
+    fclose(file);
+}
+
+} // namespace
 
 extern "C" {
 
