@@ -31,7 +31,7 @@ nu-ansi-term = { version = "0.50.3", features = ["derive_serde_style", "serde"] 
 pretty.workspace = true
 rand.workspace = true
 rand_seeder.workspace = true
-reedline = "0.48.0"
+reedline = "0.53.0"
 rust-embed.workspace = true
 serde.workspace = true
 snafu.workspace = true

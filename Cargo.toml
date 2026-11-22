@@ -41,8 +41,8 @@ linkme = "0.3.36"
 num = { version = "0.4.3", features = ["num-bigint", "rand", "serde"] }
 pretty = "0.12.5"
 pulldown-cmark = "0.13.4"
-rand = "0.8.6"
-rand_seeder = "0.3.0"
+rand = "0.10.0"
+rand_seeder = "0.5.0"
 rust-embed = { version = "8.11.0", features = ["interpolate-folder-path"] }
 serde = { version = "1.0.228", features = ["derive", "rc"] }
 serde_json = "1.0"

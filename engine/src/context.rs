@@ -10,7 +10,7 @@ use std::{
 };
 
 use num::{FromPrimitive, traits::ConstOne};
-use rand::Rng;
+use rand::RngExt;
 use rand_seeder::Seeder;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -135,7 +135,7 @@ where
     Ui: crate::ui::Ui,
 {
     fn rng_seed(&mut self, seed: impl Hash) {
-        self.engine.rng = Seeder::from(seed).make_rng();
+        self.engine.rng = Seeder::from(seed).into_rng();
     }
 
     fn rng_save<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -152,7 +152,7 @@ where
         } else {
             faces..=ValueInt::ONE
         };
-        self.engine.rng.gen_range(range)
+        self.engine.rng.random_range(range)
     }
 
     fn let_var(&mut self, name: Identifier, value: Value) {

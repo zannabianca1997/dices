@@ -3,6 +3,7 @@ use std::{borrow::Cow, fmt::Display};
 use dices_print::theme::Style;
 use dices_print_cli::convert_color;
 use elsa::sync::FrozenMap;
+use reedline::Color;
 use rust_embed::Embed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use termcolor::Color as TermColor;
@@ -50,10 +51,10 @@ pub struct Theme {
     name: String,
     sheet: Yoke<StyleSheet<'static>, Vec<Cow<'static, str>>>,
     cache: FrozenMap<Element, Box<Style>>,
-    prompt: reedline::Color,
-    prompt_indicator: reedline::Color,
-    prompt_multiline: nu_ansi_term::Color,
-    prompt_right: reedline::Color,
+    prompt: Color,
+    prompt_indicator: Color,
+    prompt_multiline: Color,
+    prompt_right: Color,
 }
 
 impl std::fmt::Debug for Theme {
@@ -81,19 +82,19 @@ impl Theme {
         })
     }
 
-    pub fn prompt(&self) -> reedline::Color {
+    pub fn prompt(&self) -> Color {
         self.prompt
     }
 
-    pub fn prompt_indicator(&self) -> reedline::Color {
+    pub fn prompt_indicator(&self) -> Color {
         self.prompt_indicator
     }
 
-    pub fn prompt_multiline(&self) -> nu_ansi_term::Color {
+    pub fn prompt_multiline(&self) -> Color {
         self.prompt_multiline
     }
 
-    pub fn prompt_right(&self) -> reedline::Color {
+    pub fn prompt_right(&self) -> Color {
         self.prompt_right
     }
 
@@ -113,10 +114,10 @@ impl Default for Theme {
             },
             sheet: Yoke::attach_to_cart(Vec::new(), |_| Default::default()),
             cache: Default::default(),
-            prompt: reedline::Color::Reset,
-            prompt_indicator: reedline::Color::Reset,
-            prompt_multiline: nu_ansi_term::Color::Default,
-            prompt_right: reedline::Color::Reset,
+            prompt: Color::Default,
+            prompt_indicator: Color::Default,
+            prompt_multiline: Color::Default,
+            prompt_right: Color::Default,
         }
     }
 }
@@ -172,17 +173,17 @@ impl<'de> Deserialize<'de> for Theme {
             Ok::<_, D::Error>(sheet)
         })?;
 
-        let prompt = reedline_color(style(&sheet, &Element::Prompt(None)));
-        let prompt_indicator = reedline_color(style(
+        let prompt = style_to_color(style(&sheet, &Element::Prompt(None)));
+        let prompt_indicator = style_to_color(style(
             &sheet,
             &Element::Prompt(Some(PromptElement::Indicator)),
         ));
-        let prompt_multiline = nu_color(style(
+        let prompt_multiline = style_to_color(style(
             &sheet,
             &Element::Prompt(Some(PromptElement::Multiline)),
         ));
         let prompt_right =
-            reedline_color(style(&sheet, &Element::Prompt(Some(PromptElement::Right))));
+            style_to_color(style(&sheet, &Element::Prompt(Some(PromptElement::Right))));
 
         Ok(Self {
             name,
@@ -209,37 +210,14 @@ fn style<C>(sheet: &Yoke<StyleSheet<'static>, C>, element: &Element) -> Style {
     sheet.get().style(element)
 }
 
-fn reedline_color(spec: Style) -> reedline::Color {
+fn style_to_color(spec: Style) -> Color {
     spec.fg_color
         .map(|c| term_to_reedline(&convert_color(c)))
-        .unwrap_or(reedline::Color::Reset)
+        .unwrap_or(Color::Default)
 }
 
-fn nu_color(spec: Style) -> nu_ansi_term::Color {
-    spec.fg_color
-        .map(|c| term_to_nu(&convert_color(c)))
-        .unwrap_or(nu_ansi_term::Color::Default)
-}
-
-fn term_to_reedline(color: &TermColor) -> reedline::Color {
+fn term_to_reedline(color: &TermColor) -> Color {
     use reedline::Color as C;
-    match *color {
-        TermColor::Black => C::Black,
-        TermColor::Blue => C::Blue,
-        TermColor::Green => C::Green,
-        TermColor::Red => C::Red,
-        TermColor::Cyan => C::Cyan,
-        TermColor::Magenta => C::Magenta,
-        TermColor::Yellow => C::Yellow,
-        TermColor::White => C::White,
-        TermColor::Ansi256(n) => C::AnsiValue(n),
-        TermColor::Rgb(r, g, b) => C::Rgb { r, g, b },
-        _ => C::Reset,
-    }
-}
-
-fn term_to_nu(color: &TermColor) -> nu_ansi_term::Color {
-    use nu_ansi_term::Color as C;
     match *color {
         TermColor::Black => C::Black,
         TermColor::Blue => C::Blue,

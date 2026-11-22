@@ -11,7 +11,7 @@ use dices_man::ManPage;
 use dices_std::Std;
 use dices_values::{Value, null::ValueNull, string::ValueString};
 use itertools::Itertools;
-use rand::{Rng, rngs::OsRng};
+use rand::RngExt;
 use rand_seeder::Seeder;
 use reedline::{Reedline, Signal};
 use snafu::{ResultExt, Snafu};
@@ -125,7 +125,7 @@ fn main_inner(
         if let Some(seed) = seed {
             Seeder::from(seed).make_seed()
         } else {
-            OsRng.r#gen()
+            rand::rng().random()
         },
         Std::new(std_opts.clone()),
     );
@@ -189,7 +189,7 @@ fn main_inner(
             let read = match line_editor.read_line(&prompt).context(ReadLineSnafu)? {
                 Signal::Success(buffer) => buffer,
                 Signal::CtrlD => break,
-                Signal::CtrlC => return Err(Error::Aborted),
+                Signal::CtrlC(_) => return Err(Error::Aborted),
                 Signal::HostCommand(_) => unreachable!(),
                 _ => panic!("Unhandled signal"),
             };

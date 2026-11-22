@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use chrono::Local;
-use reedline::{PromptEditMode, PromptHistorySearchStatus, PromptViMode};
+use reedline::{Color, PromptEditMode, PromptHelixMode, PromptHistorySearchStatus, PromptViMode};
 
 use crate::config::skin::Skin;
 
@@ -29,6 +29,12 @@ impl<'s> Prompt<'s> {
             PromptEditMode::Vi(vi_mode) => match vi_mode {
                 PromptViMode::Normal => normal_prompt.into(),
                 PromptViMode::Insert => ": ".into(),
+                PromptViMode::Visual => "+ ".into(),
+            },
+            PromptEditMode::Helix(hx_mode) => match hx_mode {
+                PromptHelixMode::Normal => normal_prompt.into(),
+                PromptHelixMode::Insert => ": ".into(),
+                PromptHelixMode::Select => "+ ".into(),
             },
             PromptEditMode::Custom(str) => format!("({str})").into(),
         }
@@ -91,19 +97,19 @@ impl reedline::Prompt for Prompt<'_> {
         Self::render_prompt_history_search_indicator(&self, history_search)
     }
 
-    fn get_prompt_color(&self) -> reedline::Color {
+    fn get_prompt_color(&self) -> Color {
         self.0.theme.prompt()
     }
 
-    fn get_prompt_multiline_color(&self) -> nu_ansi_term::Color {
+    fn get_prompt_multiline_color(&self) -> Color {
         self.0.theme.prompt_multiline()
     }
 
-    fn get_indicator_color(&self) -> reedline::Color {
+    fn get_indicator_color(&self) -> Color {
         self.0.theme.prompt_indicator()
     }
 
-    fn get_prompt_right_color(&self) -> reedline::Color {
+    fn get_prompt_right_color(&self) -> Color {
         self.0.theme.prompt_right()
     }
 

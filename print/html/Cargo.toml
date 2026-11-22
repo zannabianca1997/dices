@@ -7,7 +7,7 @@ license.workspace = true
 [dependencies]
 dices-print.workspace = true
 
-html-escape = "0.2"
+html-escape = "0.3"
 pretty.workspace = true
 
 [dev-dependencies]
